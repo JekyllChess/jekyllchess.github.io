@@ -6,3 +6,6 @@ title: JekyllChess
 
 exclude:
 - README.md
+
+plugins:
+  - jekyll-remote-theme
