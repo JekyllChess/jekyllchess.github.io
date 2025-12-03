@@ -1,1 +1,48 @@
-(()=>{"use strict";const e="https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";function t(t,n){const o=t.textContent.trim();if(!o)return;const r="fen-board-"+n,c=document.createElement("div");c.className="fen-board",c.id=r,t.replaceWith(c),Chessboard(r,{position:o,draggable:!1,pieceTheme:e})}function n(e=document){e.querySelectorAll("fen").forEach(((e,o)=>t(e,o)))}function o(){n();new MutationObserver((e=>{e.forEach((e=>{e.addedNodes?.forEach((e=>{1===e.nodeType&&n(e)}))}))})).observe(document.body,{childList:!0,subtree:!0}),window.FENRenderer={run:e=>n(e||document.body)}}"loading"===document.readyState?document.addEventListener("DOMContentLoaded",o):o()})();
+// assets/js/chess/fen.js
+(function () {
+  "use strict";
+
+  const PIECE_THEME_URL =
+    "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
+
+  function renderFENElement(el, index) {
+    const fen = el.textContent.trim();
+    if (!fen) return;
+
+    const id = "fen-board-" + index;
+    const div = document.createElement("div");
+    div.className = "fen-board";
+    div.id = id;
+
+    el.replaceWith(div);
+
+    Chessboard(id, {
+      position: fen,
+      draggable: false,
+      pieceTheme: PIECE_THEME_URL
+    });
+  }
+
+  function renderAll(root = document) {
+    root.querySelectorAll("fen").forEach((el, i) => renderFENElement(el, i));
+  }
+
+  function init() {
+    renderAll();
+
+    const observer = new MutationObserver(muts => {
+      muts.forEach(m => {
+        m.addedNodes?.forEach(n => {
+          if (n.nodeType === 1) renderAll(n);
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.FENRenderer = { run: (r) => renderAll(r || document.body) };
+  }
+
+  document.readyState === "loading"
+    ? document.addEventListener("DOMContentLoaded", init)
+    : init();
+})();
