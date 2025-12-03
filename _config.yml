@@ -1,13 +1,9 @@
-### your site title here
-
 title: JekyllChess
-
-### exclude the instructions / write-up in the README.md
-
+description: A theme for chess blogging with figurine notation, FEN diagrams, and a built-in simple PGN viewer. Requires chess.js and chessboard.js.
+url: "https://jekyllrookpawn.github.io"
 exclude:
 - README.md
-
+markdown: kramdown
 plugins:
   - jekyll-remote-theme
-
 remote_theme: https://github.com/henrythemes/hello-jekyll-theme
