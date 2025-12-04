@@ -666,10 +666,6 @@
   line-height:1.7;
   font-size:1rem;
 }
-.pgn-variation{
-  margin-left:1.5rem;
-  padding-left:0.5rem;
-}
 
 /* Comments */
 .pgn-comment{
