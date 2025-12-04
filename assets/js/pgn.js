@@ -4,7 +4,7 @@ SAN_CORE_REGEX=/^([O0]-[O0](-[O0])?[+#]?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN
 RESULT_REGEX=/^(1-0|0-1|1\/2-1\/2|½-½|\*)$/,
 MOVE_NUMBER_REGEX=/^(\d+)(\.+)$/,
 NBSP="\u00A0",
-EVAL_TOKEN=/^[\+\-=∞±]+$/,
+EVAL_TOKEN=/^[A-Za-z0-9\+\-\=∞⯹]+$/,
 NAG_MAP={1:"!",2:"?",3:"‼",4:"⁇",5:"⁉",6:"⁈",13:"→",14:"↑",15:"⇆",16:"⇄",17:"⟂",18:"∞",19:"⟳",20:"⟲",36:"⩲",37:"⩱",38:"±",39:"∓",40:"+=",41:"=+",42:"±",43:"∓",44:"⨀",45:"⨁"};
 let diagramCounter=0;
 
@@ -24,6 +24,28 @@ function makeCastlingUnbreakable(s){
  return s.replace(/0-0-0|O-O-O/g,m=>m[0]+"\u2011"+m[2]+"\u2011"+m[4])
          .replace(/0-0|O-O/g,m=>m[0]+"\u2011"+m[2]);
 }
+
+//
+// ★★★★★ NEW EVALUATION SYMBOL MAP ★★★★★
+//
+const EVAL_MAP = {
+  "=": "=",
+  "+/=": "⩲",
+  "=/+": "⩱",
+  "+/-": "±",
+  "+/−": "±",
+  "-/+": "∓",
+  "−/+": "∓",
+  "+-": "+−",
+  "+−": "+−",
+  "-+": "−+",
+  "−+": "−+",
+  "∞": "∞",
+  "=/∞": "⯹"
+};
+//
+// ★★★★★ END NEW MAP ★★★★★
+//
 
 class PGNGameView{
  constructor(src){
@@ -211,6 +233,19 @@ class PGNGameView{
          isSAN=PGNGameView.isSANCore(core);
 
      if(!isSAN){
+
+       //
+       // ★★★★★ NEW EVAL TOKEN HANDLING ★★★★★
+       //
+       if (EVAL_MAP[tok]) {
+         this.ensure(ctx, ctx.type==="main" ? "pgn-mainline" : "pgn-variation");
+         appendText(ctx.container, EVAL_MAP[tok] + " ");
+         continue;
+       }
+       //
+       // ★★★★★ END EVAL TOKEN HANDLING ★★★★★
+       //
+
        if(tok[0]==="$"){
          let code=+tok.slice(1); if(NAG_MAP[code]){
            this.ensure(ctx,ctx.type==="main"?"pgn-mainline":"pgn-variation");
@@ -218,8 +253,6 @@ class PGNGameView{
          }
          continue;
        }
-
-       if(EVAL_TOKEN.test(tok)) continue;
 
        if(/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(tok)){
          if(ctx.type==="variation"){
