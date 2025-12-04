@@ -1,11 +1,3 @@
-/* Style for moves and variations in games in posts 
-
-.pgn-variation,.pgn-comment,.pgn-variation .pgn-move{color:#666}.pgn-blog-block,.pgn-blog-block p,.pgn-blog-block .pgn-mainline,.pgn-blog-block .pgn-variation,.pgn-blog-block .pgn-comment,.pgn-blog-block .pgn-move{font-size:inherit!important;line-height:inherit!important}
-
-Optional minimal style for the demo page
-
-.content{margin-bottom:2rem}h1.header{margin:2rem 0} .post-item{margin-bottom:2rem} */
-
 body {padding-top: 2rem}
 a,a:visited,a:hover,a:active{color:#333}
 h1.header img{height:1.5em;margin-right:.5rem}
@@ -19,3 +11,13 @@ h1.header img{height:1.5em;margin-right:.5rem}
 h1, h2, h3, h4 {font-weight: 900;}
 h3.post-item {font-weight: 900;}
 h1.header {font-weight: 900;}
+
+/* Mainline moves should appear bold (weight 600) */
+.sticky-move[data-mainline="1"] {
+  font-weight: 600;
+}
+
+/* Variation moves stay normal weight */
+.sticky-move[data-mainline="0"] {
+  font-weight: 400;
+}
