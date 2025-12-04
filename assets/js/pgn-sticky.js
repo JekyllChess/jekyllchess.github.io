@@ -626,17 +626,19 @@
 /* Moves styling */
 .pgn-mainline,
 .pgn-variation{
-  line-height:1.7;
   font-size:1rem;
 }
+
+.pgn-mainline {
+font-weight: 600;}
+
 .pgn-variation{
-  margin-left:1.5rem;
-  padding-left:0.5rem;
+  margin-left:0;
+  padding-left:0;
 }
 
 /* Comments */
 .pgn-comment{
-  font-style:italic;
   margin:0.3rem 0;
 }
 
@@ -644,7 +646,7 @@
 .sticky-move-active{
   background:#ffe38a;
   border-radius:4px;
-  padding:2px 4px;
+  padding:2px;
 }
 
 /* ----------------------------------------------------
