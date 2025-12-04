@@ -1,7 +1,7 @@
 (function(){ "use strict";
 
 ////////////////////////////////////////////////////////////////////////////////
-// CONSTANTS & REGEXES (identical to pgn.js)
+// CONSTANTS & REGEXES (aligned with pgn.js)
 ////////////////////////////////////////////////////////////////////////////////
 const PIECE_THEME_URL="https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 SAN_CORE_REGEX=/^([O0]-[O0](-[O0])?[+#]?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN])?[+#]?|[a-h][1-8](=[QRBN])?[+#]?)$/,
@@ -28,7 +28,7 @@ const EVAL_MAP={
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// HELPERS (identical to pgn.js)
+// HELPERS (aligned with pgn.js)
 ////////////////////////////////////////////////////////////////////////////////
 function ensureDeps(){
   if(typeof Chess==="undefined"){
@@ -46,12 +46,21 @@ function makeCastlingUnbreakable(s){
           .replace(/0-0|O-O/g,m=>m[0]+"\u2011"+m[2]);
 }
 
+// NEW: strip figurines back to ASCII SAN before parsing
+function stripFigurines(s){
+  return s
+    .replace(/♔/g,"K")
+    .replace(/♕/g,"Q")
+    .replace(/♖/g,"R")
+    .replace(/♗/g,"B")
+    .replace(/♘/g,"N");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
-// PGN STICKY VIEW  — SAME PARSER AS pgn.js
-// except:
+// PGN STICKY VIEW — same parser as pgn.js, with:
 //   - NO [D] diagrams
 //   - ONE sticky board before moves
-//   - moves become .sticky-move
+//   - moves are .pgn-move.sticky-move
 ////////////////////////////////////////////////////////////////////////////////
 
 class PGNStickyView{
@@ -65,10 +74,8 @@ class PGNStickyView{
     this.applyFigurines();
   }
 
-  // identical to pgn.js
   static isSANCore(t){ return SAN_CORE_REGEX.test(t); }
 
-  // identical to pgn.js
   static split(t){
     let lines=t.split(/\r?\n/),H=[],M=[],inH=true;
     for(let L of lines){
@@ -150,13 +157,17 @@ class PGNStickyView{
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // handleSAN — identical to pgn.js except span includes .sticky-move
+  // handleSAN — like pgn.js, but:
+  //  - strips figurines before parsing
+  //  - spans are .pgn-move.sticky-move
   ////////////////////////////////////////////////////////////////////////////
   handleSAN(tok,ctx){
-    let core=tok.replace(/[^a-hKQRBN0-9=O0-]+$/g,"").replace(/0/g,"O");
+    let displayTok=tok;              // keep original for display / figurines
+    let asciiTok=stripFigurines(tok);
 
+    let core=asciiTok.replace(/[^a-hKQRBN0-9=O0-]+$/g,"").replace(/0/g,"O");
     if(!PGNStickyView.isSANCore(core)){
-      appendText(ctx.container,tok+" ");
+      appendText(ctx.container,displayTok+" ");
       return null;
     }
 
@@ -179,22 +190,22 @@ class PGNStickyView{
 
     let mv=ctx.chess.move(core,{sloppy:true});
     if(!mv){
-      appendText(ctx.container,tok+" ");
+      appendText(ctx.container,displayTok+" ");
       return null;
     }
 
     ctx.lastWasInterrupt=false;
 
     let span=document.createElement("span");
-    span.className="pgn-move sticky-move";   // <— difference from pgn.js
+    span.className="pgn-move sticky-move";
     span.dataset.fen=ctx.chess.fen();
-    span.textContent=makeCastlingUnbreakable(tok)+" ";
+    span.textContent=makeCastlingUnbreakable(displayTok)+" ";
     ctx.container.appendChild(span);
     return span;
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // parseComment — identical to pgn.js except NO [D] diagrams
+  // parseComment — same as pgn.js except [D] produces NO diagrams
   ////////////////////////////////////////////////////////////////////////////
   parseComment(text,i,ctx){
     let j=i;
@@ -205,7 +216,7 @@ class PGNStickyView{
     raw=raw.replace(/\[%.*?]/g,"").trim();
     if(!raw.length) return j;
 
-    // sticky PGN DIFFERENCE: remove [D], no diagrams
+    // sticky PGN: remove [D] with no diagrams
     raw=raw.replace(/\[D]/g,"").trim();
 
     if(ctx.type==="main"){
@@ -236,13 +247,15 @@ class PGNStickyView{
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // parse — EXACT pgn.js algorithm, except [D] does nothing
+  // parse — pgn.js core parser, with:
+  //   - figurines stripped before SAN detection
+  //   - [D] ignored
   ////////////////////////////////////////////////////////////////////////////
   parse(t){
     let chess=new Chess(),
         ctx={
           type:"main",
-          chess,chess,
+          chess:chess,
           container:null,
           parent:null,
           lastWasInterrupt:false,
@@ -307,7 +320,7 @@ class PGNStickyView{
 
       if(/^\[%.*]$/.test(tok)) continue;
 
-      // sticky PGN difference: [D] ignored
+      // sticky PGN: [D] is a no-op separator
       if(tok==="[D]"){
         ctx.lastWasInterrupt=true;
         ctx.container=null;
@@ -324,8 +337,9 @@ class PGNStickyView{
 
       if(MOVE_NUMBER_REGEX.test(tok)) continue;
 
-      // token may be SAN
-      let core=tok.replace(/[^a-hKQRBN0-9=O0-]+$/g,"").replace(/0/g,"O"),
+      // token may be SAN — figurines allowed
+      let asciiTok=stripFigurines(tok),
+          core=asciiTok.replace(/[^a-hKQRBN0-9=O0-]+$/g,"").replace(/0/g,"O"),
           isSAN=PGNStickyView.isSANCore(core);
 
       if(!isSAN){
@@ -375,7 +389,7 @@ class PGNStickyView{
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // Figurines — identical to pgn.js
+  // Figurines — identical to pgn.js (same behavior)
   ////////////////////////////////////////////////////////////////////////////
   applyFigurines(){
     const map={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
@@ -414,7 +428,7 @@ const StickyBoard={
 
     this.moveSpans.forEach(s=>s.classList.remove("sticky-move-active"));
     span.classList.add("sticky-move-active");
-    span.scrollIntoView({behavior:"smooth",block:"center"});
+    span.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
   },
 
   next(){ this.goto(this.currentIndex+1); },
@@ -424,6 +438,7 @@ const StickyBoard={
     this.collectMoves(root);
     this.moveSpans.forEach((span,i)=>{
       span.addEventListener("click",()=>this.goto(i));
+      span.style.cursor="pointer";
     });
     window.addEventListener("keydown",e=>{
       let tag=(e.target.tagName||"").toLowerCase();
