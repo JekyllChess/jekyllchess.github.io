@@ -1,9 +1,11 @@
 {% for post in site.posts %}
 
 <div class="post-block">
-  <h3><a href="{{ site.path }}{{ post.url }}">{{ post.title }}</a></h3>
-  <fen>{{ post.FEN }}</fen>
-  {{ post.excerpt }}
+  <div class="post-item">
+    <h3><a href="{{ site.path }}{{ post.url }}">{{ post.title }}</a></h3>
+    <fen>{{ post.FEN }}</fen>
+    {{ post.excerpt }}
+  </div>
 </div>
 
 {% endfor %}
