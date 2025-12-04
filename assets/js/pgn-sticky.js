@@ -667,9 +667,12 @@
   font-size:1rem;
 }
 
+.pgn-mainline {
+  font-weight:600;
+}
+
 /* Comments */
 .pgn-comment{
-  font-style:italic;
   margin:0.3rem 0;
 }
 
