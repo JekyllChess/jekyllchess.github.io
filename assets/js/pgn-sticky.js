@@ -1,11 +1,9 @@
 // ============================================================================
-// pgn-sticky.js (MOBILE-FIRST + RESPONSIVE)
-// Two-column PGN renderer matching pgn.js behavior exactly.
-// Mobile: becomes rows (header → board → list).
-// Desktop: two columns.
-// Header is sticky ABOVE columns.
-// Left column (board+buttons) is sticky on desktop, normal on mobile.
-// Figurines normalized. No [D] diagrams.
+// pgn-sticky.js (FINAL, MOBILE-FIRST, STICKY HEADER + STICKY BOARD)
+// Mobile: header sticky @ top:0, board+buttons sticky @ top:4rem
+// Desktop: header sticky @ top:1rem, board sticky @ top:6rem
+// Two-column desktop, stacked rows mobile.
+// Identical parsing to pgn.js, figurine normalization, no [D] diagrams.
 // ============================================================================
 
 (function () {
@@ -123,7 +121,7 @@
         inH = true;
       for (let L of lines) {
         let T = L.trim();
-        if (inH && T.startsWith("[") && T.endsWith("]")) H.push(L);
+        if (inH && T.startsWith("[") && T.endsendsWith("]")) H.push(L);
         else if (inH && T === "") inH = false;
         else {
           inH = false;
@@ -544,7 +542,7 @@
   };
 
   // --------------------------------------------------------------------------
-  // CSS (mobile-first)
+  // CSS (MOBILE-FIRST with mobile sticky board)
   // --------------------------------------------------------------------------
   const style = document.createElement("style");
   style.textContent = `
@@ -557,16 +555,16 @@
   margin-bottom:2rem;
 }
 
-/* Header is sticky at top */
+/* Sticky Header – mobile tighter */
 .pgn-sticky-header{
   position:sticky;
-  top:1rem;
+  top:0rem;
   background:#fff;
   z-index:80;
   padding-bottom:0.4rem;
 }
 
-/* MOBILE: columns become rows */
+/* MOBILE: stacked rows */
 .pgn-sticky-cols{
   display:flex;
   flex-direction:column;
@@ -574,9 +572,13 @@
   margin-top:1rem;
 }
 
-/* Left column (board/buttons) – non-sticky on mobile */
+/* MOBILE: left column is ALSO sticky */
 .pgn-sticky-left{
+  position:sticky;
+  top:4rem;        /* Tighter mobile spacing */
   background:#fff;
+  z-index:70;
+  align-self:start;
 }
 
 /* Board */
@@ -603,7 +605,7 @@
   border-radius:4px;
 }
 
-/* Moves scroll naturally on mobile */
+/* Move list scrolls naturally under sticky items */
 .pgn-sticky-right{
   max-height:none;
   overflow-y:visible;
@@ -638,15 +640,16 @@
    DESKTOP (>=768px)
 ---------------------------------------------------- */
 @media (min-width:768px){
+  .pgn-sticky-header{
+    top:1rem;
+  }
   .pgn-sticky-cols{
     display:grid;
     grid-template-columns:340px 1fr;
     gap:2rem;
   }
   .pgn-sticky-left{
-    position:sticky;
     top:6rem;
-    align-self:start;
   }
   .pgn-sticky-right{
     max-height:calc(100vh - 7rem);
