@@ -1,10 +1,11 @@
 // ============================================================================
-// pgn-sticky.js (FINAL)
-// Two-column sticky PGN renderer matching pgn.js rendering exactly.
-// Header is sticky ABOVE the columns. Left column (board+buttons) is sticky.
-// Right column (moves/comments/variations) scroll independently.
-// Figurines (♘, ♕, etc.) are converted to SAN before parsing.
-// No [D] diagrams created here.
+// pgn-sticky.js (MOBILE-FIRST + RESPONSIVE)
+// Two-column PGN renderer matching pgn.js behavior exactly.
+// Mobile: becomes rows (header → board → list).
+// Desktop: two columns.
+// Header is sticky ABOVE columns.
+// Left column (board+buttons) is sticky on desktop, normal on mobile.
+// Figurines normalized. No [D] diagrams.
 // ============================================================================
 
 (function () {
@@ -99,7 +100,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // StickyPGNView
+  // StickyPGNView (EXACT behavior of pgn.js)
   // --------------------------------------------------------------------------
   class StickyPGNView {
     constructor(src) {
@@ -146,33 +147,33 @@
         needs = / (1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(M),
         movetext = needs ? M : M + (res ? " " + res : "");
 
-      // ===== Sticky header (OUTSIDE the 2 columns) =====
+      // ===== Sticky header above everything =====
       this.headerDiv = document.createElement("div");
       this.headerDiv.className = "pgn-sticky-header";
       this.wrapper.appendChild(this.headerDiv);
 
       this.headerDiv.appendChild(this.buildHeaderContent(head));
 
-      // ===== Two-column layout =====
+      // ===== Two-column or row layout (mobile-first) =====
       const cols = document.createElement("div");
       cols.className = "pgn-sticky-cols";
       this.wrapper.appendChild(cols);
 
-      // Left sticky column
+      // Left: board + buttons
       this.leftCol = document.createElement("div");
       this.leftCol.className = "pgn-sticky-left";
       cols.appendChild(this.leftCol);
 
-      // Right scroll column
+      // Right: moves/comments
       this.movesCol = document.createElement("div");
       this.movesCol.className = "pgn-sticky-right";
       cols.appendChild(this.movesCol);
 
-      // Board + buttons in left sticky column
+      // Board + buttons
       this.createStickyBoard();
       this.createStickyButtons();
 
-      // Parse moves/comments/variations into right column
+      // Parse move text
       this.parse(movetext);
 
       this.sourceEl.replaceWith(this.wrapper);
@@ -250,7 +251,6 @@
       raw = raw.replace(/\[%.*?]/g, "").trim();
       if (!raw.length) return j;
 
-      // Remove trailing results inside comments
       if (ctx.type === "main") {
         let k = j;
         while (k < text.length && /\s/.test(text[k])) k++;
@@ -283,7 +283,6 @@
           }
           ctx.container = null;
         }
-        // [D] diagrams intentionally NOT created here.
       }
 
       ctx.lastWasInterrupt = true;
@@ -393,7 +392,6 @@
           continue;
         }
 
-        // Token
         let s = i;
         while (
           i < t.length &&
@@ -407,7 +405,6 @@
         if (/^\[%.*]$/.test(tok)) continue;
 
         if (tok === "[D]") {
-          // ignored
           ctx.lastWasInterrupt = true;
           ctx.container = null;
           continue;
@@ -429,14 +426,12 @@
           isSAN = StickyPGNView.isSANCore(core);
 
         if (!isSAN) {
-          // EVAL
           if (EVAL_MAP[tok]) {
             this.ensure(ctx, ctx.type === "main" ? "pgn-mainline" : "pgn-variation");
             appendText(ctx.container, EVAL_MAP[tok] + " ");
             continue;
           }
 
-          // NAG
           if (tok[0] === "$") {
             let code = +tok.slice(1);
             if (NAG_MAP[code]) {
@@ -446,7 +441,6 @@
             continue;
           }
 
-          // Words
           if (/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(tok)) {
             if (ctx.type === "variation") {
               this.ensure(ctx, "pgn-variation");
@@ -466,7 +460,6 @@
           continue;
         }
 
-        // SAN move
         this.ensure(ctx, ctx.type === "main" ? "pgn-mainline" : "pgn-variation");
         let m = this.handleSAN(tok, ctx);
         if (!m) appendText(ctx.container, makeCastlingUnbreakable(tok) + " ");
@@ -551,16 +544,20 @@
   };
 
   // --------------------------------------------------------------------------
-  // CSS
+  // CSS (mobile-first)
   // --------------------------------------------------------------------------
   const style = document.createElement("style");
   style.textContent = `
+
+/* ----------------------------------------------------
+   Base layout (MOBILE-FIRST)
+---------------------------------------------------- */
 .pgn-sticky-block{
   background:#fff;
   margin-bottom:2rem;
 }
 
-/* Sticky header ABOVE columns */
+/* Header is sticky at top */
 .pgn-sticky-header{
   position:sticky;
   top:1rem;
@@ -569,18 +566,16 @@
   padding-bottom:0.4rem;
 }
 
-/* Columns */
+/* MOBILE: columns become rows */
 .pgn-sticky-cols{
-  display:grid;
-  grid-template-columns:340px 1fr;
-  gap:2rem;
+  display:flex;
+  flex-direction:column;
+  gap:1.5rem;
+  margin-top:1rem;
 }
 
-/* Left column sticky */
+/* Left column (board/buttons) – non-sticky on mobile */
 .pgn-sticky-left{
-  position:sticky;
-  top:6rem;
-  align-self:start;
   background:#fff;
 }
 
@@ -591,7 +586,7 @@
   margin-top:0.5rem;
 }
 
-/* Buttons, centered relative to board */
+/* Buttons centered */
 .pgn-sticky-buttons{
   width:320px;
   display:flex;
@@ -608,10 +603,10 @@
   border-radius:4px;
 }
 
-/* Right column scroll */
+/* Moves scroll naturally on mobile */
 .pgn-sticky-right{
-  max-height:calc(100vh - 7rem);
-  overflow-y:auto;
+  max-height:none;
+  overflow-y:visible;
   padding-right:0.5rem;
 }
 
@@ -632,17 +627,37 @@
   margin:0.3rem 0;
 }
 
-/* Active move highlight */
+/* Move highlight */
 .sticky-move-active{
   background:#ffe38a;
   border-radius:4px;
   padding:2px 4px;
 }
+
+/* ----------------------------------------------------
+   DESKTOP (>=768px)
+---------------------------------------------------- */
+@media (min-width:768px){
+  .pgn-sticky-cols{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:2rem;
+  }
+  .pgn-sticky-left{
+    position:sticky;
+    top:6rem;
+    align-self:start;
+  }
+  .pgn-sticky-right{
+    max-height:calc(100vh - 7rem);
+    overflow-y:auto;
+  }
+}
 `;
   document.head.appendChild(style);
 
   // --------------------------------------------------------------------------
-  // Init on load
+  // DOM Ready
   // --------------------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const els = document.querySelectorAll("pgn-sticky");
