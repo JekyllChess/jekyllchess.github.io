@@ -439,12 +439,10 @@ style.textContent=`
 /* Sticky Header+Board block */
 .pgn-sticky-headerblock{
   position:sticky;
-  top:1rem;
+  top:0;
   z-index:100;
   background:#ffffff; /* Important: solid background */
-  padding:0.5rem 0 1rem 0;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-  border-bottom:2px solid #eee; /* clean separation */
+  padding:1rem 0 1rem 0;
 }
 
 /* Title */
