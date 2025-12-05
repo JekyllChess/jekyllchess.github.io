@@ -699,7 +699,7 @@
     top:6rem;
   }
   .pgn-sticky-right{
-    max-height:calc(100vh - 7rem);
+    max-height:calc(100vh - 14rem);
     overflow-y:auto;
   }
 }
