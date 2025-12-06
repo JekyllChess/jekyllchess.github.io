@@ -605,11 +605,7 @@
 
 /* Sticky Header – tight mobile */
 .pgn-sticky-header{
-  position:sticky;
-  top:0rem;
-  background:#fff;
-  z-index:80;
-  padding-bottom:0.4rem;
+  padding-bottom:0.5rem;
 }
 
 /* MOBILE: stacked rows */
