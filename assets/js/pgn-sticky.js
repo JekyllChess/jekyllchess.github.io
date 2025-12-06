@@ -702,7 +702,6 @@
     top: 6rem;
     align-items: flex-start;
     padding: 0;
-    background: transparent;
   }
 
   .pgn-sticky-board,
@@ -712,7 +711,7 @@
   }
 
   .pgn-sticky-right {
-    max-height: 350px;
+    height: 350px;
     overflow-y: auto;
   }
 }
