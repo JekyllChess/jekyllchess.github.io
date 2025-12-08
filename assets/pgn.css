@@ -31,7 +31,7 @@
 }
 
 /* Bold mainline, normal-weight variations for <pgn> */
-.pgn-blog-block .pgn-mainline .pgn-move {
+.pgn-blog-block .pgn-mainline {
   font-weight: 600;
 }
 
