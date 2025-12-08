@@ -1,82 +1,40 @@
+// ============================================================================
+// pgn.js
+// Renders <pgn> elements as blog blocks with diagrams ([D]), comments,
+// variations, figurines, and bold mainline moves.
+// Shares core helpers with pgn-reader.js via pgn-core.js
+// ============================================================================
+
 (function () {
   "use strict";
 
-  const PIECE_THEME_URL =
-    "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
+  if (typeof Chess === "undefined") {
+    console.warn("pgn.js: chess.js missing");
+    return;
+  }
 
-  const SAN_CORE_REGEX =
-    /^([O0]-[O0](-[O0])?[+#]?|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN])?[+#]?|[a-h][1-8](=[QRBN])?[+#]?)$/;
+  if (typeof PGNCore === "undefined") {
+    console.warn("pgn.js: PGNCore (pgn-core.js) missing");
+    return;
+  }
 
-  const RESULT_REGEX = /^(1-0|0-1|1\/2-1\/2|½-½|\*)$/;
-  const MOVE_NUMBER_REGEX = /^(\d+)(\.+)$/;
-  const NBSP = "\u00A0";
-
-  const NAG_MAP = {
-    1: "!", 2: "?", 3: "‼", 4: "⁇", 5: "⁉", 6: "⁈",
-    13: "→", 14: "↑", 15: "⇆", 16: "⇄",
-    17: "⟂", 18: "∞", 19: "⟳", 20: "⟲",
-    36: "⩲", 37: "⩱", 38: "±", 39: "∓",
-    40: "+=", 41: "=+", 42: "±", 43: "∓",
-    44: "⨀", 45: "⨁"
-  };
-
-  const EVAL_MAP = {
-    "=": "=",
-    "+/=": "⩲",
-    "=/+": "⩱",
-    "+/-": "±",
-    "+/−": "±",
-    "-/+": "∓",
-    "−/+": "∓",
-    "+-": "+−",
-    "+−": "+−",
-    "-+": "−+",
-    "−+": "−+",
-    "∞": "∞",
-    "=/∞": "⯹"
-  };
+  const {
+    PIECE_THEME_URL,
+    SAN_CORE_REGEX,
+    RESULT_REGEX,
+    MOVE_NUMBER_REGEX,
+    NBSP,
+    NAG_MAP,
+    EVAL_MAP,
+    normalizeResult,
+    extractYear,
+    flipName,
+    normalizeFigurines,
+    appendText,
+    makeCastlingUnbreakable
+  } = PGNCore;
 
   let diagramCounter = 0;
-
-  function ensureDeps() {
-    if (typeof Chess === "undefined") {
-      console.warn("pgn.js: chess.js missing");
-      return false;
-    }
-    return true;
-  }
-
-  function normalizeResult(r) {
-    return r ? r.replace(/1\/2-1\/2/g, "½-½") : "";
-  }
-
-  function extractYear(d) {
-    if (!d) return "";
-    let p = d.split(".");
-    return /^\d{4}$/.test(p[0]) ? p[0] : "";
-  }
-
-  function flipName(n) {
-    if (!n) return "";
-    let i = n.indexOf(",");
-    return i === -1
-      ? n.trim()
-      : n.slice(i + 1).trim() + " " + n.slice(0, i).trim();
-  }
-
-  // Normalize figurines (♘ → N etc.) before parsing
-  function normalizeFigurines(text) {
-    return text
-      .replace(/♔/g, "K")
-      .replace(/♕/g, "Q")
-      .replace(/♖/g, "R")
-      .replace(/♗/g, "B")
-      .replace(/♘/g, "N");
-  }
-
-  function appendText(el, txt) {
-    if (txt) el.appendChild(document.createTextNode(txt));
-  }
 
   function createDiagram(w, fen) {
     if (typeof Chessboard === "undefined") {
@@ -102,15 +60,6 @@
     }, 0);
   }
 
-  function makeCastlingUnbreakable(s) {
-    return s
-      .replace(/0-0-0|O-O-O/g, m => m[0] + "\u2011" + m[2] + "\u2011" + m[4])
-      .replace(/0-0|O-O/g, m => m[0] + "\u2011" + m[2]);
-  }
-
-  // --------------------------------------------------------------------------
-  // PGNGameView
-  // --------------------------------------------------------------------------
   class PGNGameView {
     constructor(src) {
       this.sourceEl = src;
@@ -236,7 +185,6 @@
           ctx.container = null;
         }
 
-        // between parts, create a diagram (mainline diagrams only)
         if (idx < parts.length - 1) {
           createDiagram(this.wrapper, ctx.chess.fen());
         }
@@ -362,7 +310,6 @@
 
         if (/^\[%.*]$/.test(tok)) continue;
 
-        // [D] in move text: create diagram using current mainline FEN
         if (tok === "[D]") {
           createDiagram(this.wrapper, ctx.chess.fen());
           ctx.lastWasInterrupt = true;
@@ -456,9 +403,6 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // PGNRenderer
-  // --------------------------------------------------------------------------
   class PGNRenderer {
     static renderAll(r) {
       (r || document)
@@ -466,7 +410,6 @@
         .forEach(el => new PGNGameView(el));
     }
     static init() {
-      if (!ensureDeps()) return;
       PGNRenderer.renderAll(document);
       window.PGNRenderer = {
         run(r) {
@@ -476,46 +419,6 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // TYPOGRAPHY: match pgn-reader-right, but ONLY for moves/comments
-  // --------------------------------------------------------------------------
-  const style = document.createElement("style");
-  style.textContent = `
-
-/* Mainline moves and variation moves in <pgn> blocks:
-   same rhythm as .pgn-reader-right */
-
-.pgn-blog-block .pgn-mainline,
-.pgn-blog-block .pgn-variation,
-.pgn-blog-block .pgn-comment {
-  line-height: 1.55;
-  margin-top: 0;
-  margin-bottom: 0.35rem;
-  padding: 0;
-}
-
-/* Comments: same tweak as in pgn-reader */
-.pgn-blog-block .pgn-comment {
-  font-style: italic;
-  margin: 0.35rem 0;
-  line-height: 1.5;
-}
-
-/* Bold mainline moves, normal variation moves */
-.pgn-blog-block .pgn-mainline .pgn-move {
-  font-weight: 600;
-}
-
-.pgn-blog-block .pgn-variation .pgn-move {
-  font-weight: 400;
-}
-
-`;
-  document.head.appendChild(style);
-
-  // --------------------------------------------------------------------------
-  // DOM Ready
-  // --------------------------------------------------------------------------
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => PGNRenderer.init());
   } else {
