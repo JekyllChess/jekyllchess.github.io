@@ -78,7 +78,6 @@
       : n.slice(i + 1).trim() + " " + n.slice(0, i).trim();
   }
 
-  // Normalize figurines (♘ → N etc.) before parsing
   function normalizeFigurines(text) {
     return text
       .replace(/♔/g, "K")
@@ -98,6 +97,9 @@
       .replace(/0-0|O-O/g, m => m[0] + "\u2011" + m[2]);
   }
 
+  // --------------------------------------------------------------------------
+  // ReaderPGNView
+  // --------------------------------------------------------------------------
   class ReaderPGNView {
     constructor(src) {
       this.sourceEl = src;
@@ -146,13 +148,11 @@
         needs = / (1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(M),
         movetext = needs ? M : M + (res ? " " + res : "");
 
-      // Header (non-reader on mobile & desktop)
       this.headerDiv = document.createElement("div");
       this.headerDiv.className = "pgn-reader-header";
       this.wrapper.appendChild(this.headerDiv);
       this.headerDiv.appendChild(this.buildHeaderContent(head));
 
-      // Two-column wrapper
       const cols = document.createElement("div");
       cols.className = "pgn-reader-cols";
       this.wrapper.appendChild(cols);
@@ -165,11 +165,9 @@
       this.movesCol.className = "pgn-reader-right";
       cols.appendChild(this.movesCol);
 
-      // Create board + navigation buttons
       this.createReaderBoard();
       this.createReaderButtons();
 
-      // Parse moves
       this.parse(movetext);
 
       this.sourceEl.replaceWith(this.wrapper);
@@ -602,7 +600,7 @@
 
 /* MOBILE: reader board, centered */
 .pgn-reader-left {
-  position: reader;
+  position: sticky;
   top: 0rem;
   background: #fff;
   z-index: 70;
@@ -682,7 +680,6 @@
 ---------------------------------------------------- */
 @media (min-width: 768px) {
 
-  /* DESKTOP: header NOT reader anymore */
   .pgn-reader-header {
     position: static;
     top: auto;
@@ -712,32 +709,30 @@
     overflow-y: auto;
   }
 
-  /* Standardize all text in the right column */
-.pgn-reader-right * {
-    line-height: 1.55;    /* consistent row height */
-    margin-top: 0;        /* remove weird spacing above */
-    margin-bottom: 0.35rem; /* small rhythm */
-    padding: 0;           /* ensures no internal offsets */
-}
+  /* Standard spacing */
+  .pgn-reader-right * {
+    line-height: 1.55;
+    margin-top: 0;
+    margin-bottom: 0.35rem;
+    padding: 0;
+  }
 
-/* Fine-tune comments */
-.pgn-reader-right .pgn-comment {
+  .pgn-reader-right .pgn-comment {
     margin: 0.35rem 0;
     line-height: 1.5;
-}
+  }
 
-/* Fine-tune main line moves (bold) */
-.pgn-reader-right .pgn-mainline {
+  /* NEW: BOLD MAINLINE MOVES */
+  .pgn-mainline .reader-move {
     font-weight: 600;
-}
+  }
 
-/* Variation moves (normal weight) */
-.pgn-reader-right .pgn-variation {
+  /* NEW: VARIATION MOVES NORMAL WEIGHT */
+  .pgn-variation .reader-move {
     font-weight: 400;
-}
+  }
 
 }
-
 `;
   document.head.appendChild(style);
 
