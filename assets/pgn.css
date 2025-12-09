@@ -1,0 +1,219 @@
+/* ============================================================================
+   pgn.css  (ANIMATION-SAFE VERSION)
+   - Works with pgn.js and pgn-reader.js
+   - Does NOT interfere with Chessboard.js animation system
+   - No wildcard selectors touching the board
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   BASIC GAME BLOCK
+--------------------------------------------------------------------------- */
+
+.pgn-blog-block {
+  background: #fff;
+  margin-bottom: 2rem;
+}
+
+.pgn-blog-block h4 {
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------------
+   TEXT FLOW (SAFE SELECTORS — DO NOT AFFECT CHESSBOARD.JS)
+--------------------------------------------------------------------------- */
+
+.pgn-mainline,
+.pgn-variation {
+  font-size: 1rem;
+  line-height: 1.55;
+  margin: 0 0 0.35rem 0;
+  padding: 0;
+}
+
+/* Bold full mainline: numbers + moves */
+.pgn-mainline {
+  font-weight: 600;
+}
+
+/* Variations normal weight */
+.pgn-variation {
+  font-weight: 400;
+}
+
+/* Comments */
+.pgn-comment {
+  margin: 0.35rem 0;
+  padding: 0;
+  font-style: italic;
+}
+
+/* Individual moves */
+.pgn-move {
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   DIAGRAMS (STATIC, FOR <pgn>)
+--------------------------------------------------------------------------- */
+
+.pgn-diagram {
+  width: 350px;
+  max-width: 100%;
+  margin: 0.75rem 0;
+}
+
+/* ---------------------------------------------------------------------------
+   PGN-READER (ANIMATION-SAFE LAYOUT)
+--------------------------------------------------------------------------- */
+
+/* MOBILE-FIRST */
+.pgn-reader-block {
+  background: #fff;
+  margin-bottom: 2rem;
+}
+
+/* Header */
+.pgn-reader-header {
+  position: static;   /* NOT sticky – safe */
+  background: #fff;
+  padding-bottom: 0.4rem;
+}
+
+/* MOBILE: stacked */
+.pgn-reader-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* MOBILE: reader left column */
+.pgn-reader-left {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;  /* center board on mobile */
+  margin: 0;
+  padding: 0.3rem 0;
+  background: #fff;
+}
+
+/* BOARD — IMPORTANT: no width forcing */
+.pgn-reader-board {
+  max-width: 100%;
+  margin: 0 auto;
+  background: #fff;
+
+  /* MOBILE: sticky board ONLY (safe) */
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+/* Buttons */
+.pgn-reader-buttons {
+  width: 320px;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0.2rem auto 0 auto;
+  background: #fff;
+}
+
+.pgn-reader-btn {
+  font-size: 1.2rem;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Moves list */
+.pgn-reader-right {
+  max-height: none;
+  overflow-y: visible;
+  padding-right: 0.5rem;
+}
+
+.pgn-reader-right p,
+.pgn-reader-right span {
+  line-height: 1.55;
+  margin: 0 0 0.35rem 0;
+  padding: 0;
+}
+
+.pgn-reader-right .pgn-comment {
+  margin: 0.35rem 0;
+  line-height: 1.5;
+}
+
+/* Highlight current move */
+.reader-move-active {
+  background: #ffe38a;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   DESKTOP VIEW
+--------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .pgn-reader-header {
+    position: static;
+  }
+
+  .pgn-reader-cols {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 2rem;
+  }
+
+  .pgn-reader-left {
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  /* Board NOT sticky on desktop */
+  .pgn-reader-board {
+    position: static;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .pgn-reader-buttons {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .pgn-reader-right {
+    height: 350px;
+    overflow-y: auto;
+  }
+
+  /* Standardize spacing for desktop */
+  .pgn-reader-right p,
+  .pgn-reader-right span {
+    line-height: 1.55;
+    margin-top: 0;
+    margin-bottom: 0.35rem;
+    padding: 0;
+  }
+
+  .pgn-reader-right .pgn-comment {
+    margin: 0.35rem 0;
+  }
+
+  /* Bold mainline move numbers + moves */
+  .pgn-mainline .reader-move {
+    font-weight: 600;
+  }
+
+  /* Variations: normal */
+  .pgn-variation .reader-move {
+    font-weight: 400;
+  }
+}
