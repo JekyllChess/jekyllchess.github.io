@@ -1,25 +1,25 @@
 /* ============================================================================
-   pgn.css  — FIXED BOARD SIZE VERSION (Animation Safe)
+   pgn.css — FIXED BOARD SIZE + BEAUTIFUL BUTTONS
    ============================================================================ */
 
-/* Prevent any global font-size or flex rules from shrinking the board */
+/* Prevent REM shrink issues */
 .pgn-reader-board,
 .pgn-diagram,
 .pgn-reader-left .pgn-reader-board,
 .pgn-reader-left .pgn-reader-buttons {
   flex-shrink: 0 !important;
-  font-size: 0 !important;      /* prevents REM-based collapse */
-  line-height: 0 !important;    /* prevents unexpected shrink */
+  font-size: 0 !important;
+  line-height: 0 !important;
 }
 
-/* Ensure the board grows to its natural width */
+/* Perfect board size */
 .pgn-reader-board {
-  width: 320px;                 /* default mobile size */
+  width: 320px;
   max-width: 100%;
   display: block;
 }
 
-/* Static PGN diagrams also need to resist REM scaling */
+/* Static PGN diagrams */
 .pgn-diagram {
   width: 350px;
   max-width: 100%;
@@ -28,7 +28,7 @@
 }
 
 /* ============================================================================
-   REMAINDER OF THE FILE (unchanged)
+   Reader Layout + Typography
    ============================================================================ */
 
 .pgn-blog-block {
@@ -50,7 +50,7 @@
   padding: 0;
 }
 
-/* Bold entire mainline */
+/* Bold main line */
 .pgn-mainline {
   font-weight: 600;
 }
@@ -68,7 +68,10 @@
   white-space: nowrap;
 }
 
-/* MOBILE-FIRST LAYOUT ------------------------------------------------------- */
+/* ============================================================================
+   MOBILE-FIRST LAYOUT
+   ============================================================================ */
+
 .pgn-reader-block {
   background: #fff;
   margin-bottom: 2rem;
@@ -97,24 +100,50 @@
   background: #fff;
 }
 
+/* ============================================================================
+   BEAUTIFUL BUTTONS — NEW
+   ============================================================================ */
+
 .pgn-reader-buttons {
   width: 320px;
   max-width: 100%;
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin: 0.2rem auto 0 auto;
+  gap: 0.6rem;
+  margin: 0.6rem auto 0 auto;   /* ← Added subtle top margin */
+  padding: 0;
   background: #fff;
+  font-size: 0 !important;       /* Avoid REM shrink */
 }
 
 .pgn-reader-btn {
-  font-size: 1.2rem;
-  padding: 0.2rem 0.6rem;
-  cursor: pointer;
-  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;                   /* Small, elegant */
+  height: 28px;
+
+  font-size: 18px;               /* Arrow size */
+  line-height: 1;
+  font-weight: 600;
+
+  background: #fafafa;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 5px;
+
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
+
+.pgn-reader-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+/* ============================================================================
+   MOVES AREA (MOBILE)
+   ============================================================================ */
 
 .pgn-reader-right {
   max-height: none;
@@ -135,7 +164,9 @@
   padding: 2px 4px;
 }
 
-/* DESKTOP ------------------------------------------------------------------- */
+/* ============================================================================
+   DESKTOP (≥768px)
+   ============================================================================ */
 @media (min-width: 768px) {
   .pgn-reader-cols {
     display: grid;
@@ -149,7 +180,6 @@
   }
 
   .pgn-reader-board {
-    position: static;
     margin-left: 0;
     margin-right: 0;
   }
@@ -165,12 +195,12 @@
     margin-bottom: 0.35rem;
   }
 
-  /* Bold mainline move numbers + moves */
+  /* Bold mainline moves */
   .pgn-mainline .reader-move {
     font-weight: 600;
   }
 
-  /* Variation moves normal */
+  /* Variations normal */
   .pgn-variation .reader-move {
     font-weight: 400;
   }
