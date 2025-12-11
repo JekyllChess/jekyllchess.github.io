@@ -260,11 +260,11 @@ function initRemotePackLazy(container, url) {
   controls.style.marginTop = "10px";
 
   const prevBtn = document.createElement("button");
-  prevBtn.className = "btn btn-sm btn-secondary";
+  prevBtn.className = "btn btn-sm btn-primary";
   prevBtn.textContent = "Previous";
 
   const nextBtn = document.createElement("button");
-  nextBtn.className = "btn btn-sm btn-secondary";
+  nextBtn.className = "btn btn-sm btn-primary";
   nextBtn.textContent = "Next";
 
   controls.append(prevBtn, nextBtn);
