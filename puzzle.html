@@ -4,57 +4,67 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JekyllChess</title>
-  <meta name="description" content="JekyllChess is a minimal-CSS Jekyll starter theme for chess blogging. Features figurine notation, FEN (Forsyth–Edwards Notation) diagrams, and a simple PGN viewer. Built on chess.js and chessboard.js libraries.">
-  <link rel="canonical" href="https://jekyllchess.github.io/">
-  <!-- Bootstrap for minimal css code -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous"> 
-  <!-- Google font for demo -->
+  <title>JekyllChess Puzzle Loader</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
-  <link rel="stylesheet" href="https://jekyllchess.github.io/assets/hotfix.css">
-  <link rel="stylesheet" href="https://jekyllchess.github.io/assets/pgn.css">
-  <link rel="stylesheet" href="https://jekyllchess.github.io/assets/style.css">
-  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;700&display=swap" rel="stylesheet">
+
+  <!-- ✅ Correct chessboard.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.css">
+
+  <style>
+    body { font-family: Raleway, Arial; padding: 20px; }
+    #status { margin-top: 20px; font-size: 20px; }
+    #puzzleNum { margin-top: 10px; }
+    textarea { width: 400px; height: 150px; }
+  </style>
 </head>
 
-<style>
-  body { font-family: Arial; padding: 20px; }
-  #status { margin-top: 20px; font-size: 20px; }
-  #puzzleNum { margin-top: 10px; }
-  textarea { width: 400px; height: 150px; }
-</style>
 <body>
 
 <h2>Chess Puzzle Loader</h2>
 
-<h3>Load from remote PGN</h3>
-<input type="text" id="pgnUrl" placeholder="https://url.com/puzzles.pgn" style="width: 400px;">
-<button id="loadPgnBtn">Load PGN</button>
+<h3>Load from Remote PGN</h3>
+<input type="text" id="pgnUrl" placeholder="https://example.com/puzzles.pgn" style="width: 400px;">
+<button id="loadPgnBtn" class="btn btn-primary btn-sm">Load PGN</button>
 
-<h3>Load from Markdown</h3>
+<h3 class="mt-4">Load from Markdown</h3>
 <textarea id="mdInput" placeholder="<puzzle>FEN: ... Solution: ...</puzzle>"></textarea>
 <br>
-<button id="loadMdBtn">Load Markdown</button>
+<button id="loadMdBtn" class="btn btn-secondary btn-sm mt-2">Load Markdown</button>
 
 <hr>
 
-<button id="nextBtn" disabled>Next Puzzle</button>
+<button id="nextBtn" class="btn btn-success btn-sm" disabled>Next Puzzle</button>
 <div id="puzzleNum"></div>
 
 <div id="board" style="width: 400px;"></div>
 <div id="status"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<!-- ============================= -->
+<!-- JS LIBRARIES -->
+<!-- ============================= -->
+
+<!-- jQuery (required by chessboard.js if using animations) -->
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+<!-- chess.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+
+<!-- ✅ Correct chessboard.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/chessboard.min.js"></script>
+
+<!-- (Optional) Your extra helpers -->
 <script src="https://jekyllchess.github.io/assets/js/figurine.js"></script>
 <script src="https://jekyllchess.github.io/assets/js/fen.js"></script>
 
 <script>
 // ---------------------------------------------------
-// PARSE PGN PUZZLE PACK
+// PGN PARSER
 // ---------------------------------------------------
 function parsePGNPuzzles(pgnText) {
     const puzzleTexts = pgnText.split(/\n\n(?=\[FEN)/g);
@@ -81,7 +91,7 @@ function parsePGNPuzzles(pgnText) {
 }
 
 // ---------------------------------------------------
-// PARSE MARKDOWN PUZZLES
+// MARKDOWN PUZZLE PARSER
 // ---------------------------------------------------
 function parseMarkdownPuzzles(md) {
     const regex = /<puzzle>([\s\S]*?)<\/puzzle>/g;
@@ -162,7 +172,6 @@ function onDrop(source, target) {
     document.getElementById("status").innerHTML = "✅ Correct!";
     step++;
 
-    // Opponent reply
     if (step < puzzleUCI.length) {
         const replySAN = puzzles[currentPuzzleIndex].moves[step];
         game.move(replySAN, { sloppy: true });
@@ -187,6 +196,10 @@ function onSnapEnd() {
 board = Chessboard("board", {
     draggable: true,
     position: "start",
+
+    // ✅ Wikipedia piece images
+    pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+
     onDragStart: onDragStart,
     onDrop: onDrop,
     onSnapEnd: onSnapEnd
@@ -231,6 +244,5 @@ document.getElementById("nextBtn").addEventListener("click", () => {
 });
 </script>
 
-
-  </body>
+</body>
 </html>
