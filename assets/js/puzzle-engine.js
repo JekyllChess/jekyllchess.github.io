@@ -260,12 +260,10 @@ function initRemotePackLazy(container, url) {
   controls.style.marginTop = "10px";
 
   const prevBtn = document.createElement("button");
-  prevBtn.className = "btn btn-sm btn-primary";
-  prevBtn.textContent = "Previous";
+  prevBtn.textContent = "Previous puzzle";
 
   const nextBtn = document.createElement("button");
-  nextBtn.className = "btn btn-sm btn-primary";
-  nextBtn.textContent = "Next";
+  nextBtn.textContent = "Next puzzle";
 
   controls.append(prevBtn, nextBtn);
   container.append(infoDiv, boardDiv, feedbackDiv, turnDiv, controls);
