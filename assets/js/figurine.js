@@ -37,10 +37,17 @@
         acceptNode(node) {
           const parent = node.parentNode;
           if (!parent) return NodeFilter.FILTER_REJECT;
+
+          // Skip unsafe or code elements
           if (SKIP_TAGS.has(parent.nodeName)) return NodeFilter.FILTER_REJECT;
 
-          // 👇 IMPORTANT: SKIP raw PGN content
-          if (parent.closest && parent.closest("pgn")) 
+          // ❗ SKIP <pgn> blocks entirely
+          if (parent.closest && parent.closest("pgn"))
+            return NodeFilter.FILTER_REJECT;
+
+          // ❗ NEW: Skip <puzzle> blocks (critical!)
+          // This prevents figurine conversion from breaking SAN parsing
+          if (parent.closest && parent.closest("puzzle"))
             return NodeFilter.FILTER_REJECT;
 
           return NodeFilter.FILTER_ACCEPT;
@@ -55,6 +62,7 @@
   function init() {
     walk(document.body);
 
+    // observe NEW nodes added dynamically
     const observer = new MutationObserver(mutations => {
       for (const m of mutations) {
         m.addedNodes?.forEach(node => {
@@ -67,7 +75,9 @@
     window.ChessFigurine = { run: (r) => walk(r || document.body) };
   }
 
-  document.readyState === "loading"
-    ? document.addEventListener("DOMContentLoaded", init)
-    : init();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();

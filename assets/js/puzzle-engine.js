@@ -1,32 +1,33 @@
 // ======================================================================
-//   SIMPLE SINGLE-PUZZLE ENGINE FOR JEKYLL
-//   <puzzle>
-//   FEN: ...
-//   Moves: ...
-//   </puzzle>
+//   SIMPLE SINGLE-PUZZLE ENGINE — FIGURINE-SAFE VERSION
 // ======================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Puzzle engine loaded.");
 
-  // Only handle the first <puzzle> for now
   const node = document.querySelector("puzzle");
   if (!node) {
-    console.log("No <puzzle> element found on page.");
+    console.log("No <puzzle> found.");
     return;
   }
 
-  // Jekyll may inject <p>, <br>, etc. inside <puzzle>.
-  // We'll parse from innerHTML using regex.
-  const rawHtml = node.innerHTML;
-  console.log("Raw puzzle innerHTML:", rawHtml);
+  // Always get innerHTML because Jekyll injects <p> etc.
+  let html = node.innerHTML;
+  console.log("Raw puzzle innerHTML:", html);
 
-  // Grab the text after 'FEN:' up to the next tag or newline
-  const fenMatch = rawHtml.match(/FEN:\s*([^<\n\r]+)/i);
-  const movesMatch = rawHtml.match(/Moves:\s*([^<\n\r]+)/i);
+  // ------------------------------------------------------------
+  // Strip all unicode figurines (♔♕♖♗♘♙) BEFORE parsing
+  // This protects against figurine.js and theme CSS
+  // ------------------------------------------------------------
+  html = html.replace(/[♔♕♖♗♘♙]/g, "");
+
+  // Extract FEN:
+  const fenMatch = html.match(/FEN:\s*([^<\n\r]+)/i);
+  // Extract Moves:
+  const movesMatch = html.match(/Moves:\s*([^<\n\r]+)/i);
 
   if (!fenMatch || !movesMatch) {
-    console.log("FEN or Moves not found via regex.");
+    console.log("Failed to extract FEN or Moves.");
     const wrapper = document.createElement("div");
     wrapper.style.margin = "20px 0";
     wrapper.innerHTML = "<div style='color:red'>Puzzle block invalid</div>";
@@ -34,55 +35,62 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const fen = fenMatch[1].trim().replace(/\s+/g, " ");
+  const fen = fenMatch[1].trim();
   const movesLine = movesMatch[1].trim().replace(/\s+/g, " ");
   const sanMoves = movesLine.split(" ");
 
   console.log("Extracted FEN:", fen);
   console.log("Extracted SAN moves:", sanMoves);
 
-  // Replace <puzzle> with a wrapper div
+  // Replace with container
   const wrapper = document.createElement("div");
   wrapper.style.margin = "20px 0";
   node.replaceWith(wrapper);
 
-  renderSinglePuzzle(wrapper, fen, sanMoves);
+  renderPuzzle(wrapper, fen, sanMoves);
 });
 
 // ======================================================================
 //   RENDER ONE PUZZLE
 // ======================================================================
 
-function renderSinglePuzzle(container, fen, sanMoves) {
-  console.log("renderSinglePuzzle called with FEN:", fen);
-  const convertGame = new Chess(fen);
+function renderPuzzle(container, fen, sanMoves) {
+  console.log("Rendering puzzle with FEN:", fen);
 
-  // Convert SAN → UCI using a separate game
-  const solutionUCI = [];
+  const gameForConversion = new Chess(fen);
+  const solution = [];
 
+  // ------------------------------------------------------------
+  // Convert SAN to UCI (true parsing, no figurines)
+  // ------------------------------------------------------------
   for (let san of sanMoves) {
     const cleaned = san.replace(/[!?]/g, "").trim();
-    if (!cleaned) continue;
 
-    const moveObj = convertGame.move(cleaned, { sloppy: true });
+    console.log("Parsing SAN:", san, "→ cleaned:", cleaned);
+
+    const moveObj = gameForConversion.move(cleaned, { sloppy: true });
     if (!moveObj) {
-      console.error("Cannot parse SAN move:", san, "in FEN:", fen);
+      console.error("Cannot parse SAN move:", san);
       continue;
     }
+
     const uci = moveObj.from + moveObj.to + (moveObj.promotion || "");
-    solutionUCI.push(uci);
+    solution.push(uci);
+    gameForConversion.undo();
   }
 
-  console.log("Solution UCI sequence:", solutionUCI);
+  console.log("UCI solution:", solution);
 
-  // This game is used for actual play
   const game = new Chess(fen);
 
-  // UI elements
+  // ------------------------------------------------------------
+  // Build UI
+  // ------------------------------------------------------------
   const boardDiv = document.createElement("div");
   boardDiv.style.width = "350px";
+
   const statusDiv = document.createElement("div");
-  statusDiv.style.marginTop = "8px";
+  statusDiv.style.marginTop = "10px";
   statusDiv.style.fontSize = "16px";
 
   container.append(boardDiv, statusDiv);
@@ -92,31 +100,30 @@ function renderSinglePuzzle(container, fen, sanMoves) {
   const board = Chessboard(boardDiv, {
     draggable: true,
     position: fen,
-    pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+    pieceTheme:
+      "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
     onDragStart: (_, piece) => {
-      console.log("onDragStart fired.");
-      if (game.game_over()) return false;
+      console.log("DragStart fired");
       if (game.turn() === "w" && piece.startsWith("b")) return false;
       if (game.turn() === "b" && piece.startsWith("w")) return false;
     },
 
     onDrop: (source, target) => {
-      console.log("onDrop fired. Source:", source, "Target:", target);
+      console.log("onDrop:", source, "→", target);
 
       const move = game.move({ from: source, to: target, promotion: "q" });
       if (!move) {
-        console.log("Illegal move.");
+        console.log("Illegal move attempt.");
         return "snapback";
       }
 
-      const uci = move.from + move.to + (move.promotion || "");
-      console.log("User played UCI:", uci);
+      const played = move.from + move.to + (move.promotion || "");
+      const expected = solution[step];
 
-      const expected = solutionUCI[step];
-      console.log("Expected UCI:", expected);
+      console.log("Played UCI:", played, "Expected:", expected);
 
-      if (uci !== expected) {
+      if (played !== expected) {
         statusDiv.textContent = "❌ Wrong move";
         game.undo();
         return "snapback";
@@ -125,28 +132,23 @@ function renderSinglePuzzle(container, fen, sanMoves) {
       statusDiv.textContent = "✅ Correct";
       step++;
 
-      // Opponent reply (odd indices: 1,3,5,...)
-      if (step < solutionUCI.length) {
-        const replySAN = sanMoves[step];
-        console.log("Opponent reply SAN:", replySAN);
-        const reply = game.move(replySAN, { sloppy: true });
-        if (reply) {
-          step++;
-          setTimeout(() => board.position(game.fen()), 150);
-        }
+      // Opponent reply
+      if (step < solution.length) {
+        const replySan = sanMoves[step];
+        console.log("Reply SAN:", replySan);
+        game.move(replySan, { sloppy: true });
+        step++;
+        setTimeout(() => board.position(game.fen()), 150);
       }
 
-      if (step >= solutionUCI.length) {
+      if (step >= solution.length) {
         statusDiv.textContent = "🎉 Puzzle solved!";
       }
 
       return true;
     },
 
-    onSnapEnd: () => {
-      console.log("onSnapEnd fired.");
-      board.position(game.fen());
-    }
+    onSnapEnd: () => board.position(game.fen())
   });
 
   statusDiv.textContent = "Your move...";
