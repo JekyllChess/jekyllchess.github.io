@@ -7,7 +7,8 @@
 //       FEN + inline PGN
 //       Remote PGN (multi-game)
 //   - Lazy background parsing (20 puzzles per batch)
-//   - Lichess-style turn indicator ●
+//   - Lichess-style turn indicator ● (NOW BELOW THE BOARD)
+//   - “Your move…” removed completely
 // ======================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -89,12 +90,11 @@ function stripFigurines(str) {
 
 function pgnToSanArray(pgn) {
   let s = pgn;
-  s = s.replace(/\{[^}]*\}/g, " "); // comments
-  s = s.replace(/\([^)]*\)/g, " "); // variations
+  s = s.replace(/\{[^}]*\}/g, " ");
+  s = s.replace(/\([^)]*\)/g, " ");
   s = s.replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g, " ");
   s = s.replace(/\d+\.(\.\.)?/g, " ");
-  s = s.replace(/\s+/g, " ").trim();
-  return s ? s.split(" ") : [];
+  return s.trim().split(/\s+/g).filter(Boolean);
 }
 
 function buildUCISolution(fen, sanMoves) {
@@ -102,8 +102,8 @@ function buildUCISolution(fen, sanMoves) {
   const out = [];
 
   for (let san of sanMoves) {
-    san = san.replace(/[!?]/g, "").trim();
-    const mv = game.move(san, { sloppy: true });
+    const clean = san.replace(/[!?]/g, "").trim();
+    const mv = game.move(clean, { sloppy: true });
     if (!mv) break;
     out.push(mv.from + mv.to + (mv.promotion || ""));
   }
@@ -111,31 +111,31 @@ function buildUCISolution(fen, sanMoves) {
 }
 
 // ======================================================================
-// Lichess-style turn indicator
+// Lichess-style turn indicator (NOW BELOW BOARD)
 // ======================================================================
 function createTurnIndicator() {
-  const turnDiv = document.createElement("div");
-  turnDiv.style.display = "flex";
-  turnDiv.style.alignItems = "center";
-  turnDiv.style.gap = "6px";
-  turnDiv.style.marginBottom = "6px";
-  turnDiv.style.fontSize = "15px";
-  turnDiv.style.fontWeight = "500";
-  turnDiv.style.fontFamily = "sans-serif";
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.alignItems = "center";
+  wrap.style.gap = "6px";
+  wrap.style.marginTop = "8px";
+  wrap.style.fontSize = "15px";
+  wrap.style.fontWeight = "500";
+  wrap.style.fontFamily = "sans-serif";
 
   const dot = document.createElement("div");
   dot.style.width = "12px";
   dot.style.height = "12px";
   dot.style.borderRadius = "50%";
   dot.style.border = "1px solid #555";
-  dot.style.transition = "background 0.1s linear, border 0.1s linear";
+  dot.style.transition = "all 0.15s ease";
 
   const label = document.createElement("div");
   label.textContent = "Loading…";
 
-  turnDiv.append(dot, label);
+  wrap.append(dot, label);
 
-  return { turnDiv, dot, label };
+  return { wrap, dot, label };
 }
 
 function updateTurnIndicator(game, dot, label) {
@@ -153,23 +153,19 @@ function updateTurnIndicator(game, dot, label) {
 }
 
 // ======================================================================
-// LOCAL PUZZLES — one board per <puzzle>
+// LOCAL PUZZLES
 // ======================================================================
 function renderLocalPuzzle(container, fen, sanMoves) {
   const solutionUCI = buildUCISolution(fen, sanMoves);
   const game = new Chess(fen);
   let step = 0;
 
-  // Lichess-style indicator
-  const { turnDiv, dot, label } = createTurnIndicator();
-
   const boardDiv = document.createElement("div");
   boardDiv.style.width = "350px";
 
-  const statusDiv = document.createElement("div");
-  statusDiv.style.marginTop = "10px";
+  const { wrap: turnDiv, dot, label } = createTurnIndicator();
 
-  container.append(turnDiv, boardDiv, statusDiv);
+  container.append(boardDiv, turnDiv);
 
   const board = Chessboard(boardDiv, {
     draggable: true,
@@ -189,12 +185,11 @@ function renderLocalPuzzle(container, fen, sanMoves) {
       const expected = solutionUCI[step];
 
       if (played !== expected) {
-        statusDiv.textContent = "❌ Wrong move";
+        // no "Your move" text anymore
         game.undo();
         return "snapback";
       }
 
-      statusDiv.textContent = "✅ Correct";
       step++;
       updateTurnIndicator(game, dot, label);
 
@@ -210,28 +205,22 @@ function renderLocalPuzzle(container, fen, sanMoves) {
         }
       }
 
-      if (step >= solutionUCI.length) {
-        statusDiv.textContent = "🎉 Puzzle solved!";
-      }
-
       return true;
     },
 
     onSnapEnd: () => board.position(game.fen())
   });
 
-  statusDiv.textContent = "Your move...";
   updateTurnIndicator(game, dot, label);
 }
 
 // ======================================================================
-// REMOTE PGN PACK — Lazy loading (20 puzzles per batch)
+// REMOTE PGN PACK — Lazy loading (20 per batch)
 // ======================================================================
 function initRemotePackLazy(container, url) {
   let puzzles = [];
   let games = [];
   let currentIndex = 0;
-  let totalGames = 0;
   let game = null;
   let board = null;
   let sanMoves = [];
@@ -242,21 +231,16 @@ function initRemotePackLazy(container, url) {
   const BATCH = 20;
 
   // UI
-  const title = document.createElement("div");
-  title.textContent = "Puzzle Pack";
-  title.style.fontWeight = "bold";
-  title.style.marginBottom = "5px";
-
   const infoDiv = document.createElement("div");
   infoDiv.style.marginBottom = "5px";
 
-  const { turnDiv, dot, label } = createTurnIndicator();
-
   const boardDiv = document.createElement("div");
   boardDiv.style.width = "350px";
-  boardDiv.style.marginBottom = "10px";
+
+  const { wrap: turnDiv, dot, label } = createTurnIndicator();
 
   const statusDiv = document.createElement("div");
+  statusDiv.style.marginTop = "8px";
 
   const controls = document.createElement("div");
   controls.style.display = "flex";
@@ -272,8 +256,7 @@ function initRemotePackLazy(container, url) {
   nextBtn.textContent = "Next";
 
   controls.append(prevBtn, nextBtn);
-
-  container.append(title, infoDiv, turnDiv, boardDiv, statusDiv, controls);
+  container.append(infoDiv, boardDiv, turnDiv, statusDiv, controls);
 
   statusDiv.textContent = "[Loading puzzle pack…]";
 
@@ -282,26 +265,19 @@ function initRemotePackLazy(container, url) {
     .then(r => r.text())
     .then(text => {
       games = splitPGNGames(text);
-      totalGames = games.length;
-
-      if (!totalGames) {
-        statusDiv.textContent = "No puzzles found.";
-        return;
-      }
-
       parseBatch(0);
     })
-    .catch(err => {
-      console.error(err);
-      statusDiv.textContent = "Failed to load PGN.";
-    });
+    .catch(() => (statusDiv.textContent = "Failed to load PGN."));
 
   function splitPGNGames(text) {
-    const cleaned = text.replace(/\r/g, "");
-    return cleaned.split(/(?=\[Event\b)/g).map(g => g.trim()).filter(Boolean);
+    return text
+      .replace(/\r/g, "")
+      .split(/(?=\[Event\b)/g)
+      .map(g => g.trim())
+      .filter(Boolean);
   }
 
-  function parseOneGame(gameText) {
+  function parseOne(gameText) {
     const fenMatch = gameText.match(/\[FEN\s+"([^"]+)"\]/i);
     if (!fenMatch) return null;
 
@@ -309,40 +285,33 @@ function initRemotePackLazy(container, url) {
     let moves = [];
 
     const tag = gameText.match(/\[(Moves|Solution)\s+"([^"]+)"\]/i);
-    if (tag) {
-      moves = pgnToSanArray(tag[2]);
-    } else {
-      const body = gameText.replace(/\[[^\]]+\]/g, " ");
-      moves = pgnToSanArray(body);
-    }
+    if (tag) moves = pgnToSanArray(tag[2]);
+    else moves = pgnToSanArray(gameText.replace(/\[[^\]]+\]/g, " "));
 
     if (!moves.length) return null;
     return { fen, moves };
   }
 
   function parseBatch(start) {
-    const end = Math.min(start + BATCH, totalGames);
+    const end = Math.min(start + BATCH, games.length);
 
     for (let i = start; i < end; i++) {
-      const puzzle = parseOneGame(games[i]);
-      if (puzzle) puzzles.push(puzzle);
+      const p = parseOne(games[i]);
+      if (p) puzzles.push(p);
     }
 
-    infoDiv.textContent =
-      `Loaded ${puzzles.length} puzzle(s)… (${end}/${totalGames})`;
+    infoDiv.textContent = `Loaded ${puzzles.length} puzzle(s)…`;
 
-    // First ready puzzle initializes board
     if (!board && puzzles.length) {
       initBoard();
       loadPuzzle(0);
-      statusDiv.textContent = "Your move...";
+      statusDiv.textContent = "";
     }
 
-    if (end < totalGames) {
+    if (end < games.length) {
       setTimeout(() => parseBatch(end), 0);
     } else {
       allParsed = true;
-      infoDiv.textContent = `Puzzle 1 / ${puzzles.length}`;
     }
   }
 
@@ -352,7 +321,6 @@ function initRemotePackLazy(container, url) {
       pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
       onDragStart: (_, piece) => {
-        if (!game) return false;
         if (game.turn() === "w" && piece.startsWith("b")) return false;
         if (game.turn() === "b" && piece.startsWith("w")) return false;
       },
@@ -365,45 +333,38 @@ function initRemotePackLazy(container, url) {
         const expected = solutionUCI[step];
 
         if (played !== expected) {
-          statusDiv.textContent = "❌ Wrong move";
           game.undo();
           return "snapback";
         }
 
-        statusDiv.textContent = "✅ Correct";
         step++;
         updateTurnIndicator(game, dot, label);
 
         if (step < solutionUCI.length) {
           const replySAN = sanMoves[step];
-          const reply = game.move(replySAN, { sloppy: true });
-          if (reply) step++;
+          const r = game.move(replySAN, { sloppy: true });
+          if (r) step++;
           setTimeout(() => {
             board.position(game.fen());
             updateTurnIndicator(game, dot, label);
           }, 150);
         }
 
-        if (step >= solutionUCI.length) {
-          statusDiv.textContent = "🎉 Puzzle solved!";
-        }
-
         return true;
       },
 
-      onSnapEnd: () => {
-        if (game) board.position(game.fen());
-      }
+      onSnapEnd: () => board.position(game.fen())
     });
 
     prevBtn.onclick = () => {
       if (!puzzles.length) return;
 
-      if (currentIndex > 0) {
-        currentIndex--;
-      } else if (allParsed && puzzles.length > 1) {
-        currentIndex = puzzles.length - 1;
-      }
+      currentIndex =
+        currentIndex > 0
+          ? currentIndex - 1
+          : allParsed
+          ? puzzles.length - 1
+          : 0;
 
       loadPuzzle(currentIndex);
     };
@@ -412,30 +373,27 @@ function initRemotePackLazy(container, url) {
       if (!puzzles.length) return;
 
       if (currentIndex + 1 < puzzles.length) {
-        currentIndex++;
-        loadPuzzle(currentIndex);
+        loadPuzzle(++currentIndex);
       } else if (!allParsed) {
         statusDiv.textContent = "Loading more puzzles…";
       } else {
         currentIndex = 0;
-        loadPuzzle(currentIndex);
+        loadPuzzle(0);
       }
     };
   }
 
-  function loadPuzzle(index) {
-    const p = puzzles[index];
+  function loadPuzzle(i) {
+    const p = puzzles[i];
     if (!p) return;
 
-    infoDiv.textContent = `Puzzle ${index + 1} / ${puzzles.length}`;
-
     game = new Chess(p.fen);
-    sanMoves = p.moves.slice();
+    sanMoves = p.moves;
     solutionUCI = buildUCISolution(p.fen, sanMoves);
     step = 0;
 
     board.position(p.fen);
     updateTurnIndicator(game, dot, label);
-    statusDiv.textContent = "Your move...";
+    statusDiv.textContent = "";
   }
 }
