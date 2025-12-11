@@ -9,8 +9,8 @@ Lorem ipsum dolor sit amet, 7. Nc4 Be7 8. Nce5 O-O 9. Be2 cxd4 10. Qxd4 Qxd4 con
 Today we study two puzzles:
 
 <puzzle>
-FEN: 8/8/8/8/8/8/8/8 w - - 0 1
-Moves: Qh7+ Kf8 Qh8#
+FEN: r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3
+Moves: Nxe5 Nxe5 Bxf7+ Ke7
 </puzzle>
 
 <puzzle>
