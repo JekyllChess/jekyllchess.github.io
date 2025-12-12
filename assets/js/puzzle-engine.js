@@ -19,9 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const pgnUrlMatch = raw.match(/PGN:\s*(https?:\/\/[^\s<]+)/i);
     const pgnInline   = !pgnUrlMatch && raw.match(/PGN:\s*(1\.[\s\S]+)/i);
 
-    // ------------------------------------------------------------
-    // REMOTE PGN PACK
-    // ------------------------------------------------------------
     if (pgnUrlMatch && !fenMatch) {
       if (remoteUsed) {
         wrap.textContent = "⚠️ Only one remote PGN pack allowed per page.";
@@ -32,27 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // ------------------------------------------------------------
-    // INLINE PGN (single puzzle)
-    // ------------------------------------------------------------
     if (fenMatch && pgnInline) {
-      renderLocalPuzzle(
-        wrap,
-        fenMatch[1].trim(),
-        parsePGNMoves(pgnInline[1])
-      );
+      renderLocalPuzzle(wrap, fenMatch[1].trim(), parsePGNMoves(pgnInline[1]));
       return;
     }
 
-    // ------------------------------------------------------------
-    // FEN + Moves
-    // ------------------------------------------------------------
     if (fenMatch && movesMatch) {
-      renderLocalPuzzle(
-        wrap,
-        fenMatch[1].trim(),
-        movesMatch[1].trim().split(/\s+/)
-      );
+      renderLocalPuzzle(wrap, fenMatch[1].trim(), movesMatch[1].trim().split(/\s+/));
       return;
     }
 
@@ -131,6 +114,10 @@ function parsePGNMoves(pgn) {
     .filter(Boolean);
 }
 
+function normalizeSAN(san) {
+  return san.replace(/[+#?!]/g, "");
+}
+
 function buildUCISolution(fen, san) {
   const g = new Chess(fen);
   const out = [];
@@ -147,11 +134,11 @@ function buildUCISolution(fen, san) {
 // ======================================================================
 
 function showCorrect(el) {
-  el.innerHTML = `Correct move <span class="jc-icon jc-correct">✅</span>`;
+  el.innerHTML = `Correct move <span class="jc-icon">✅</span>`;
 }
 
 function showWrong(el) {
-  el.innerHTML = `Wrong move <span class="jc-icon jc-wrong">❌</span>`;
+  el.innerHTML = `Wrong move <span class="jc-icon">❌</span>`;
 }
 
 function showSolved(el) {
@@ -167,20 +154,17 @@ function updateTurnIndicator(el, game, solved) {
     el.textContent = "";
     return;
   }
-  el.textContent = game.turn() === "w"
-    ? "◎ White to move"
-    : "◉ Black to move";
+  el.textContent = game.turn() === "w" ? "White to move" : "Black to move";
 }
 
 // ======================================================================
-// LOCAL PUZZLE (UNCHANGED — UCI BASED)
+// LOCAL PUZZLE (UNCHANGED)
 // ======================================================================
 
 function renderLocalPuzzle(container, fen, sanMoves) {
   const game = new Chess(fen);
   const solution = buildUCISolution(fen, sanMoves);
-  let step = 0;
-  let solved = false;
+  let step = 0, solved = false;
 
   const boardDiv = document.createElement("div");
   boardDiv.className = "jc-board";
@@ -236,7 +220,7 @@ function renderLocalPuzzle(container, fen, sanMoves) {
 }
 
 // ======================================================================
-// REMOTE PGN — FIXED (SAN-BASED VALIDATION)
+// REMOTE PGN — SAN NORMALIZED (FIXED)
 // ======================================================================
 
 function initRemotePGNPackLazy(container, url) {
@@ -313,7 +297,7 @@ function initRemotePGNPackLazy(container, url) {
         const mv = game.move({ from: src, to: dst, promotion: "q" });
         if (!mv) return false;
 
-        if (mv.san !== expectedSAN) {
+        if (normalizeSAN(mv.san) !== normalizeSAN(expectedSAN)) {
           game.undo();
           showWrong(feedback);
           updateTurnIndicator(turnDiv, game, solved);
