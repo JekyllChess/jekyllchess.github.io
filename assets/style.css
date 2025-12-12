@@ -1,32 +1,7 @@
-body {
-  width: 50vw;
-  margin: 0 auto;
-  padding-top: 3rem;
-  font-family: "Georgia", "Times New Roman", "Garamond", serif;
-  font-size: 18px;
-  color:#333;
-}
-
-@media (max-width: 768px) {
-  body {
-    width: 100vw;
-    margin: .5rem;
-    padding-top:0;
-  }
-}
-
-a,a:visited,a:hover,a:active{color:#333}
-h1.header img{height:1.5em;}
-h1.header {margin-top:-0.5rem;}
-
+body {width: 50vw;margin:0 auto;padding-top:3rem;font-size:18px;font-weight:500;color:#333;}
+@media (max-width: 768px) {body {width:100vw;margin:.5rem;padding-top:0;}}
+a,a:visited,a:hover,a:active {color:#333}
+h1.header img {height:1.5rem;}
+h1.header {margin-top:-1rem;}
 .post-item {margin-bottom: 3rem;}
-
-h1, h2, h3, h4 {font-weight: 900;font-family: "Verdana", "Helvetica", "Arial", sans-serif;}
-h3.post-item {font-weight: 900;}
-h1.header, h1.header a {font-weight: 900;}
-
-h3,
-    .post-item h3,
-    .post-item h3 a {
-    font-weight: 900;
-    }
+h1, h2, h3, h4, h3.post-item, h1.header, h1.header a, .post-item h3, .post-item h3 a {font-weight:900;}
