@@ -3,7 +3,7 @@ body {
   margin: 0 auto;
   padding-top: 3rem;
   font-family: "Georgia", "Times New Roman", "Garamond", serif;
-  font-size: 16px;
+  font-size: 18px;
   color:#333;
 }
 
@@ -17,6 +17,7 @@ body {
 
 a,a:visited,a:hover,a:active{color:#333}
 h1.header img{height:1.5em;}
+h1.header {margin-top:-0.5rem;}
 
 .post-item {margin-bottom: 3rem;}
 
