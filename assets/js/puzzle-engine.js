@@ -113,8 +113,8 @@ function updateTurnIndicator(el, game, solved) {
     return;
   }
   el.textContent = game.turn() === "w"
-    ? "White to move"
-    : "Black to move";
+    ? "&#9872; White to move"
+    : "&#9873; Black to move";
 }
 
 // ======================================================================
@@ -214,10 +214,10 @@ function initRemotePGNPackLazy(container, url) {
   controls.className = "jc-controls";
 
   const prev = document.createElement("button");
-  prev.textContent = "Previous";
+  prev.textContent = "⤺";
 
   const next = document.createElement("button");
-  next.textContent = "Next";
+  next.textContent = "⤻";
 
   controls.append(prev, next);
   container.append(boardDiv, feedback, turnDiv, controls);
