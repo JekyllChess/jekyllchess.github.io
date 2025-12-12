@@ -4,12 +4,14 @@ body {
   padding-top: 3rem;
   font-family: "Georgia", "Times New Roman", "Garamond", serif;
   font-size: 16px;
+  color:#333;
 }
 
 @media (max-width: 768px) {
   body {
     width: 100vw;
     margin: .5rem;
+    padding-top:0;
   }
 }
 
@@ -20,7 +22,7 @@ h1.header img{height:1.5em;}
 
 h1, h2, h3, h4 {font-weight: 900;font-family: "Verdana", "Helvetica", "Arial", sans-serif;}
 h3.post-item {font-weight: 900;}
-h1.header {font-weight: 900;}
+h1.header, h1.header a {font-weight: 900;}
 
 h3,
     .post-item h3,

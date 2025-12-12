@@ -93,7 +93,7 @@
     }
 
     header(h) {
-      const H = document.createElement("h4");
+      const H = document.createElement("h3");
       const W =
         (h.WhiteTitle ? h.WhiteTitle + " " : "") +
         C.flipName(h.White || "") +

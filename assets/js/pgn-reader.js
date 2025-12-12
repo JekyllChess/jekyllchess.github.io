@@ -104,7 +104,7 @@
     }
 
     buildHeaderContent(h) {
-      let H = document.createElement("h4");
+      let H = document.createElement("h3");
 
       const W =
         (h.WhiteTitle ? h.WhiteTitle + " " : "") +
