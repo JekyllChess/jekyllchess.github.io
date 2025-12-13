@@ -1,9 +1,9 @@
 // ============================================================================
-// pgn-guess.js — Interactive PGN viewer (uses PGNCore)
-// FINAL BEHAVIOR FIX:
-//   - Move list wraps and scrolls vertically
-//   - ONLY revealed moves are visible (guess-the-move mode)
-//   - Future moves stay hidden
+// pgn-guess.js — Guess-the-move PGN viewer (single-move display)
+// Behavior:
+//   - Right pane starts empty
+//   - Each ▶ shows ONLY the last move (+ its comments)
+//   - Previous moves disappear
 // ============================================================================
 
 (function () {
@@ -15,42 +15,10 @@
 
   const C = window.PGNCore;
 
-  // ---- Inject hard wrap CSS once -------------------------------------------
-  function ensureWrapCSSOnce() {
-    if (document.getElementById("pgn-guess-wrap-css")) return;
-
-    const style = document.createElement("style");
-    style.id = "pgn-guess-wrap-css";
-    style.textContent = `
-      .pgn-guess-right{
-        white-space: normal !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        word-break: break-word !important;
-        overflow-wrap: anywhere !important;
-        min-width: 0 !important;
-      }
-      .pgn-guess-cols{
-        min-width: 0 !important;
-      }
-      .pgn-guess-right .pgn-guess-stream{
-        display: block !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-        overflow-wrap: anywhere !important;
-      }
-      .pgn-guess-right .guess-move,
-      .pgn-guess-right .guess-num{
-        display: inline !important;
-        white-space: normal !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // ---- Chessboard init guard ----------------------------------------------
+  // --------------------------------------------------------------------------
   function safeChessboard(targetEl, options, tries = 30, onReady) {
     if (!targetEl) return null;
+
     const r = targetEl.getBoundingClientRect();
     if ((r.width <= 0 || r.height <= 0) && tries > 0) {
       requestAnimationFrame(() =>
@@ -58,10 +26,11 @@
       );
       return null;
     }
+
     try {
-      const b = Chessboard(targetEl, options);
-      onReady && onReady(b);
-      return b;
+      const board = Chessboard(targetEl, options);
+      onReady && onReady(board);
+      return board;
     } catch {
       if (tries > 0) {
         requestAnimationFrame(() =>
@@ -72,35 +41,33 @@
     }
   }
 
+  // --------------------------------------------------------------------------
   class ReaderPGNView {
     constructor(src) {
       if (src.__pgnReaderRendered) return;
       src.__pgnReaderRendered = true;
 
-      ensureWrapCSSOnce();
-
       this.sourceEl = src;
       this.wrapper = document.createElement("div");
       this.wrapper.className = "pgn-guess-block";
 
-      this.build();
-      this.initBoardAndControls();
+      this.moves = []; // { label, san, fen, comments[] }
+      this.index = -1;
 
-      this.mainlineIndex = -1;
-      this.updateVisibility();
+      this.build();
+      this.parsePGN();
+      this.initBoardAndControls();
+      this.renderRightPane();
     }
 
     build() {
-      let raw = (this.sourceEl.textContent || "").trim();
-      raw = C.normalizeFigurines(raw);
-
       this.wrapper.innerHTML =
         '<div class="pgn-guess-cols">' +
           '<div class="pgn-guess-left">' +
             '<div class="pgn-guess-board"></div>' +
             '<div class="pgn-guess-buttons">' +
-              '<button class="pgn-guess-btn pgn-guess-prev" type="button">◀</button>' +
-              '<button class="pgn-guess-btn pgn-guess-next" type="button">▶</button>' +
+              '<button class="pgn-guess-btn pgn-guess-prev">◀</button>' +
+              '<button class="pgn-guess-btn pgn-guess-next">▶</button>' +
             '</div>' +
           '</div>' +
           '<div class="pgn-guess-right"></div>' +
@@ -109,68 +76,34 @@
       this.sourceEl.replaceWith(this.wrapper);
 
       this.boardDiv = this.wrapper.querySelector(".pgn-guess-board");
-      this.movesCol = this.wrapper.querySelector(".pgn-guess-right");
-
-      this.stream = document.createElement("div");
-      this.stream.className = "pgn-guess-stream";
-      this.movesCol.appendChild(this.stream);
-
-      this.parsePGN(raw);
+      this.rightPane = this.wrapper.querySelector(".pgn-guess-right");
     }
 
-    parsePGN(text) {
-      const chess = new Chess();
+    parsePGN() {
+      let raw = (this.sourceEl.textContent || "").trim();
+      raw = C.normalizeFigurines(raw);
 
-      this.items = [];
-      this.moveItems = [];
+      const chess = new Chess();
 
       let ply = 0;
       let i = 0;
       let inVariation = 0;
-      let newParagraph = true;
+      let pendingComments = [];
 
-      const makeMove = (label, san, fen) => {
-        const span = document.createElement("span");
-        span.className = "pgn-move guess-move";
-        span.dataset.fen = fen;
+      while (i < raw.length) {
+        const ch = raw[i];
 
-        if (label) {
-          const n = document.createElement("span");
-          n.className = "guess-num";
-          n.textContent = label;
-          span.appendChild(n);
-        }
-
-        span.appendChild(document.createTextNode(san + " "));
-        this.stream.appendChild(span);
-
-        this.items.push(span);
-        this.moveItems.push(span);
-
-        newParagraph = false;
-      };
-
-      const makeComment = (txt) => {
-        const p = document.createElement("p");
-        p.className = "pgn-comment";
-        p.textContent = txt;
-        this.stream.appendChild(p);
-        this.items.push(p);
-        newParagraph = true;
-      };
-
-      while (i < text.length) {
-        const ch = text[i];
-
-        if (ch === "(") { inVariation++; i++; newParagraph = true; continue; }
+        // Skip variations completely
+        if (ch === "(") { inVariation++; i++; continue; }
         if (ch === ")" && inVariation) { inVariation--; i++; continue; }
         if (inVariation) { i++; continue; }
 
+        // Comments
         if (ch === "{") {
           let j = i + 1;
-          while (j < text.length && text[j] !== "}") j++;
-          const raw = text.slice(i + 1, j).replace(/\[%.*?]/g, "").trim();
-          if (raw) makeComment(raw);
+          while (j < raw.length && raw[j] !== "}") j++;
+          const txt = raw.slice(i + 1, j).replace(/\[%.*?]/g, "").trim();
+          if (txt) pendingComments.push(txt);
           i = j + 1;
           continue;
         }
@@ -178,8 +111,8 @@
         if (/\s/.test(ch)) { i++; continue; }
 
         const start = i;
-        while (i < text.length && !/\s/.test(text[i]) && !"(){}".includes(text[i])) i++;
-        const tok = text.slice(start, i);
+        while (i < raw.length && !/\s/.test(raw[i]) && !"(){}".includes(raw[i])) i++;
+        const tok = raw.slice(start, i);
 
         if (/^\d+\.{1,3}$/.test(tok)) continue;
         if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(tok)) continue;
@@ -193,11 +126,17 @@
         const mv = chess.move(core, { sloppy: true });
         if (!mv) continue;
 
-        let label = null;
-        if (isWhite) label = moveNum + ". ";
-        else if (newParagraph) label = moveNum + "... ";
+        const label = isWhite
+          ? `${moveNum}. ${tok}`
+          : `${moveNum}... ${tok}`;
 
-        makeMove(label, tok, chess.fen());
+        this.moves.push({
+          label,
+          fen: chess.fen(),
+          comments: pendingComments.slice()
+        });
+
+        pendingComments = [];
         ply++;
       }
     }
@@ -221,41 +160,42 @@
         .addEventListener("click", () => this.prev());
     }
 
-    updateVisibility() {
-      let moveCount = 0;
+    renderRightPane() {
+      this.rightPane.innerHTML = "";
 
-      for (const el of this.items) {
-        if (el.classList.contains("guess-move")) {
-          if (moveCount <= this.mainlineIndex) {
-            el.style.display = "";
-          } else {
-            el.style.display = "none";
-          }
-          moveCount++;
-        } else {
-          // comments belong to the last revealed move
-          el.style.display = moveCount - 1 <= this.mainlineIndex ? "" : "none";
-        }
-      }
+      if (this.index < 0 || this.index >= this.moves.length) return;
+
+      const m = this.moves[this.index];
+
+      const moveLine = document.createElement("div");
+      moveLine.className = "pgn-guess-current-move";
+      moveLine.textContent = m.label;
+      this.rightPane.appendChild(moveLine);
+
+      m.comments.forEach((c) => {
+        const p = document.createElement("p");
+        p.className = "pgn-comment";
+        p.textContent = c;
+        this.rightPane.appendChild(p);
+      });
     }
 
     next() {
-      if (this.mainlineIndex + 1 >= this.moveItems.length) return;
-      this.mainlineIndex++;
-      this.updateVisibility();
-      this.board.position(this.moveItems[this.mainlineIndex].dataset.fen, true);
+      if (this.index + 1 >= this.moves.length) return;
+      this.index++;
+      this.board.position(this.moves[this.index].fen, true);
+      this.renderRightPane();
     }
 
     prev() {
-      if (this.mainlineIndex < 0) return;
-      this.mainlineIndex--;
-      this.updateVisibility();
-
-      if (this.mainlineIndex < 0) {
+      if (this.index < 0) return;
+      this.index--;
+      if (this.index < 0) {
         this.board.position("start", true);
       } else {
-        this.board.position(this.moveItems[this.mainlineIndex].dataset.fen, true);
+        this.board.position(this.moves[this.index].fen, true);
       }
+      this.renderRightPane();
     }
   }
 
@@ -264,9 +204,7 @@
       .forEach((el) => new ReaderPGNView(el));
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  document.readyState === "loading"
+    ? document.addEventListener("DOMContentLoaded", init, { once: true })
+    : init();
 })();
