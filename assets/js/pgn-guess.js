@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (capture-safe, autoplay anim only)
+// pgn-guess.js — Guess-the-move PGN trainer (status + correctness indicator)
 // ============================================================================
 
 (function () {
@@ -10,6 +10,7 @@
   if (!window.PGNCore) return;
 
   const C = window.PGNCore;
+  const AUTOPLAY_DELAY = 700;
 
   // --------------------------------------------------------------------------
   // Styles
@@ -40,10 +41,8 @@
 
       .pgn-guess-status {
         margin-top: 0.4em;
-        font-weight: 700;
-        text-align: center;
-        opacity: 0;
-        transition: opacity 0.2s ease;
+        font-size: 0.95em;
+        white-space: nowrap;
       }
 
       .pgn-guess-right {
@@ -114,20 +113,21 @@
 
       this.rawText = (src.textContent || "").trim();
       this.flipBoard = src.tagName.toLowerCase() === "pgn-guess-black";
-      this.userIsWhite = !this.flipBoard;
 
       this.moves = [];
       this.index = -1;
       this.currentRow = null;
       this.game = new Chess();
-
-      // authoritative fen for snap-end resync (fixes capture ghosts)
       this.currentFen = "start";
+
+      this.resultMessage = ""; // Correct / Wrong / Solved
 
       this.build(src);
       this.parsePGN();
       this.initBoard();
     }
+
+    // ------------------------------------------------------------------------
 
     build(src) {
       const wrapper = document.createElement("div");
@@ -147,6 +147,8 @@
       this.statusEl = wrapper.querySelector(".pgn-guess-status");
       this.rightPane = wrapper.querySelector(".pgn-guess-right");
     }
+
+    // ------------------------------------------------------------------------
 
     parsePGN() {
       let raw = C.normalizeFigurines(this.rawText);
@@ -179,7 +181,7 @@
 
         if (ch === "{") {
           let j = i + 1;
-          while (j < raw.length && raw[j] !== "}") j++;
+          while (raw[j] !== "}") j++;
           attach(raw.slice(i + 1, j));
           i = j + 1;
           continue;
@@ -199,14 +201,16 @@
         this.moves.push({
           isWhite: ply % 2 === 0,
           moveNo: Math.floor(ply / 2) + 1,
-          san: tok,         // display token
-          fen: chess.fen(), // authoritative resulting fen
+          san: tok,
+          fen: chess.fen(),
           comments: pending.splice(0)
         });
 
         ply++;
       }
     }
+
+    // ------------------------------------------------------------------------
 
     initBoard() {
       safeChessboard(
@@ -221,25 +225,27 @@
           onDragStart: () => this.isGuessTurn(),
           onDrop: (s, t) => this.onUserDrop(s, t),
 
-          // ✅ Critical: after any animation (especially captures), force-sync to authoritative fen
           onSnapEnd: () => {
-            if (!this.board) return;
-            const fen = this.currentFen === "start" ? "start" : this.currentFen;
-            this.board.position(fen, false);
+            this.board.position(this.currentFen, false);
           }
         },
         30,
         (b) => {
           this.board = b;
-          this.setBoardPosition("start", false);
-          this.autoplayUntilUserTurn();
-          this.updateUI();
+          this.setBoard("start", false);
+          this.updateStatus();
+
+          setTimeout(() => {
+            this.autoplayUntilUserTurn();
+            this.updateStatus();
+          }, AUTOPLAY_DELAY);
         }
       );
     }
 
-    // authoritative setter for board position (keeps captures correct)
-    setBoardPosition(fen, animate) {
+    // ------------------------------------------------------------------------
+
+    setBoard(fen, animate) {
       this.currentFen = fen;
       this.board.position(fen, !!animate);
     }
@@ -247,26 +253,26 @@
     autoplayUntilUserTurn() {
       while (this.index + 1 < this.moves.length) {
         const next = this.moves[this.index + 1];
-        if (next.isWhite === this.userIsWhite) break;
+        if ((this.game.turn() === "w") === next.isWhite) break;
 
         this.index++;
         this.game.move(normalizeSAN(next.san), { sloppy: true });
-
-        // ✅ autoplay is animated
-        this.setBoardPosition(next.fen, true);
+        this.setBoard(next.fen, true);
         this.appendMove();
       }
+      this.resultMessage = "";
     }
 
     isGuessTurn() {
       const next = this.moves[this.index + 1];
-      return next && next.isWhite === this.userIsWhite;
+      return next && (this.game.turn() === "w") === next.isWhite;
     }
 
-    updateUI() {
-      const on = this.isGuessTurn();
-      this.statusEl.textContent = on ? "Your move" : "";
-      this.statusEl.style.opacity = on ? "1" : "0";
+    updateStatus() {
+      const turn = this.game.turn() === "w" ? "White" : "Black";
+      const flag = this.game.turn() === "w" ? "⚐" : "⚑";
+      const result = this.resultMessage ? ` · ${this.resultMessage}` : "";
+      this.statusEl.textContent = `${flag} ${turn} to move${result}`;
     }
 
     onUserDrop(source, target) {
@@ -282,19 +288,29 @@
         return t.fen() === expected.fen;
       });
 
-      if (!ok) return "snapback";
+      if (!ok) {
+        this.resultMessage = "Wrong move ❌";
+        this.updateStatus();
+        return "snapback";
+      }
 
-      // accept: advance to expected position
+      // correct move
       this.index++;
       this.game.load(expected.fen);
-
-      // ⛔ user move should NOT animate
-      this.setBoardPosition(expected.fen, false);
-
+      this.setBoard(expected.fen, false);
       this.appendMove();
+
+      if (this.index === this.moves.length - 1) {
+        this.resultMessage = "Training solved! 🏆";
+        this.updateStatus();
+        return;
+      }
+
+      this.resultMessage = "Correct! ✅";
+      this.updateStatus();
+
       this.autoplayUntilUserTurn();
-      this.updateUI();
-      return;
+      this.updateStatus();
     }
 
     appendMove() {
