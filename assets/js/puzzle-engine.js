@@ -77,19 +77,24 @@
   }
 
   /* -------------------------------------------------- */
-  /* Local puzzle renderer                              */
+  /* Local puzzle renderer (NO layout jump)              */
   /* -------------------------------------------------- */
 
   function renderLocalPuzzle(container, fen, moves, counterText, afterReady) {
-    container.innerHTML = "";
+    // Preserve container height to avoid jump
+    const prevHeight = container.offsetHeight;
+    if (prevHeight) container.style.minHeight = prevHeight + "px";
 
-    const loading = document.createElement("div");
-    loading.textContent = "Loading...";
-    container.append(loading);
+    container.innerHTML = "";
 
     const boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
-    container.insertBefore(boardDiv, loading);
+
+    const loading = document.createElement("div");
+    loading.textContent = "Loading...";
+    loading.style.marginTop = "6px";
+
+    container.append(boardDiv, loading);
 
     const game = new Chess(fen);
     const solverSide = game.turn();
@@ -177,7 +182,6 @@
       return true;
     }
 
-    // ✅ SINGLE, CORRECT chessboard initialization
     safeChessboard(
       boardDiv,
       {
@@ -191,6 +195,7 @@
         board = b;
         loading.remove();
         container.append(status);
+        container.style.minHeight = "";
         updateTurn();
         afterReady && afterReady(status);
       }
@@ -198,7 +203,7 @@
   }
 
   /* -------------------------------------------------- */
-  /* Remote PGN renderer                                */
+  /* Remote PGN renderer (NO jump)                       */
   /* -------------------------------------------------- */
 
   function splitIntoPgnGames(text) {
@@ -227,29 +232,13 @@
   async function renderRemotePGN(container, url) {
     container.textContent = "Loading...";
 
-    let res;
-    try {
-      res = await fetch(url, { cache: "no-store" });
-    } catch {
-      container.textContent = "❌ Failed to load PGN";
-      return;
-    }
-
-    if (!res.ok) {
-      container.textContent = "❌ Failed to load PGN";
-      return;
-    }
-
+    const res = await fetch(url, { cache: "no-store" });
     const text = await res.text();
-    const puzzles = splitIntoPgnGames(text)
-      .map(parseGame)
-      .filter((p) => p.moves.length);
 
+    const puzzles = splitIntoPgnGames(text).map(parseGame);
     let index = 0;
 
     function renderCurrent() {
-      container.textContent = "Loading...";
-
       renderLocalPuzzle(
         container,
         puzzles[index].fen,
