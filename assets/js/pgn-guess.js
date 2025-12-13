@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (final layout + logic)
+// pgn-guess.js — Guess-the-move PGN trainer (FINAL, CORRECT)
 // ============================================================================
 
 (function () {
@@ -99,6 +99,16 @@
       .trim();
   }
 
+  // ✅ CRITICAL: normalize SAN before feeding to chess.js
+  function normalizeSAN(tok) {
+    return tok
+      .replace(/\[%.*?]/g, "")
+      .replace(/[!?]+/g, "")
+      .replace(/[+#]$/, "")
+      .replace(/0/g, "O")
+      .trim();
+  }
+
   // --------------------------------------------------------------------------
   // Main class
   // --------------------------------------------------------------------------
@@ -150,6 +160,7 @@
     parsePGN() {
       let raw = C.normalizeFigurines(this.rawText);
       const chess = new Chess();
+
       let ply = 0, i = 0, pending = [];
 
       const attach = (t) => {
@@ -163,20 +174,21 @@
         const ch = raw[i];
 
         if (ch === "(") {
-          let d = 1, j = i + 1;
-          while (j < raw.length && d > 0) {
-            if (raw[j] === "(") d++;
-            else if (raw[j] === ")") d--;
+          let depth = 1, j = i + 1;
+          while (j < raw.length && depth > 0) {
+            if (raw[j] === "(") depth++;
+            else if (raw[j] === ")") depth--;
             j++;
           }
-          attach(extractVariationDisplay(raw.slice(i + 1, j - 1)));
+          const v = extractVariationDisplay(raw.slice(i + 1, j - 1));
+          if (v) attach(v);
           i = j;
           continue;
         }
 
         if (ch === "{") {
           let j = i + 1;
-          while (raw[j] !== "}") j++;
+          while (j < raw.length && raw[j] !== "}") j++;
           attach(raw.slice(i + 1, j));
           i = j + 1;
           continue;
@@ -189,13 +201,15 @@
         const tok = raw.slice(s, i);
 
         if (/^\d+\.{1,3}$/.test(tok)) continue;
-        if (!chess.move(tok, { sloppy: true })) continue;
+
+        const san = normalizeSAN(tok);
+        if (!chess.move(san, { sloppy: true })) continue;
 
         this.moves.push({
           isWhite: ply % 2 === 0,
           moveNo: Math.floor(ply / 2) + 1,
-          san: tok,
-          fen: chess.fen(),
+          san: tok,              // display SAN
+          fen: chess.fen(),      // ✅ correct position
           comments: pending.splice(0)
         });
 
@@ -233,7 +247,7 @@
         if (next.isWhite === this.userIsWhite) break;
 
         this.index++;
-        this.game.move(next.san, { sloppy: true });
+        this.game.move(normalizeSAN(next.san), { sloppy: true });
         this.board.position(next.fen, true);
         this.appendMove();
       }
@@ -245,8 +259,9 @@
     }
 
     updateUI() {
-      this.statusEl.textContent = this.isGuessTurn() ? "Your move" : "";
-      this.statusEl.style.opacity = this.isGuessTurn() ? "1" : "0";
+      const on = this.isGuessTurn();
+      this.statusEl.textContent = on ? "Your move" : "";
+      this.statusEl.style.opacity = on ? "1" : "0";
     }
 
     onUserDrop(source, target) {
