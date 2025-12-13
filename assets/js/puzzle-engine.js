@@ -1,11 +1,10 @@
 // ======================================================================
-// JekyllChess Puzzle Engine — patched (stable)
-// - Turn display loads together with board (no early text)
-// - Auto-plays ONLY opponent replies (exactly one reply after correct move)
-// - Animates ONLY auto-played moves
-// - Avoids ghost pieces: hard-sync after animation + safe handling of special moves
-// - Remote PGN packs: board shown immediately while loading; robust PGN splitting
-// - Status row inline (no overlap)
+// JekyllChess Puzzle Engine — local puzzles stable, remote URL placeholder
+// - Local: FEN + Moves works reliably
+// - Turn display appears together with board (no early text)
+// - Auto-plays EXACTLY one opponent reply after each correct user move
+// - Animates ONLY auto reply, then hard-syncs to prevent ghost pieces
+// - Remote PGN URL: placeholder UI (disabled) so nothing breaks
 // ======================================================================
 
 (function () {
@@ -20,35 +19,33 @@
     return;
   }
 
-  const PIECE_THEME =
-    "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
+  const PIECE_THEME = "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
 
   // ----------------------------------------------------------------------
-  // Chessboard 1003 fix: init only when element has layout
+  // Chessboard 1003 fix: init only when element has layout (and return board)
   // ----------------------------------------------------------------------
-  function safeChessboard(targetEl, options, tries = 60) {
-    if (!targetEl) return null;
+  function safeChessboard(targetEl, options, onReady, tries = 90) {
+    if (!targetEl) return;
 
     const rect = targetEl.getBoundingClientRect();
     if ((rect.width <= 0 || rect.height <= 0) && tries > 0) {
-      requestAnimationFrame(() =>
-        safeChessboard(targetEl, options, tries - 1)
-      );
-      return null;
+      requestAnimationFrame(() => safeChessboard(targetEl, options, onReady, tries - 1));
+      return;
     }
 
+    let board = null;
     try {
-      return Chessboard(targetEl, options);
+      board = Chessboard(targetEl, options);
     } catch (err) {
       if (tries > 0) {
-        requestAnimationFrame(() =>
-          safeChessboard(targetEl, options, tries - 1)
-        );
-        return null;
+        requestAnimationFrame(() => safeChessboard(targetEl, options, onReady, tries - 1));
+        return;
       }
       console.warn("puzzle-engine.js: Chessboard init failed", err);
-      return null;
+      return;
     }
+
+    if (typeof onReady === "function") onReady(board);
   }
 
   // ----------------------------------------------------------------------
@@ -58,53 +55,23 @@
     return String(s || "").replace(/[♔♕♖♗♘♙♚♛♜♝♞♟]/g, "");
   }
 
+  function parseMovesLine(movesText) {
+    return String(movesText || "").trim().split(/\s+/).filter(Boolean);
+  }
+
   function normalizeSAN(san) {
     return String(san || "").replace(/[+#?!]/g, "");
-  }
-
-  function parseMovesLine(movesText) {
-    return String(movesText || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-  }
-
-  function parsePGNMoves(pgn) {
-    return String(pgn || "")
-      .replace(/\[[^\]]*\]/g, " ")
-      .replace(/\{[^}]*\}/g, " ")
-      .replace(/\([^)]*\)/g, " ")
-      .replace(/\b\d+\.\.\./g, " ")
-      .replace(/\b\d+\.(?:\.\.)?/g, " ")
-      .replace(/\b(1-0|0-1|1\/2-1\/2|½-½|\*)\b/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .filter(Boolean);
-  }
-
-  // Robust PGN game splitter: finds each [Event ...] block
-  function splitPGNGames(txt) {
-    const parts = String(txt || "").split(/\[Event\b/i);
-    if (parts.length <= 1) return [];
-    return parts
-      .slice(1)
-      .map((s) => "[Event" + s)
-      .map((s) => s.trim())
-      .filter(Boolean);
   }
 
   // ----------------------------------------------------------------------
   // UI helpers
   // ----------------------------------------------------------------------
-  function showCorrect(el) {
-    el.innerHTML = `✅ <span class="jc-icon">Correct</span>`;
-  }
-  function showWrong(el) {
-    el.innerHTML = `❌ <span class="jc-icon">Wrong</span>`;
-  }
-  function showSolved(el) {
-    el.innerHTML = `🏆 <span class="jc-icon">Solved</span>`;
+  function styleStatusRow(row) {
+    // hard guarantee: inline, no overlap
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.flexWrap = "wrap";
+    row.style.gap = "10px";
   }
 
   function updateTurn(turnEl, game, solved) {
@@ -112,19 +79,21 @@
       turnEl.textContent = "";
       return;
     }
-    turnEl.textContent =
-      game.turn() === "w" ? "⚐ White to move" : "⚑ Black to move";
+    turnEl.textContent = game.turn() === "w" ? "⚐ White to move" : "⚑ Black to move";
   }
 
-  function styleStatusRow(row) {
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.flexWrap = "wrap";
-    row.style.gap = "10px";
+  function showCorrect(el) {
+    el.textContent = "✅ Correct";
+  }
+  function showWrong(el) {
+    el.textContent = "❌ Wrong";
+  }
+  function showSolved(el) {
+    el.textContent = "🏆 Solved";
   }
 
   // ----------------------------------------------------------------------
-  // Board sync + animation helpers (prevents ghost captures)
+  // Board sync + animation helpers (anti-ghost)
   // ----------------------------------------------------------------------
   function hardSync(board, game) {
     if (!board || !game || typeof board.position !== "function") return;
@@ -132,38 +101,36 @@
   }
 
   function isSpecialMove(mv) {
-    // chess.js flags: k/q castling, e en passant, p promotion, c capture (capture is okay)
-    // We treat castling/en-passant/promotion as special for chessboard.js animations.
+    // chess.js flags: k/q castling, e en passant, p promotion
     const f = String(mv && mv.flags ? mv.flags : "");
-    return f.includes("k") || f.includes("q") || f.includes("e") || f.includes("p");
+    return f.indexOf("k") !== -1 || f.indexOf("q") !== -1 || f.indexOf("e") !== -1 || f.indexOf("p") !== -1;
   }
 
   function animateAutoMove(board, game, mv) {
     if (!board || !game) return;
 
-    // For special moves, prefer position() animation to avoid rook/promo/e.p. issues.
     try {
       if (!mv || isSpecialMove(mv) || typeof board.move !== "function") {
+        // safest for castle/promo/ep
         board.position(game.fen(), true);
       } else {
         board.move(mv.from + "-" + mv.to);
       }
     } catch {
-      try {
-        board.position(game.fen(), true);
-      } catch {}
+      try { board.position(game.fen(), true); } catch {}
     }
 
-    // Hard-sync after animation window to eliminate ghost pieces/captures
+    // hard-sync after animation window to kill ghosts
     setTimeout(() => hardSync(board, game), 260);
   }
 
   // ----------------------------------------------------------------------
   // Local puzzle: FEN + Moves
-  // Solver plays the side to move at start; engine replies with exactly one opponent move.
+  // Solver is side to move at start.
+  // Flow: user plays 1 correct move -> engine plays exactly 1 opponent reply -> user again
   // ----------------------------------------------------------------------
-  function renderLocalPuzzle(container, fen, allMoves) {
-    if (!fen || !Array.isArray(allMoves) || !allMoves.length) {
+  function renderLocalPuzzle(container, fen, moves) {
+    if (!fen || !Array.isArray(moves) || !moves.length) {
       container.textContent = "❌ Invalid local puzzle data.";
       return;
     }
@@ -171,9 +138,12 @@
     const game = new Chess(fen);
     const solverSide = game.turn();
 
+    let board = null;
     let moveIndex = 0;
     let solved = false;
-    let awaitingUser = true;
+
+    // lock input while opponent reply is being applied
+    let locked = false;
 
     // Layout
     const boardDiv = document.createElement("div");
@@ -192,35 +162,67 @@
     statusRow.append(turnDiv, feedback);
     container.append(boardDiv, statusRow);
 
-    // Init board (may be delayed by layout)
-    let board = null;
-    board = safeChessboard(boardDiv, {
-      draggable: true,
-      position: fen,
-      pieceTheme: PIECE_THEME,
-      onDrop: (from, to) => (playUserMove(from, to) ? true : "snapback")
-    });
-
-    // Show turn together with board: wait until board is ready then sync+turn
-    (function waitBoardReady() {
-      if (board && typeof board.position === "function") {
-        hardSync(board, game);
+    function finishSolvedIfDone() {
+      if (moveIndex >= moves.length) {
+        solved = true;
+        showSolved(feedback);
         updateTurn(turnDiv, game, solved);
-      } else {
-        requestAnimationFrame(waitBoardReady);
       }
-    })();
+    }
 
-    function playUserMove(from, to) {
-      if (solved) return false;
-      if (!awaitingUser) return false;
-      if (game.turn() !== solverSide) return false;
+    function autoReplyOnce() {
+      if (solved) return;
 
-      const expected = allMoves[moveIndex];
-      if (!expected) return false;
+      // If already solver turn, unlock
+      if (game.turn() === solverSide) {
+        locked = false;
+        updateTurn(turnDiv, game, solved);
+        return;
+      }
+
+      // no move left => solved
+      if (moveIndex >= moves.length) {
+        locked = false;
+        finishSolvedIfDone();
+        return;
+      }
+
+      const san = moves[moveIndex];
+      const mv = game.move(san, { sloppy: true });
+
+      if (!mv) {
+        // If PGN line ends unexpectedly, treat as solved
+        locked = false;
+        solved = true;
+        showSolved(feedback);
+        updateTurn(turnDiv, game, solved);
+        return;
+      }
+
+      moveIndex++;
+
+      // animate only auto move
+      animateAutoMove(board, game, mv);
+
+      // after the animation window, unlock + ensure sync
+      setTimeout(() => {
+        hardSync(board, game);
+        locked = false;
+        updateTurn(turnDiv, game, solved);
+        finishSolvedIfDone();
+      }, 280);
+    }
+
+    function onDrop(from, to) {
+      if (!board || solved) return "snapback";
+      if (locked) return "snapback";
+      if (game.turn() !== solverSide) return "snapback"; // user only on solver side
+
+      const expected = moves[moveIndex];
+      if (!expected) return "snapback";
 
       const mv = game.move({ from, to, promotion: "q" });
-      if (!mv) return false;
+      if (!mv) return "snapback";
 
       const ok = normalizeSAN(mv.san) === normalizeSAN(expected);
       if (!ok) {
@@ -228,73 +230,45 @@
         hardSync(board, game);
         showWrong(feedback);
         updateTurn(turnDiv, game, solved);
-        return false;
+        return "snapback";
       }
 
+      // correct move
       moveIndex++;
-      hardSync(board, game);
+      hardSync(board, game); // kill any desync from drag/drop edge cases
       showCorrect(feedback);
 
-      // Now opponent replies (exactly one)
-      awaitingUser = false;
+      // lock and reply once
+      locked = true;
       updateTurn(turnDiv, game, solved);
 
-      // Let chessboard.js finish its own drop rendering before we animate reply
-      setTimeout(autoPlayOpponentReply, 0);
+      // let chessboard finish rendering the user drop before we reply
+      setTimeout(autoReplyOnce, 60);
 
       return true;
     }
 
-    function autoPlayOpponentReply() {
-      if (solved) return;
-
-      // If already back to solver turn, unlock
-      if (game.turn() === solverSide) {
-        awaitingUser = true;
-        updateTurn(turnDiv, game, solved);
-        return;
-      }
-
-      if (moveIndex >= allMoves.length) {
-        solved = true;
-        showSolved(feedback);
-        updateTurn(turnDiv, game, solved);
-        return;
-      }
-
-      const san = allMoves[moveIndex];
-      const mv = game.move(san, { sloppy: true });
-
-      if (!mv) {
-        solved = true;
-        showSolved(feedback);
-        updateTurn(turnDiv, game, solved);
-        return;
-      }
-
-      moveIndex++;
-
-      // Animate only the auto move
-      animateAutoMove(board, game, mv);
-
-      // Unlock solver again
-      awaitingUser = true;
-      updateTurn(turnDiv, game, solved);
-
-      if (moveIndex >= allMoves.length) {
-        solved = true;
-        showSolved(feedback);
+    // init board safely; show turn only when board is ready (together)
+    safeChessboard(
+      boardDiv,
+      {
+        draggable: true,
+        position: fen,
+        pieceTheme: PIECE_THEME,
+        onDrop
+      },
+      (b) => {
+        board = b;
+        hardSync(board, game);
         updateTurn(turnDiv, game, solved);
       }
-    }
+    );
   }
 
   // ----------------------------------------------------------------------
-  // Remote PGN pack: <puzzle> PGN: https://...
-  // Board shown immediately while loading.
+  // Remote PGN URL placeholder (disabled by request)
   // ----------------------------------------------------------------------
-  function initRemotePGNPack(container, url) {
-    // Layout
+  function renderRemotePlaceholder(container, url) {
     const boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
 
@@ -304,12 +278,15 @@
 
     const turnDiv = document.createElement("span");
     turnDiv.className = "jc-turn";
+    turnDiv.textContent = "";
 
     const feedback = document.createElement("span");
     feedback.className = "jc-feedback";
+    feedback.textContent = "Remote PGN packs are disabled (placeholder).";
 
     const counter = document.createElement("span");
     counter.className = "jc-counter";
+    counter.textContent = "";
 
     const controls = document.createElement("span");
     controls.className = "jc-controls";
@@ -320,172 +297,34 @@
     const prev = document.createElement("button");
     prev.type = "button";
     prev.textContent = "↶";
+    prev.disabled = true;
 
     const next = document.createElement("button");
     next.type = "button";
     next.textContent = "↷";
+    next.disabled = true;
 
     controls.append(prev, next);
     statusRow.append(turnDiv, feedback, counter, controls);
     container.append(boardDiv, statusRow);
 
-    // Show empty board immediately while loading
-    feedback.textContent = "Loading puzzle pack…";
-    counter.textContent = "";
-    turnDiv.textContent = "";
+    // Show an empty board immediately (so layout is consistent)
+    safeChessboard(
+      boardDiv,
+      {
+        draggable: false,
+        position: "start",
+        pieceTheme: PIECE_THEME
+      },
+      () => {}
+    );
 
-    let board = null;
-    board = safeChessboard(boardDiv, {
-      draggable: true,
-      position: "start",
-      pieceTheme: PIECE_THEME,
-      onDrop: (from, to) => (playUserMove(from, to) ? true : "snapback")
-    });
-
-    let puzzles = [];
-    let puzzleIndex = 0;
-
-    let game = null;
-    let allMoves = null;
-    let solverSide = null;
-    let moveIndex = 0;
-    let solved = false;
-    let awaitingUser = true;
-
-    function updateUI() {
-      if (!game) {
-        turnDiv.textContent = "";
-        return;
-      }
-      counter.textContent = `Puzzle ${puzzleIndex + 1} / ${puzzles.length}`;
-      updateTurn(turnDiv, game, solved);
-    }
-
-    function loadPuzzle(i) {
-      if (i < 0 || i >= puzzles.length) return;
-
-      puzzleIndex = i;
-      game = new Chess(puzzles[i].fen);
-      allMoves = puzzles[i].moves;
-      solverSide = game.turn();
-      moveIndex = 0;
-      solved = false;
-      awaitingUser = true;
-
-      feedback.textContent = "";
-      hardSync(board, game);
-      updateUI();
-    }
-
-    function playUserMove(from, to) {
-      if (!game || !allMoves) return false;
-      if (solved) return false;
-      if (!awaitingUser) return false;
-      if (game.turn() !== solverSide) return false;
-
-      const expected = allMoves[moveIndex];
-      if (!expected) return false;
-
-      const mv = game.move({ from, to, promotion: "q" });
-      if (!mv) return false;
-
-      const ok = normalizeSAN(mv.san) === normalizeSAN(expected);
-      if (!ok) {
-        game.undo();
-        hardSync(board, game);
-        showWrong(feedback);
-        updateUI();
-        return false;
-      }
-
-      moveIndex++;
-      hardSync(board, game);
-      showCorrect(feedback);
-
-      awaitingUser = false;
-      updateUI();
-
-      setTimeout(autoPlayOpponentReply, 0);
-      return true;
-    }
-
-    function autoPlayOpponentReply() {
-      if (!game || solved) return;
-
-      if (game.turn() === solverSide) {
-        awaitingUser = true;
-        updateUI();
-        return;
-      }
-
-      if (moveIndex >= allMoves.length) {
-        solved = true;
-        showSolved(feedback);
-        updateUI();
-        return;
-      }
-
-      const san = allMoves[moveIndex];
-      const mv = game.move(san, { sloppy: true });
-
-      if (!mv) {
-        solved = true;
-        showSolved(feedback);
-        updateUI();
-        return;
-      }
-
-      moveIndex++;
-      animateAutoMove(board, game, mv);
-
-      awaitingUser = true;
-      updateUI();
-
-      if (moveIndex >= allMoves.length) {
-        solved = true;
-        showSolved(feedback);
-        updateUI();
-      }
-    }
-
-    prev.addEventListener("click", () => loadPuzzle(puzzleIndex - 1));
-    next.addEventListener("click", () => loadPuzzle(puzzleIndex + 1));
-
-    // Fetch + parse
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.text();
-      })
-      .then((txt) => {
-        const games = splitPGNGames(txt);
-
-        puzzles = [];
-        for (const g of games) {
-          const fen = g.match(/\[FEN\s+"([^"]+)"/i)?.[1];
-          if (!fen) continue;
-          const moves = parsePGNMoves(g);
-          if (moves.length) puzzles.push({ fen, moves });
-        }
-
-        if (!puzzles.length) {
-          feedback.textContent = "❌ No puzzles found in PGN.";
-          return;
-        }
-
-        // Wait for board readiness so turn+board appear together
-        (function startWhenReady() {
-          if (board && typeof board.position === "function") {
-            loadPuzzle(0);
-          } else {
-            requestAnimationFrame(startWhenReady);
-          }
-        })();
-      })
-      .catch((err) => {
-        console.error("Remote PGN load failed:", err);
-        feedback.textContent = "❌ Failed to load PGN (" + err.message + ")";
-      });
+    // Show the URL in a safe way (optional)
+    const small = document.createElement("div");
+    small.style.fontSize = "0.9em";
+    small.style.opacity = "0.8";
+    small.textContent = "PGN URL: " + String(url || "");
+    container.appendChild(small);
   }
 
   // ----------------------------------------------------------------------
@@ -493,44 +332,30 @@
   // ----------------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const puzzleNodes = Array.from(document.querySelectorAll("puzzle"));
-    let remoteUsed = false;
 
     puzzleNodes.forEach((node) => {
-      // Use textContent so HTML/markdown collapsing doesn't break parsing
+      // IMPORTANT: use textContent; your markdown collapses lines into one line in HTML
       const raw = stripFigurines(node.textContent || "").trim();
 
       const wrap = document.createElement("div");
       wrap.className = "jc-puzzle-wrapper";
       node.replaceWith(wrap);
 
-      // Remote
+      // Remote URL PGN => placeholder
       const pgnUrlMatch = raw.match(/PGN:\s*(https?:\/\/[^\s<]+)/i);
       if (pgnUrlMatch) {
-        if (remoteUsed) {
-          wrap.textContent = "⚠️ Only one remote PGN pack allowed per page.";
-          return;
-        }
-        remoteUsed = true;
-        initRemotePGNPack(wrap, pgnUrlMatch[1].trim());
+        renderRemotePlaceholder(wrap, pgnUrlMatch[1].trim());
         return;
       }
 
-      // Local
-      const fenMatch = raw.match(/FEN:\s*([^\n<]+)/i);
-      const movesMatch = raw.match(/Moves:\s*([^\n<]+)/i);
-      const pgnInlineMatch = raw.match(/PGN:\s*(1\.[\s\S]+)/i);
-
-      if (fenMatch && pgnInlineMatch) {
-        const fen = fenMatch[1].trim();
-        const allMoves = parsePGNMoves(pgnInlineMatch[1]);
-        renderLocalPuzzle(wrap, fen, allMoves);
-        return;
-      }
+      // Local FEN + Moves
+      const fenMatch = raw.match(/FEN:\s*([^\n<]+?)(?:\s+Moves:|$)/i);
+      const movesMatch = raw.match(/Moves:\s*([\s\S]+)$/i);
 
       if (fenMatch && movesMatch) {
         const fen = fenMatch[1].trim();
-        const allMoves = parseMovesLine(movesMatch[1]);
-        renderLocalPuzzle(wrap, fen, allMoves);
+        const moves = parseMovesLine(movesMatch[1]);
+        renderLocalPuzzle(wrap, fen, moves);
         return;
       }
 
