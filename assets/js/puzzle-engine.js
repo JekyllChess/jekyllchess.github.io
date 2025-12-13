@@ -170,13 +170,22 @@
       showCorrect(feedback);
       updateTurn(turnDiv, game, solved);
 
+      // auto reply
       if (step < solution.length) {
         game.move(sanMoves[step], { sloppy: true });
         step++;
-        setTimeout(() => board.position(game.fen(), true), 200);
-      }
+        setTimeout(() => {
+          board.position(game.fen(), true);
+          // ✅ FIX: update turn after auto-move
+          updateTurn(turnDiv, game, solved);
 
-      if (step >= solution.length) {
+          if (step >= solution.length) {
+            solved = true;
+            showSolved(feedback);
+            updateTurn(turnDiv, game, solved);
+          }
+        }, 200);
+      } else {
         solved = true;
         showSolved(feedback);
         updateTurn(turnDiv, game, solved);
@@ -290,17 +299,26 @@
           showCorrect(feedback);
           updateTurn(turnDiv, game, solved);
 
+          // auto reply
           if (step < sanMoves.length) {
             game.move(sanMoves[step], { sloppy: true });
             step++;
             setTimeout(() => {
               board.position(game.fen(), true);
+
+              // ✅ FIX: update turn after auto-move
+              updateTurn(turnDiv, game, solved);
+
               if (step >= sanMoves.length || game.game_over()) {
                 solved = true;
                 showSolved(feedback);
                 updateTurn(turnDiv, game, solved);
               }
             }, 200);
+          } else {
+            solved = true;
+            showSolved(feedback);
+            updateTurn(turnDiv, game, solved);
           }
 
           return true;
