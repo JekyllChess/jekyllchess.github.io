@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (FINAL + post-solve navigation)
+// pgn-guess.js — Guess-the-move PGN trainer (STABLE, FIXED)
 // ============================================================================
 
 (function () {
@@ -10,7 +10,6 @@
   if (!window.PGNCore) return;
 
   const C = window.PGNCore;
-
   const AUTOPLAY_DELAY = 700;
   const FEEDBACK_DELAY = 600;
 
@@ -24,73 +23,19 @@
     const style = document.createElement("style");
     style.id = "pgn-guess-style";
     style.textContent = `
-      .pgn-guess-cols {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-      }
+      .pgn-guess-cols { display:flex; gap:1rem; align-items:flex-start; }
+      .pgn-guess-board { width:360px; touch-action:manipulation; }
+      .pgn-guess-status { margin-top:.4em; font-size:.95em; white-space:nowrap; }
+      .pgn-guess-status button { margin-left:.3em; font-size:.85em; }
+      .pgn-guess-right { flex:1; max-height:420px; overflow-y:auto; }
 
-      .pgn-guess-left { flex: 0 0 auto; }
-
-      .pgn-guess-board {
-        width: 320px;
-        max-width: 100%;
-        touch-action: manipulation;
-      }
-      @media (min-width: 480px) { .pgn-guess-board { width: 360px; } }
-      @media (min-width: 768px) { .pgn-guess-board { width: 400px; } }
-
-      .pgn-guess-status {
-        margin-top: 0.4em;
-        font-size: 0.95em;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 0.5em;
-      }
-
-      .pgn-guess-status button {
-        font-size: 0.85em;
-        padding: 0.1em 0.4em;
-      }
-
-      .pgn-guess-right {
-        flex: 1 1 auto;
-        max-height: 420px;
-        overflow-y: auto;
-      }
-
-      .pgn-move-row { font-weight: 900; margin-top: 0.5em; }
-      .pgn-move-no { margin-right: 0.3em; }
-      .pgn-move-white { margin-right: 0.6em; }
-      .pgn-move-black { margin-left: 0.3em; }
-
-      .pgn-comment { font-weight: 400; margin: 0.35em 0; }
+      .pgn-move-row { font-weight:900; margin-top:.5em; }
+      .pgn-move-no { margin-right:.3em; }
+      .pgn-move-white { margin-right:.6em; }
+      .pgn-move-black { margin-left:.3em; }
+      .pgn-comment { font-weight:400; margin:.35em 0; }
     `;
     document.head.appendChild(style);
-  }
-
-  // --------------------------------------------------------------------------
-
-  function safeChessboard(targetEl, options, tries = 30, onReady) {
-    if (!targetEl) return;
-    const r = targetEl.getBoundingClientRect();
-    if ((r.width <= 0 || r.height <= 0) && tries > 0) {
-      requestAnimationFrame(() =>
-        safeChessboard(targetEl, options, tries - 1, onReady)
-      );
-      return;
-    }
-    try {
-      const board = Chessboard(targetEl, options);
-      onReady && onReady(board);
-    } catch {
-      if (tries > 0) {
-        requestAnimationFrame(() =>
-          safeChessboard(targetEl, options, tries - 1, onReady)
-        );
-      }
-    }
   }
 
   function normalizeSAN(tok) {
@@ -103,14 +48,9 @@
   }
 
   // --------------------------------------------------------------------------
-  // Main class
-  // --------------------------------------------------------------------------
 
   class ReaderPGNView {
     constructor(src) {
-      if (src.__pgnReaderRendered) return;
-      src.__pgnReaderRendered = true;
-
       ensureGuessStylesOnce();
 
       this.rawText = (src.textContent || "").trim();
@@ -119,62 +59,97 @@
 
       this.moves = [];
       this.index = -1;
+      this.currentRow = null;
+
       this.game = new Chess();
       this.currentFen = "start";
-
       this.resultMessage = "";
       this.solved = false;
 
       this.build(src);
-      this.parsePGN();
+      this.parsePGN();   // ← FIXED parser
       this.initBoard();
     }
 
     // ------------------------------------------------------------------------
 
     build(src) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "pgn-guess-cols";
+      const wrap = document.createElement("div");
+      wrap.className = "pgn-guess-cols";
 
-      wrapper.innerHTML = `
-        <div class="pgn-guess-left">
+      wrap.innerHTML = `
+        <div>
           <div class="pgn-guess-board"></div>
           <div class="pgn-guess-status"></div>
         </div>
         <div class="pgn-guess-right"></div>
       `;
 
-      src.replaceWith(wrapper);
+      src.replaceWith(wrap);
 
-      this.boardDiv = wrapper.querySelector(".pgn-guess-board");
-      this.statusEl = wrapper.querySelector(".pgn-guess-status");
-      this.rightPane = wrapper.querySelector(".pgn-guess-right");
+      this.boardDiv = wrap.querySelector(".pgn-guess-board");
+      this.statusEl = wrap.querySelector(".pgn-guess-status");
+      this.rightPane = wrap.querySelector(".pgn-guess-right");
     }
 
+    // ------------------------------------------------------------------------
+    // ✅ SAFE, PROVEN PGN PARSER (no infinite loops)
     // ------------------------------------------------------------------------
 
     parsePGN() {
       const raw = C.normalizeFigurines(this.rawText);
       const chess = new Chess();
 
-      let ply = 0, i = 0;
+      let ply = 0;
+      let i = 0;
+      let pending = [];
+
+      const attach = (t) => {
+        if (!t) return;
+        if (this.moves.length) this.moves[this.moves.length - 1].comments.push(t);
+        else pending.push(t);
+      };
 
       while (i < raw.length) {
-        if (/\s/.test(raw[i])) { i++; continue; }
+        const ch = raw[i];
 
-        const s = i;
+        if (ch === "(") {
+          let d = 1, j = i + 1;
+          while (j < raw.length && d) {
+            if (raw[j] === "(") d++;
+            else if (raw[j] === ")") d--;
+            j++;
+          }
+          attach(raw.slice(i + 1, j - 1));
+          i = j;
+          continue;
+        }
+
+        if (ch === "{") {
+          let j = i + 1;
+          while (j < raw.length && raw[j] !== "}") j++;
+          attach(raw.slice(i + 1, j));
+          i = j + 1;
+          continue;
+        }
+
+        if (/\s/.test(ch)) { i++; continue; }
+
+        let s = i;
         while (i < raw.length && !/\s/.test(raw[i]) && !"(){}".includes(raw[i])) i++;
         const tok = raw.slice(s, i);
 
         if (/^\d+\.{1,3}$/.test(tok)) continue;
 
         const san = normalizeSAN(tok);
-        if (!chess.move(san, { sloppy: true })) continue;
+        if (!chess.move(san, { sloppy:true })) continue;
 
         this.moves.push({
           isWhite: ply % 2 === 0,
+          moveNo: Math.floor(ply / 2) + 1,
           san: tok,
-          fen: chess.fen()
+          fen: chess.fen(),
+          comments: pending.splice(0)
         });
 
         ply++;
@@ -184,134 +159,106 @@
     // ------------------------------------------------------------------------
 
     initBoard() {
-      safeChessboard(
-        this.boardDiv,
-        {
-          position: "start",
-          orientation: this.flipBoard ? "black" : "white",
-          draggable: true,
-          pieceTheme: C.PIECE_THEME_URL,
-          moveSpeed: 200,
-          onDragStart: () => !this.solved && this.isGuessTurn(),
-          onDrop: (s, t) => this.onUserDrop(s, t),
-          onSnapEnd: () => this.board.position(this.currentFen, false)
-        },
-        30,
-        (b) => {
-          this.board = b;
-          this.updateStatus();
+      this.board = Chessboard(this.boardDiv, {
+        position: "start",
+        orientation: this.flipBoard ? "black" : "white",
+        draggable: true,
+        pieceTheme: C.PIECE_THEME_URL,
+        moveSpeed: 200,
+        onDragStart: () => !this.solved && this.isGuessTurn(),
+        onDrop: (s, t) => this.onUserDrop(s, t),
+        onSnapEnd: () => this.board.position(this.currentFen, false)
+      });
 
-          setTimeout(() => {
-            this.autoplayOpponentMoves();
-            this.updateStatus();
-          }, AUTOPLAY_DELAY);
-        }
-      );
+      this.updateStatus();
+
+      setTimeout(() => {
+        this.autoplayOpponentMoves();
+        this.updateStatus();
+      }, AUTOPLAY_DELAY);
     }
 
     // ------------------------------------------------------------------------
 
     autoplayOpponentMoves() {
       while (this.index + 1 < this.moves.length) {
-        const next = this.moves[this.index + 1];
-        if (next.isWhite === this.userIsWhite) break;
+        const n = this.moves[this.index + 1];
+        if (n.isWhite === this.userIsWhite) break;
 
         this.index++;
-        this.game.move(normalizeSAN(next.san), { sloppy: true });
-        this.currentFen = next.fen;
-        this.board.position(next.fen, true);
+        this.game.move(normalizeSAN(n.san), { sloppy:true });
+        this.currentFen = n.fen;
+        this.board.position(n.fen, true);
         this.appendMove();
       }
       this.resultMessage = "";
     }
 
     isGuessTurn() {
-      const next = this.moves[this.index + 1];
-      return next && next.isWhite === this.userIsWhite;
+      const n = this.moves[this.index + 1];
+      return n && n.isWhite === this.userIsWhite;
     }
 
-    // ------------------------------------------------------------------------
-    // Status + buttons
     // ------------------------------------------------------------------------
 
     updateStatus() {
       this.statusEl.innerHTML = "";
 
       if (this.solved) {
-        const solved = document.createElement("span");
-        solved.textContent = "Training solved! 🏆";
-        this.statusEl.appendChild(solved);
-
-        const btnStart = this.makeNavButton(
-          "Go to the starting position",
-          () => this.goToIndex(-1),
-          this.index <= -1
-        );
-
-        const btnPrev = this.makeNavButton(
-          "Previous move",
-          () => this.goToIndex(this.index - 1),
-          this.index <= -1
-        );
-
-        const btnNext = this.makeNavButton(
-          "Next move",
-          () => this.goToIndex(this.index + 1),
-          this.index >= this.moves.length - 1
-        );
-
-        this.statusEl.append(btnStart, btnPrev, btnNext);
+        this.statusEl.textContent = "Training solved! 🏆 ";
+        this.addNavButtons();
         return;
       }
 
-      const turn = this.game.turn() === "w" ? "White" : "Black";
       const flag = this.game.turn() === "w" ? "⚐" : "⚑";
+      const side = this.game.turn() === "w" ? "White" : "Black";
       const suffix = this.resultMessage ? ` · ${this.resultMessage}` : "";
-      this.statusEl.textContent = `${flag} ${turn} to move${suffix}`;
+      this.statusEl.textContent = `${flag} ${side} to move${suffix}`;
     }
 
-    makeNavButton(label, onClick, disabled) {
-      const b = document.createElement("button");
-      b.textContent = label;
-      b.disabled = disabled;
-      b.addEventListener("click", onClick);
-      return b;
+    addNavButtons() {
+      const mk = (txt, cb, dis) => {
+        const b = document.createElement("button");
+        b.textContent = txt;
+        b.disabled = dis;
+        b.onclick = cb;
+        this.statusEl.appendChild(b);
+      };
+
+      mk("Go to the starting position", () => this.goto(-1), this.index < 0);
+      mk("Previous move", () => this.goto(this.index - 1), this.index < 0);
+      mk("Next move", () => this.goto(this.index + 1), this.index >= this.moves.length - 1);
     }
 
-    goToIndex(i) {
+    goto(i) {
       if (i < -1) i = -1;
       if (i >= this.moves.length) i = this.moves.length - 1;
-
       this.index = i;
 
       if (i === -1) {
         this.game.reset();
         this.currentFen = "start";
-        this.board.position("start", false);
       } else {
         this.game.load(this.moves[i].fen);
         this.currentFen = this.moves[i].fen;
-        this.board.position(this.currentFen, false);
       }
-
+      this.board.position(this.currentFen, false);
       this.updateStatus();
     }
 
     // ------------------------------------------------------------------------
-    // User input
-    // ------------------------------------------------------------------------
 
-    onUserDrop(source, target) {
+    onUserDrop(s, t) {
       if (!this.isGuessTurn()) return "snapback";
 
-      const expected = this.moves[this.index + 1];
-      const legal = this.game.moves({ verbose: true });
+      const exp = this.moves[this.index + 1];
+      const legal = this.game.moves({ verbose:true });
 
       const ok = legal.some(m => {
-        if (m.from !== source || m.to !== target) return false;
-        const t = new Chess(this.game.fen());
-        t.move(m);
-        return t.fen() === expected.fen;
+        if (m.from !== s || m.to !== t) return false;
+        const g = new Chess(this.game.fen());
+        g.move(m);
+        return g.fen() === exp.fen;
       });
 
       if (!ok) {
@@ -321,14 +268,13 @@
       }
 
       this.index++;
-      this.game.load(expected.fen);
-      this.currentFen = expected.fen;
-      this.board.position(expected.fen, false);
+      this.game.load(exp.fen);
+      this.currentFen = exp.fen;
+      this.board.position(exp.fen, false);
       this.appendMove();
 
       if (this.index === this.moves.length - 1) {
         this.solved = true;
-        this.resultMessage = "Training solved! 🏆";
         this.updateStatus();
         return;
       }
@@ -343,8 +289,6 @@
     }
 
     // ------------------------------------------------------------------------
-    // Move list
-    // ------------------------------------------------------------------------
 
     appendMove() {
       const m = this.moves[this.index];
@@ -353,27 +297,22 @@
       if (m.isWhite) {
         const row = document.createElement("div");
         row.className = "pgn-move-row";
-
-        const no = document.createElement("span");
-        no.className = "pgn-move-no";
-        no.textContent = `${Math.floor(this.index / 2) + 1}.`;
-
-        const w = document.createElement("span");
-        w.className = "pgn-move-white";
-        w.textContent = m.san;
-
-        row.appendChild(no);
-        row.appendChild(w);
+        row.innerHTML = `<span class="pgn-move-no">${m.moveNo}.</span><span class="pgn-move-white">${m.san}</span>`;
         this.rightPane.appendChild(row);
-      } else {
-        const lastRow = this.rightPane.lastElementChild;
-        if (lastRow) {
-          const b = document.createElement("span");
-          b.className = "pgn-move-black";
-          b.textContent = m.san;
-          lastRow.appendChild(b);
-        }
+        this.currentRow = row;
+      } else if (this.currentRow) {
+        const b = document.createElement("span");
+        b.className = "pgn-move-black";
+        b.textContent = m.san;
+        this.currentRow.appendChild(b);
       }
+
+      m.comments.forEach(c => {
+        const p = document.createElement("p");
+        p.className = "pgn-comment";
+        p.textContent = c;
+        this.rightPane.appendChild(p);
+      });
 
       this.rightPane.scrollTop = this.rightPane.scrollHeight;
     }
@@ -387,7 +326,7 @@
   }
 
   document.readyState === "loading"
-    ? document.addEventListener("DOMContentLoaded", init, { once: true })
+    ? document.addEventListener("DOMContentLoaded", init, { once:true })
     : init();
 
 })();
