@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (correct init autoplay logic)
+// pgn-guess.js — Guess-the-move PGN trainer (final, correct autoplay logic)
 // ============================================================================
 
 (function () {
@@ -30,16 +30,6 @@
       }
 
       .pgn-guess-board { touch-action: manipulation; }
-
-      .pgn-guess-board.flash-correct {
-        box-shadow: 0 0 0 4px #3fb950 inset;
-        animation: flash-green 0.35s ease;
-      }
-
-      .pgn-guess-board.flash-wrong {
-        box-shadow: 0 0 0 4px #f85149 inset;
-        animation: flash-red 0.35s ease;
-      }
     `;
     document.head.appendChild(style);
   }
@@ -153,7 +143,6 @@
         const tok = raw.slice(s, i);
 
         if (/^\d+\.{1,3}$/.test(tok)) continue;
-
         if (!chess.move(tok, { sloppy: true })) continue;
 
         this.moves.push({
@@ -182,8 +171,7 @@
         30,
         (b) => {
           this.board = b;
-          this.initialAutoplay();
-          this.autoAdvance();
+          this.autoplayUntilUserTurn();
           this.updateUI();
         }
       );
@@ -191,36 +179,26 @@
       this.nextBtn.onclick = () => this.nextUserMove();
     }
 
-    initialAutoplay() {
-      if (!this.moves.length) return;
-      const m = this.moves[0];
-      if (m.isWhite !== this.userIsWhite) {
-        this.index = 0;
-        this.game.move(m.san, { sloppy: true });
-        this.board.position(m.fen, true);
+    autoplayUntilUserTurn() {
+      while (this.index + 1 < this.moves.length) {
+        const next = this.moves[this.index + 1];
+        if (next.isWhite === this.userIsWhite) break;
+
+        this.index++;
+        this.game.move(next.san, { sloppy: true });
+        this.board.position(next.fen, true);
         this.appendMove();
       }
     }
 
     isGuessTurn() {
       const next = this.moves[this.index + 1];
-      return next && next.isWhite !== this.userIsWhite;
+      return next && next.isWhite === this.userIsWhite;
     }
 
     updateUI() {
       this.statusEl.textContent = this.isGuessTurn() ? "Your move" : "";
       this.statusEl.style.opacity = this.isGuessTurn() ? "1" : "0";
-    }
-
-    autoAdvance() {
-      while (this.index + 1 < this.moves.length) {
-        const n = this.moves[this.index + 1];
-        if (n.isWhite !== this.userIsWhite) break;
-        this.index++;
-        this.game.move(n.san, { sloppy: true });
-        this.board.position(n.fen, true);
-        this.appendMove();
-      }
     }
 
     onUserDrop(source, target) {
@@ -242,7 +220,7 @@
       this.game.load(expected.fen);
       this.board.position(expected.fen, true);
       this.appendMove();
-      this.autoAdvance();
+      this.autoplayUntilUserTurn();
       this.updateUI();
     }
 
@@ -254,7 +232,7 @@
       this.game.move(this.moves[this.index].san, { sloppy: true });
       this.board.position(this.moves[this.index].fen, true);
       this.appendMove();
-      this.autoAdvance();
+      this.autoplayUntilUserTurn();
       this.updateUI();
     }
 
