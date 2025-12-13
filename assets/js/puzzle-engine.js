@@ -20,6 +20,9 @@
       const pgnUrlMatch = raw.match(/PGN:\s*(https?:\/\/[^\s<]+)/i);
       const pgnInline   = !pgnUrlMatch && raw.match(/PGN:\s*(1\.[\s\S]+)/i);
 
+      // --------------------------------------------------
+      // Remote PGN pack (only once per page)
+      // --------------------------------------------------
       if (pgnUrlMatch && !fenMatch) {
         if (remoteUsed) {
           wrap.textContent = "⚠️ Only one remote PGN pack allowed per page.";
@@ -30,6 +33,9 @@
         return;
       }
 
+      // --------------------------------------------------
+      // Inline PGN (single puzzle)
+      // --------------------------------------------------
       if (fenMatch && pgnInline) {
         renderLocalPuzzle(
           wrap,
@@ -39,6 +45,9 @@
         return;
       }
 
+      // --------------------------------------------------
+      // FEN + Moves
+      // --------------------------------------------------
       if (fenMatch && movesMatch) {
         renderLocalPuzzle(
           wrap,
@@ -60,18 +69,27 @@
     return s.replace(/[♔♕♖♗♘♙]/g, "");
   }
 
+  /**
+   * Parse PGN moves and STOP at '*'
+   */
   function parsePGNMoves(pgn) {
-    return pgn
+    const tokens = pgn
       .replace(/\[[^\]]*\]/g, " ")
       .replace(/\{[^}]*\}/g, " ")
       .replace(/\([^)]*\)/g, " ")
       .replace(/\b\d+\.\.\./g, " ")
       .replace(/\b\d+\.(?:\.\.)?/g, " ")
-      .replace(/\b(1-0|0-1|1\/2-1\/2|\*)\b/g, " ")
       .replace(/\s+/g, " ")
       .trim()
-      .split(" ")
-      .filter(Boolean);
+      .split(" ");
+
+    const moves = [];
+    for (const t of tokens) {
+      if (t === "*") break;               // ⭐ FIX
+      if (/^(1-0|0-1|1\/2-1\/2)$/.test(t)) break;
+      moves.push(t);
+    }
+    return moves;
   }
 
   function normalizeSAN(san) {
@@ -101,7 +119,7 @@
   }
 
   // =====================================================================
-  // Local puzzle (unchanged)
+  // Local puzzle
   // =====================================================================
 
   function buildUCISolution(fen, sanMoves) {
@@ -159,7 +177,6 @@
 
       step++;
       showCorrect(feedback);
-      updateTurn(turnDiv, game, solved);
 
       if (step >= solution.length) {
         solved = true;
@@ -183,7 +200,7 @@
   }
 
   // =====================================================================
-  // Remote PGN — FIXED end-of-puzzle detection
+  // Remote PGN — FIXED '*' end-of-puzzle detection
   // =====================================================================
 
   function initRemotePGNPackLazy(container, url) {
@@ -283,7 +300,7 @@
           step++;
           showCorrect(feedback);
 
-          // ✅ FIX: if user's move ends solution → solved immediately
+          // ⭐ FIX: '*' means puzzle ends here
           if (step >= sanMoves.length) {
             solved = true;
             showSolved(feedback);
@@ -291,18 +308,11 @@
             return true;
           }
 
-          // auto reply
           game.move(sanMoves[step], { sloppy: true });
           step++;
 
           setTimeout(() => {
             board.position(game.fen(), true);
-
-            if (step >= sanMoves.length || game.game_over()) {
-              solved = true;
-              showSolved(feedback);
-            }
-
             updateTurn(turnDiv, game, solved);
           }, 200);
 
