@@ -103,7 +103,7 @@
     function autoReply() {
       if (index >= moves.length) {
         solved = true;
-        feedback.textContent = "🏆 Solved";
+        feedback.textContent = "Puzzle solved! 🏆";
         updateTurn();
         return;
       }
@@ -111,7 +111,7 @@
       const mv = game.move(moves[index], { sloppy: true });
       if (!mv) {
         solved = true;
-        feedback.textContent = "🏆 Solved";
+        feedback.textContent = "Puzzle solved! 🏆";
         updateTurn();
         return;
       }
@@ -132,13 +132,13 @@
 
       if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
         game.undo();
-        feedback.textContent = "❌ Wrong";
+        feedback.textContent = "Wrong move ❌";
         hardSync(board, game);
         return "snapback";
       }
 
       index++;
-      feedback.textContent = "✅ Correct";
+      feedback.textContent = "Correct! ✅";
       hardSync(board, game);
       locked = true;
       setTimeout(autoReply, 80);
@@ -166,7 +166,7 @@
   /* -------------------------------------------------- */
 
   async function renderRemotePGN(container, url) {
-    container.textContent = "Loading PGN…";
+    container.textContent = "Loading…";
 
     const res = await fetch(url);
     const text = await res.text();
@@ -238,7 +238,7 @@
       if (fen && movesText) {
         renderLocalPuzzle(wrap, fen, tokenizeMoves(movesText));
       } else {
-        wrap.textContent = "❌ Invalid puzzle block.";
+        wrap.textContent = "❌ Invalid puzzle block! ❌";
       }
     });
   });
