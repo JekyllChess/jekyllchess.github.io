@@ -1,7 +1,6 @@
 // ============================================================================
-// guess-pgn.js — Progressive PGN viewer (layout identical to pgn-reader.js)
-// Difference:
-//   • Only shows moves/comments/variations up to the current move
+// guess-pgn.js — Guess-the-move training mode
+// Layout and styling identical to pgn-reader.js
 // ============================================================================
 
 (function () {
@@ -19,16 +18,9 @@
 
   // ---- Chessboard 1003 fix (UNCHANGED) --------------------------------------
   function safeChessboard(targetEl, options, tries = 30, onReady) {
-    const el = targetEl;
-    if (!el) {
-      if (tries > 0)
-        requestAnimationFrame(() =>
-          safeChessboard(targetEl, options, tries - 1, onReady)
-        );
-      return null;
-    }
+    if (!targetEl) return null;
 
-    const rect = el.getBoundingClientRect();
+    const rect = targetEl.getBoundingClientRect();
     if ((rect.width <= 0 || rect.height <= 0) && tries > 0) {
       requestAnimationFrame(() =>
         safeChessboard(targetEl, options, tries - 1, onReady)
@@ -37,8 +29,8 @@
     }
 
     try {
-      const board = Chessboard(el, options);
-      if (typeof onReady === "function") onReady(board);
+      const board = Chessboard(targetEl, options);
+      onReady && onReady(board);
       return board;
     } catch {
       if (tries > 0) {
@@ -51,27 +43,11 @@
   }
   // --------------------------------------------------------------------------
 
-  function appendText(el, txt) {
-    if (txt) el.appendChild(document.createTextNode(txt));
-  }
-
-  function splitPGNText(text) {
-    const lines = text.split(/\r?\n/);
-    const headers = [];
-    const moves = [];
-    let inHeaders = true;
-
-    for (const line of lines) {
-      const t = line.trim();
-      if (inHeaders && t.startsWith("[") && t.endsWith("]")) headers.push(line);
-      else if (inHeaders && t === "") inHeaders = false;
-      else {
-        inHeaders = false;
-        moves.push(line);
-      }
-    }
-
-    return { headers, moveText: moves.join(" ").replace(/\s+/g, " ").trim() };
+  function normalizeSAN(s) {
+    return s
+      .replace(/0/g, "O")
+      .replace(/[+#?!]/g, "")
+      .trim();
   }
 
   // ==========================================================================
@@ -83,21 +59,16 @@
 
       this.sourceEl = src;
       this.wrapper = document.createElement("div");
-      this.wrapper.className = "pgn-reader-block"; // ✅ SAME CLASS
+      this.wrapper.className = "pgn-reader-block";
 
       this.board = null;
-      this.plyCounter = 0;
       this.mainlineIndex = -1;
 
       this.build();
       this.applyFigurines();
       this.initBoardAndControls();
-      this.bindMoveClicks();
+      this.bindGuessUI();
       this.updateVisibility();
-    }
-
-    static isSANCore(tok) {
-      return C.SAN_CORE_REGEX.test(tok);
     }
 
     // ------------------------------------------------------------------------
@@ -106,28 +77,21 @@
       let raw = (this.sourceEl.textContent || "").trim();
       raw = C.normalizeFigurines(raw);
 
-      const { headers, moveText } = splitPGNText(raw);
-      const pgn = (headers.length ? headers.join("\n") + "\n\n" : "") + moveText;
-
       const chess = new Chess();
-      try { chess.load_pgn(pgn, { sloppy: true }); } catch {}
+      try { chess.load_pgn(raw, { sloppy: true }); } catch {}
 
-      let head = {};
-      try { head = chess.header(); } catch {}
-
-      const res = C.normalizeResult(head.Result || "");
-      const hasResultAlready = / (1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(moveText);
-      const movetext = hasResultAlready ? moveText : moveText + (res ? " " + res : "");
-
-      // ✅ IDENTICAL MARKUP
       this.wrapper.innerHTML =
         '<div class="pgn-reader-header"></div>' +
         '<div class="pgn-reader-cols">' +
           '<div class="pgn-reader-left">' +
             '<div class="pgn-reader-board"></div>' +
             '<div class="pgn-reader-buttons">' +
-              '<button class="pgn-reader-btn pgn-reader-prev" type="button">◀</button>' +
-              '<button class="pgn-reader-btn pgn-reader-next" type="button">▶</button>' +
+              '<button class="pgn-reader-btn pgn-reader-prev">◀</button>' +
+              '<button class="pgn-reader-btn pgn-reader-next">▶</button>' +
+            '</div>' +
+            '<div class="guess-input">' +
+              'Your move: <input type="text" class="guess-san" autocomplete="off">' +
+              '<button class="guess-ok">OK</button>' +
             '</div>' +
           '</div>' +
           '<div class="pgn-reader-right"></div>' +
@@ -135,126 +99,11 @@
 
       this.sourceEl.replaceWith(this.wrapper);
 
-      this.headerDiv = this.wrapper.querySelector(".pgn-reader-header");
-      this.movesCol = this.wrapper.querySelector(".pgn-reader-right");
       this.boardDiv = this.wrapper.querySelector(".pgn-reader-board");
+      this.movesCol = this.wrapper.querySelector(".pgn-reader-right");
 
-      this.headerDiv.appendChild(this.buildHeaderContent(head));
-      this.parseMovetext(movetext);
-    }
-
-    buildHeaderContent(h) {
-      const H = document.createElement("h3");
-      appendText(
-        H,
-        `${C.flipName(h.White || "")} – ${C.flipName(h.Black || "")}`
-      );
-      return H;
-    }
-
-    // ------------------------------------------------------------------------
-    // Parsing (minimal changes: ply tracking only)
-    // ------------------------------------------------------------------------
-
-    ensure(ctx, cls) {
-      if (!ctx.container) {
-        const p = document.createElement("p");
-        p.className = cls;
-        p.dataset.ply = ctx.currentPly;
-        this.movesCol.appendChild(p);
-        ctx.container = p;
-      }
-    }
-
-    parseComment(text, start, ctx) {
-      let j = start;
-      while (j < text.length && text[j] !== "}") j++;
-      let raw = text.substring(start, j).replace(/\[%.*?]/g, "").trim();
-      if (text[j] === "}") j++;
-
-      if (!raw) return j;
-
-      const p = document.createElement("p");
-      p.className = "pgn-comment";
-      p.dataset.ply = ctx.currentPly;
-      appendText(p, raw);
-      this.movesCol.appendChild(p);
-
-      ctx.container = null;
-      ctx.lastWasInterrupt = true;
-      return j;
-    }
-
-    handleSAN(tok, ctx) {
-      const core = tok.replace(/[^a-hKQRBN0-9=O0-]+$/g, "").replace(/0/g, "O");
-      if (!GuessPGNView.isSANCore(core)) return null;
-
-      ctx.currentPly = this.plyCounter++;
-      this.ensure(ctx, ctx.type === "main" ? "pgn-mainline" : "pgn-variation");
-
-      const mv = ctx.chess.move(core, { sloppy: true });
-      if (!mv) return null;
-
-      const span = document.createElement("span");
-      span.className = "pgn-move reader-move";
-      span.textContent = unbreak(tok) + " ";
-      span.dataset.fen = ctx.chess.fen();
-      span.dataset.ply = ctx.currentPly;
-      span.dataset.mainline = ctx.type === "main" ? "1" : "0";
-
-      ctx.container.appendChild(span);
-      return span;
-    }
-
-    parseMovetext(t) {
-      const chess = new Chess();
-
-      let ctx = {
-        type: "main",
-        chess,
-        container: null,
-        parent: null,
-        lastWasInterrupt: false,
-        currentPly: 0
-      };
-
-      let i = 0;
-      while (i < t.length) {
-        const ch = t[i];
-
-        if (ch === "{") {
-          i = this.parseComment(t, i + 1, ctx);
-          continue;
-        }
-
-        if (ch === "(") {
-          i++;
-          ctx = {
-            type: "variation",
-            chess: new Chess(ctx.chess.fen()),
-            container: null,
-            parent: ctx,
-            lastWasInterrupt: true,
-            currentPly: ctx.currentPly
-          };
-          continue;
-        }
-
-        if (ch === ")") {
-          i++;
-          ctx = ctx.parent || ctx;
-          ctx.container = null;
-          continue;
-        }
-
-        if (/\s/.test(ch)) { i++; continue; }
-
-        const start = i;
-        while (i < t.length && !/\s|[(){}]/.test(t[i])) i++;
-        const tok = t.substring(start, i);
-
-        this.handleSAN(tok, ctx);
-      }
+      // reuse original reader to parse moves
+      new window.ReaderPGNView(this.wrapper);
     }
 
     // ------------------------------------------------------------------------
@@ -275,65 +124,67 @@
           draggable: false,
           pieceTheme: C.PIECE_THEME_URL,
           appearSpeed: 200,
-          moveSpeed: 200,
-          snapSpeed: 25,
-          snapbackSpeed: 50
+          moveSpeed: 200
         },
         30,
         (b) => (this.board = b)
       );
 
       this.moveSpans = Array.from(this.wrapper.querySelectorAll(".reader-move"));
-      this.mainlineMoves = this.moveSpans.filter(s => s.dataset.mainline === "1");
+      this.mainlineMoves = this.moveSpans.filter(m => m.dataset.mainline === "1");
+    }
 
-      this.wrapper.querySelector(".pgn-reader-next")
-        .addEventListener("click", () => this.next());
-      this.wrapper.querySelector(".pgn-reader-prev")
-        .addEventListener("click", () => this.prev());
+    // ------------------------------------------------------------------------
+    // GUESS LOGIC
+    // ------------------------------------------------------------------------
+
+    bindGuessUI() {
+      const input = this.wrapper.querySelector(".guess-san");
+      const btn = this.wrapper.querySelector(".guess-ok");
+
+      const submit = () => {
+        if (this.mainlineIndex + 1 >= this.mainlineMoves.length) return;
+
+        const guess = normalizeSAN(input.value);
+        const target = normalizeSAN(
+          this.mainlineMoves[this.mainlineIndex + 1].textContent
+        );
+
+        if (guess === target) {
+          this.mainlineIndex++;
+          this.gotoSpan(this.mainlineMoves[this.mainlineIndex]);
+          input.value = "";
+          input.classList.remove("guess-wrong");
+        } else {
+          input.classList.add("guess-wrong");
+          setTimeout(() => input.classList.remove("guess-wrong"), 300);
+        }
+      };
+
+      btn.addEventListener("click", submit);
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") submit();
+      });
     }
 
     gotoSpan(span) {
       if (!span || !this.board) return;
       this.board.position(span.dataset.fen, true);
-      this.mainlineIndex = this.mainlineMoves.indexOf(span);
       this.updateVisibility();
     }
 
     updateVisibility() {
-      const maxPly =
-        this.mainlineIndex < 0
-          ? -1
-          : Number(this.mainlineMoves[this.mainlineIndex].dataset.ply);
+      const maxIndex = this.mainlineIndex;
 
-      this.wrapper.querySelectorAll("[data-ply]").forEach((el) => {
-        el.style.display =
-          Number(el.dataset.ply) <= maxPly ? "" : "none";
+      this.moveSpans.forEach((s, i) => {
+        s.style.display = i <= maxIndex ? "" : "none";
       });
-    }
 
-    next() {
-      if (!this.mainlineMoves.length) return;
-      this.mainlineIndex =
-        this.mainlineIndex < 0 ? 0 :
-        Math.min(this.mainlineIndex + 1, this.mainlineMoves.length - 1);
-      this.gotoSpan(this.mainlineMoves[this.mainlineIndex]);
-    }
-
-    prev() {
-      if (this.mainlineIndex <= 0) {
-        this.mainlineIndex = -1;
-        this.board.position("start", true);
-        this.updateVisibility();
-        return;
-      }
-      this.mainlineIndex--;
-      this.gotoSpan(this.mainlineMoves[this.mainlineIndex]);
-    }
-
-    bindMoveClicks() {
-      this.moveSpans.forEach((s) =>
-        s.addEventListener("click", () => this.gotoSpan(s))
-      );
+      this.movesCol.querySelectorAll("p").forEach(p => {
+        p.style.display =
+          p.querySelector(".reader-move") ? "" :
+          "none";
+      });
     }
   }
 
