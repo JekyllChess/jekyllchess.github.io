@@ -1,9 +1,8 @@
 // ============================================================================
 // pgn-guess.js — Interactive PGN viewer (uses PGNCore)
-// Progressive reveal with correct move numbers:
-//   - White:  "N."
-//   - Black at paragraph start: "N..."
-// Comments force paragraph breaks.
+// FINAL FIX:
+//   - Move numbers are rendered ONLY together with their moves
+//   - "2." or "2..." can NEVER appear on its own
 // ============================================================================
 
 (function () {
@@ -87,22 +86,34 @@
     parsePGN(text) {
       const chess = new Chess();
 
-      this.items = [];
-      this.moveItems = [];
+      this.items = [];      // moves + comments in order
+      this.moveItems = [];  // only moves
 
       let ply = 0;
       let i = 0;
       let inVariation = 0;
       let newParagraph = true;
 
-      const makeSpan = (cls, txt) => {
-        const s = document.createElement("span");
-        s.className = cls;
-        s.textContent = txt;
-        s.style.display = "none";
-        this.stream.appendChild(s);
-        this.items.push(s);
-        return s;
+      const makeMove = (moveNum, isWhite, san, fen) => {
+        const span = document.createElement("span");
+        span.className = "pgn-move guess-move";
+        span.style.display = "none";
+
+        const num = document.createElement("span");
+        num.className = "guess-num";
+        num.textContent = isWhite
+          ? `${moveNum}. `
+          : `${moveNum}... `;
+
+        span.appendChild(num);
+        span.appendChild(document.createTextNode(san + " "));
+        span.dataset.fen = fen;
+
+        this.stream.appendChild(span);
+        this.items.push(span);
+        this.moveItems.push(span);
+
+        newParagraph = false;
       };
 
       const makeComment = (txt) => {
@@ -113,7 +124,6 @@
         this.stream.appendChild(p);
         this.items.push(p);
         newParagraph = true;
-        return p;
       };
 
       while (i < text.length) {
@@ -147,25 +157,11 @@
         const isWhite = ply % 2 === 0;
         const moveNum = Math.floor(ply / 2) + 1;
 
-        if (newParagraph) {
-          if (isWhite) {
-            makeSpan("pgn-movenum guess-num", moveNum + ". ");
-          } else {
-            makeSpan("pgn-movenum guess-num", moveNum + "... ");
-          }
-        } else if (isWhite) {
-          makeSpan("pgn-movenum guess-num", moveNum + ". ");
-        }
-
         const mv = chess.move(core, { sloppy: true });
         if (!mv) continue;
 
-        const m = makeSpan("pgn-move guess-move", tok + " ");
-        m.dataset.fen = chess.fen();
-
-        this.moveItems.push(m);
+        makeMove(moveNum, isWhite, tok, chess.fen());
         ply++;
-        newParagraph = false;
       }
 
       this.mainlineIndex = -1;
@@ -208,17 +204,15 @@
     next() {
       if (this.mainlineIndex + 1 >= this.moveItems.length) return;
       this.mainlineIndex++;
-
       this.revealThroughMoveIndex(this.mainlineIndex);
-      const span = this.moveItems[this.mainlineIndex];
-      this.board.position(span.dataset.fen, true);
+      this.board.position(this.moveItems[this.mainlineIndex].dataset.fen, true);
     }
 
     prev() {
       if (this.mainlineIndex < 0) return;
       this.mainlineIndex--;
-
       this.revealThroughMoveIndex(this.mainlineIndex);
+
       if (this.mainlineIndex < 0) {
         this.board.position("start", true);
       } else {
