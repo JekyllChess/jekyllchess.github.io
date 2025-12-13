@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (final, correct autoplay logic)
+// pgn-guess.js — Guess-the-move PGN trainer (final layout + logic)
 // ============================================================================
 
 (function () {
@@ -11,15 +11,39 @@
 
   const C = window.PGNCore;
 
+  // --------------------------------------------------------------------------
+  // Styles
+  // --------------------------------------------------------------------------
+
   function ensureGuessStylesOnce() {
     if (document.getElementById("pgn-guess-style")) return;
+
     const style = document.createElement("style");
     style.id = "pgn-guess-style";
     style.textContent = `
-      .pgn-move-row { font-weight: 900; margin-top: 0.5em; }
-      .pgn-move-no { margin-right: 0.3em; }
-      .pgn-move-white { margin-right: 0.6em; }
-      .pgn-move-black { margin-left: 0.3em; }
+      .pgn-guess-cols {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .pgn-guess-left {
+        flex: 0 0 auto;
+      }
+
+      .pgn-guess-board {
+        width: 320px;
+        max-width: 100%;
+        touch-action: manipulation;
+      }
+
+      @media (min-width: 480px) {
+        .pgn-guess-board { width: 360px; }
+      }
+
+      @media (min-width: 768px) {
+        .pgn-guess-board { width: 400px; }
+      }
 
       .pgn-guess-status {
         margin-top: 0.4em;
@@ -29,10 +53,21 @@
         transition: opacity 0.2s ease;
       }
 
-      .pgn-guess-board { touch-action: manipulation; }
+      .pgn-guess-right {
+        flex: 1 1 auto;
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .pgn-move-row { font-weight: 900; margin-top: 0.5em; }
+      .pgn-move-no { margin-right: 0.3em; }
+      .pgn-move-white { margin-right: 0.6em; }
+      .pgn-move-black { margin-left: 0.3em; }
     `;
     document.head.appendChild(style);
   }
+
+  // --------------------------------------------------------------------------
 
   function safeChessboard(targetEl, options, tries = 30, onReady) {
     if (!targetEl) return;
@@ -64,6 +99,10 @@
       .trim();
   }
 
+  // --------------------------------------------------------------------------
+  // Main class
+  // --------------------------------------------------------------------------
+
   class ReaderPGNView {
     constructor(src) {
       if (src.__pgnReaderRendered) return;
@@ -85,21 +124,28 @@
       this.initBoard();
     }
 
+    // ------------------------------------------------------------------------
+
     build(src) {
       const wrapper = document.createElement("div");
+      wrapper.className = "pgn-guess-cols";
+
       wrapper.innerHTML = `
-        <div class="pgn-guess-board"></div>
-        <div class="pgn-guess-status"></div>
-        <button class="pgn-guess-next">▶</button>
+        <div class="pgn-guess-left">
+          <div class="pgn-guess-board"></div>
+          <div class="pgn-guess-status"></div>
+        </div>
         <div class="pgn-guess-right"></div>
       `;
+
       src.replaceWith(wrapper);
 
       this.boardDiv = wrapper.querySelector(".pgn-guess-board");
       this.statusEl = wrapper.querySelector(".pgn-guess-status");
-      this.nextBtn = wrapper.querySelector(".pgn-guess-next");
       this.rightPane = wrapper.querySelector(".pgn-guess-right");
     }
+
+    // ------------------------------------------------------------------------
 
     parsePGN() {
       let raw = C.normalizeFigurines(this.rawText);
@@ -157,6 +203,8 @@
       }
     }
 
+    // ------------------------------------------------------------------------
+
     initBoard() {
       safeChessboard(
         this.boardDiv,
@@ -175,9 +223,9 @@
           this.updateUI();
         }
       );
-
-      this.nextBtn.onclick = () => this.nextUserMove();
     }
+
+    // ------------------------------------------------------------------------
 
     autoplayUntilUserTurn() {
       while (this.index + 1 < this.moves.length) {
@@ -224,18 +272,6 @@
       this.updateUI();
     }
 
-    nextUserMove() {
-      if (this.isGuessTurn()) return;
-      if (this.index + 1 >= this.moves.length) return;
-
-      this.index++;
-      this.game.move(this.moves[this.index].san, { sloppy: true });
-      this.board.position(this.moves[this.index].fen, true);
-      this.appendMove();
-      this.autoplayUntilUserTurn();
-      this.updateUI();
-    }
-
     appendMove() {
       const m = this.moves[this.index];
       if (!m) return;
@@ -243,14 +279,38 @@
       if (m.isWhite) {
         const row = document.createElement("div");
         row.className = "pgn-move-row";
-        row.textContent = `${m.moveNo}. ${m.san}`;
+
+        const no = document.createElement("span");
+        no.className = "pgn-move-no";
+        no.textContent = `${m.moveNo}.`;
+
+        const w = document.createElement("span");
+        w.className = "pgn-move-white";
+        w.textContent = m.san;
+
+        row.appendChild(no);
+        row.appendChild(w);
         this.rightPane.appendChild(row);
         this.currentRow = row;
       } else if (this.currentRow) {
-        this.currentRow.textContent += ` ${m.san}`;
+        const b = document.createElement("span");
+        b.className = "pgn-move-black";
+        b.textContent = m.san;
+        this.currentRow.appendChild(b);
       }
+
+      m.comments.forEach((c) => {
+        const p = document.createElement("p");
+        p.className = "pgn-comment";
+        p.textContent = c;
+        this.rightPane.appendChild(p);
+      });
+
+      this.rightPane.scrollTop = this.rightPane.scrollHeight;
     }
   }
+
+  // --------------------------------------------------------------------------
 
   function init() {
     document.querySelectorAll("pgn-guess, pgn-guess-black")
