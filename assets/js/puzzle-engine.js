@@ -1,8 +1,11 @@
 // ======================================================================
-// JekyllChess Puzzle Engine — patched (local + remote, opponent auto-move)
-// - Fixes: turn display on load, opponent auto-move, capture ghost pieces
-// - Animations: ONLY for auto-played opponent moves
-// - Prevents Chessboard error 1003 via safeChessboard
+// JekyllChess Puzzle Engine — patched
+// - Fixes turn display on load
+// - Auto-plays ONLY opponent replies
+// - Animates ONLY auto-played moves
+// - Hard-syncs board after animation to prevent ghost pieces/captures
+// - Supports remote PGN packs with loading board shown immediately
+// - Keeps status row inline (no overlap)
 // ======================================================================
 
 (function () {
@@ -20,23 +23,25 @@
   const PIECE_THEME =
     "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
 
-  // --- chessboard.js 1003 prevention ----------------------------------------
-  function safeChessboard(targetEl, options, tries = 40) {
-    const el = targetEl;
-    if (!el) {
+  // ----------------------------------------------------------------------
+  // Chessboard error 1003 fix: init only when element has layout
+  // ----------------------------------------------------------------------
+  function safeChessboard(targetEl, options, tries = 60) {
+    if (!targetEl) {
       if (tries > 0) requestAnimationFrame(() => safeChessboard(targetEl, options, tries - 1));
       return null;
     }
 
-    const rect = el.getBoundingClientRect();
+    const rect = targetEl.getBoundingClientRect();
     if ((rect.width <= 0 || rect.height <= 0) && tries > 0) {
       requestAnimationFrame(() => safeChessboard(targetEl, options, tries - 1));
       return null;
     }
 
     try {
-      return Chessboard(el, options);
+      return Chessboard(targetEl, options);
     } catch (err) {
+      // intermittent layout timing → retry a bit
       if (tries > 0) {
         requestAnimationFrame(() => safeChessboard(targetEl, options, tries - 1));
         return null;
@@ -46,9 +51,17 @@
     }
   }
 
-  // --- helpers ---------------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // Parsing helpers
+  // ----------------------------------------------------------------------
   function stripFigurines(s) {
+    // keep plain text; remove unicode chess pieces
     return String(s || "").replace(/[♔♕♖♗♘♙♚♛♜♝♞♟]/g, "");
+  }
+
+  function normalizeSAN(san) {
+    // compare move intent, ignore punctuation
+    return String(san || "").replace(/[+#?!]/g, "");
   }
 
   function parseMovesLine(movesText) {
@@ -58,8 +71,9 @@
       .filter(Boolean);
   }
 
-  function parsePGNMoves(pgnText) {
-    return String(pgnText || "")
+  function parsePGNMoves(pgn) {
+    // tolerant: strip headers/comments/vars/move numbers/results
+    return String(pgn || "")
       .replace(/\[[^\]]*\]/g, " ")
       .replace(/\{[^}]*\}/g, " ")
       .replace(/\([^)]*\)/g, " ")
@@ -72,46 +86,59 @@
       .filter(Boolean);
   }
 
-  function normalizeSAN(san) {
-    // remove check/mate/annotations for comparison
-    return String(san || "").replace(/[+#?!]/g, "");
-  }
-
+  // ----------------------------------------------------------------------
+  // UI helpers
+  // ----------------------------------------------------------------------
   function showCorrect(el) {
-    el.innerHTML = `✅ Correct`;
+    el.innerHTML = `✅ <span class="jc-icon">Correct</span>`;
   }
   function showWrong(el) {
-    el.innerHTML = `❌ Wrong`;
+    el.innerHTML = `❌ <span class="jc-icon">Wrong</span>`;
   }
   function showSolved(el) {
-    el.innerHTML = `🏆 Solved`;
+    el.innerHTML = `🏆 <span class="jc-icon">Solved</span>`;
   }
 
-  function setInlineRow(row) {
-    // make it robust even if CSS is missing/broken
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "10px";
-    row.style.flexWrap = "nowrap";
-    row.style.whiteSpace = "nowrap";
-  }
-
-  function updateTurn(el, game, solved) {
-    if (!el) return;
+  function updateTurn(turnEl, game, solved) {
     if (solved) {
-      el.textContent = "";
+      turnEl.textContent = "";
       return;
     }
-    el.textContent = game.turn() === "w" ? "⚐ White to move" : "⚑ Black to move";
+    turnEl.textContent = game.turn() === "w" ? "⚐ White to move" : "⚑ Black to move";
   }
 
-  function makeUI(container, { withControls, withCounter } = {}) {
+  function styleStatusRow(row) {
+    // prevent overlap regardless of theme CSS
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.flexWrap = "wrap";
+    row.style.gap = "10px";
+  }
+
+  // ----------------------------------------------------------------------
+  // Local puzzle: FEN + Moves
+  // Behavior: user plays solver side moves; engine auto-plays opponent replies only
+  // ----------------------------------------------------------------------
+  function renderLocalPuzzle(container, fen, allMoves) {
+    if (!fen || !Array.isArray(allMoves) || !allMoves.length) {
+      container.textContent = "❌ Invalid local puzzle data.";
+      return;
+    }
+
+    const game = new Chess(fen);
+    const solverSide = game.turn(); // side to move at start is solver
+
+    let moveIndex = 0;
+    let solved = false;
+    let awaitingUser = true; // solver turn input gate
+
+    // --- layout
     const boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
 
     const statusRow = document.createElement("div");
     statusRow.className = "jc-status-row";
-    setInlineRow(statusRow);
+    styleStatusRow(statusRow);
 
     const turnDiv = document.createElement("span");
     turnDiv.className = "jc-turn";
@@ -120,374 +147,392 @@
     feedback.className = "jc-feedback";
 
     statusRow.append(turnDiv, feedback);
-
-    let counter = null;
-    if (withCounter) {
-      counter = document.createElement("span");
-      counter.className = "jc-counter";
-      statusRow.append(counter);
-    }
-
-    let controls = null;
-    let prevBtn = null;
-    let nextBtn = null;
-
-    if (withControls) {
-      controls = document.createElement("span");
-      controls.className = "jc-controls";
-      controls.style.display = "inline-flex";
-      controls.style.gap = "6px";
-
-      prevBtn = document.createElement("button");
-      prevBtn.type = "button";
-      prevBtn.textContent = "↶";
-
-      nextBtn = document.createElement("button");
-      nextBtn.type = "button";
-      nextBtn.textContent = "↷";
-
-      controls.append(prevBtn, nextBtn);
-      statusRow.append(controls);
-    }
-
     container.append(boardDiv, statusRow);
 
-    return { boardDiv, statusRow, turnDiv, feedback, counter, prevBtn, nextBtn };
-  }
+    // show turn immediately (even before board is ready)
+    updateTurn(turnDiv, game, solved);
 
-  function syncBoard(board, game, animate) {
-    if (!board || typeof board.position !== "function") return;
-    // IMPORTANT: always sync from FEN to avoid ghost pieces.
-    board.position(game.fen(), !!animate);
-  }
-
-  // --- local puzzle ----------------------------------------------------------
-  function renderLocalPuzzle(container, fen, allMoves) {
-    const game = new Chess(fen);
-    const solverSide = game.turn(); // side to move initially is the user/solver
-    let moveIndex = 0;
-    let solved = false;
-    let busy = false; // blocks inputs during opponent auto-move
-
-    const ui = makeUI(container, { withControls: false, withCounter: false });
-
+    // --- init board safely
     let board = null;
-    board = safeChessboard(ui.boardDiv, {
+
+    board = safeChessboard(boardDiv, {
       draggable: true,
       position: fen,
       pieceTheme: PIECE_THEME,
-      onDrop: (src, dst) => (playUserMove(src, dst) ? true : "snapback")
+      onDrop: (from, to) => (playUserMove(from, to) ? true : "snapback")
     });
 
-    function ensureReadyThenInit() {
-      if (!board || typeof board.position !== "function") {
-        requestAnimationFrame(ensureReadyThenInit);
-        return;
-      }
-      // show turn immediately on load
-      updateTurn(ui.turnDiv, game, solved);
-      ui.feedback.textContent = "";
-      syncBoard(board, game, false);
+    function hardSync() {
+      if (!board || typeof board.position !== "function") return;
+      board.position(game.fen(), false);
     }
-    ensureReadyThenInit();
 
-    function playUserMove(src, dst) {
-      if (solved || busy) return false;
+    function animateAutoMove(mv) {
+      // animate only auto-played moves; then hard-sync to prevent ghost captures
+      if (!board) return;
 
-      // User should only move when it's solverSide's turn
+      try {
+        if (mv && mv.from && mv.to && typeof board.move === "function") {
+          board.move(mv.from + "-" + mv.to);
+        } else {
+          board.position(game.fen(), true);
+        }
+      } catch {
+        // fallback
+        try { board.position(game.fen(), true); } catch {}
+      }
+
+      // hard sync after animation frame(s)
+      setTimeout(hardSync, 240);
+    }
+
+    function playUserMove(from, to) {
+      if (solved) return false;
+
+      // gate: only allow input on solver turn
+      if (!awaitingUser) return false;
       if (game.turn() !== solverSide) return false;
 
       const expected = allMoves[moveIndex];
       if (!expected) return false;
 
-      const mv = game.move({ from: src, to: dst, promotion: "q" });
+      const mv = game.move({ from, to, promotion: "q" });
       if (!mv) return false;
 
-      // verify correctness
-      if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
+      // ensure board never desyncs on user move as well
+      // (user move isn't animated by us; chessboard handles it, but we hard sync anyway)
+      const ok = normalizeSAN(mv.san) === normalizeSAN(expected);
+      if (!ok) {
         game.undo();
-        showWrong(ui.feedback);
-        updateTurn(ui.turnDiv, game, solved);
-        syncBoard(board, game, false);
+        hardSync();
+        showWrong(feedback);
+        updateTurn(turnDiv, game, solved);
         return false;
       }
 
-      // correct user move
       moveIndex++;
-      showCorrect(ui.feedback);
-      updateTurn(ui.turnDiv, game, solved);
-      syncBoard(board, game, false); // user move: no animation
+      hardSync();
 
-      // auto-play opponent if needed
-      autoOpponentMove();
+      showCorrect(feedback);
+
+      // after a correct solver move, immediately auto-play exactly one opponent reply
+      awaitingUser = false;
+      updateTurn(turnDiv, game, solved);
+      autoPlayOpponentReply();
+
       return true;
     }
 
-    function autoOpponentMove() {
+    function autoPlayOpponentReply() {
+      if (solved) return;
+
+      // if we are already back to solver turn, just unlock
+      if (game.turn() === solverSide) {
+        awaitingUser = true;
+        updateTurn(turnDiv, game, solved);
+        return;
+      }
+
+      // if no move left, solved
       if (moveIndex >= allMoves.length) {
         solved = true;
-        showSolved(ui.feedback);
-        updateTurn(ui.turnDiv, game, solved);
+        showSolved(feedback);
+        updateTurn(turnDiv, game, solved);
         return;
       }
 
-      // if it's still solverSide to move, we wait for the user
-      if (game.turn() === solverSide) {
-        updateTurn(ui.turnDiv, game, solved);
-        return;
-      }
-
-      // opponent to move: play exactly one move, animate it
       const san = allMoves[moveIndex];
-      if (!san) return;
 
-      busy = true;
-      updateTurn(ui.turnDiv, game, solved);
+      // play opponent move with chess.js
+      const mv = game.move(san, { sloppy: true });
 
-      setTimeout(() => {
-        const mv = game.move(san, { sloppy: true });
-        if (!mv) {
-          // if PGN is inconsistent, just mark solved to prevent deadlock
-          solved = true;
-          showSolved(ui.feedback);
-          updateTurn(ui.turnDiv, game, solved);
-          busy = false;
-          return;
-        }
+      if (!mv) {
+        // if PGN line ends early, consider solved
+        solved = true;
+        showSolved(feedback);
+        updateTurn(turnDiv, game, solved);
+        return;
+      }
 
-        moveIndex++;
-        // opponent move: animate ONLY here
-        syncBoard(board, game, true);
+      moveIndex++;
 
-        // now back to user
-        busy = false;
+      // animate only this auto move, then hard sync
+      animateAutoMove(mv);
 
-        if (moveIndex >= allMoves.length) {
-          solved = true;
-          showSolved(ui.feedback);
-        }
-        updateTurn(ui.turnDiv, game, solved);
-      }, 0);
+      // now it should be solver turn again; unlock user
+      awaitingUser = true;
+      updateTurn(turnDiv, game, solved);
+
+      // if line is finished after reply
+      if (moveIndex >= allMoves.length) {
+        solved = true;
+        showSolved(feedback);
+        updateTurn(turnDiv, game, solved);
+      }
     }
+
+    // If board init is delayed due to layout, make sure first hard sync happens when ready
+    (function waitBoard() {
+      if (board && typeof board.position === "function") {
+        hardSync();
+        updateTurn(turnDiv, game, solved);
+      } else {
+        requestAnimationFrame(waitBoard);
+      }
+    })();
   }
 
-  // --- remote pack -----------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // Remote PGN pack: <puzzle> PGN: https://...
+  // Loads an empty board immediately while fetching
+  // ----------------------------------------------------------------------
   function initRemotePGNPack(container, url) {
-    const ui = makeUI(container, { withControls: true, withCounter: true });
+    // --- layout
+    const boardDiv = document.createElement("div");
+    boardDiv.className = "jc-board";
 
-    ui.feedback.textContent = "Loading puzzle pack…";
+    const statusRow = document.createElement("div");
+    statusRow.className = "jc-status-row";
+    styleStatusRow(statusRow);
 
-    // show an empty board immediately while loading
+    const turnDiv = document.createElement("span");
+    turnDiv.className = "jc-turn";
+
+    const feedback = document.createElement("span");
+    feedback.className = "jc-feedback";
+
+    const counter = document.createElement("span");
+    counter.className = "jc-counter";
+
+    const controls = document.createElement("span");
+    controls.className = "jc-controls";
+    controls.style.display = "inline-flex";
+    controls.style.gap = "8px";
+    controls.style.alignItems = "center";
+
+    const prev = document.createElement("button");
+    prev.type = "button";
+    prev.textContent = "↶";
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.textContent = "↷";
+
+    controls.append(prev, next);
+    statusRow.append(turnDiv, feedback, counter, controls);
+    container.append(boardDiv, statusRow);
+
+    // show loading immediately + empty board ready
+    feedback.textContent = "Loading puzzle pack…";
+    counter.textContent = "";
+
     let board = null;
-    board = safeChessboard(ui.boardDiv, {
+    board = safeChessboard(boardDiv, {
       draggable: true,
       position: "start",
       pieceTheme: PIECE_THEME,
-      onDrop: () => "snapback"
+      onDrop: (from, to) => (playUserMove(from, to) ? true : "snapback")
     });
 
     let puzzles = [];
     let puzzleIndex = 0;
-    let moveIndex = 0;
+
     let game = null;
     let allMoves = null;
-    let solverSide = "w";
+    let solverSide = null;
+    let moveIndex = 0;
     let solved = false;
-    let busy = false;
+    let awaitingUser = true;
 
-    function updateCounter() {
-      if (!ui.counter) return;
-      ui.counter.textContent = puzzles.length
-        ? `Puzzle ${puzzleIndex + 1} / ${puzzles.length}`
-        : "";
+    function hardSync() {
+      if (!board || typeof board.position !== "function" || !game) return;
+      board.position(game.fen(), false);
+    }
+
+    function animateAutoMove(mv) {
+      if (!board) return;
+      try {
+        if (mv && mv.from && mv.to && typeof board.move === "function") {
+          board.move(mv.from + "-" + mv.to);
+        } else {
+          board.position(game.fen(), true);
+        }
+      } catch {
+        try { board.position(game.fen(), true); } catch {}
+      }
+      setTimeout(hardSync, 240);
+    }
+
+    function updateUI() {
+      if (!game) {
+        turnDiv.textContent = "";
+        return;
+      }
+      counter.textContent = `Puzzle ${puzzleIndex + 1} / ${puzzles.length}`;
+      updateTurn(turnDiv, game, solved);
     }
 
     function loadPuzzle(i) {
-      if (!puzzles.length) return;
       if (i < 0 || i >= puzzles.length) return;
 
       puzzleIndex = i;
       game = new Chess(puzzles[i].fen);
-      allMoves = puzzles[i].all;
+      allMoves = puzzles[i].moves;
       solverSide = game.turn();
       moveIndex = 0;
       solved = false;
-      busy = false;
+      awaitingUser = true;
 
-      ui.feedback.textContent = "";
-      updateCounter();
-      updateTurn(ui.turnDiv, game, solved);
-
-      // board may still be initializing; wait then sync
-      const syncWhenReady = () => {
-        if (board && typeof board.position === "function") {
-          syncBoard(board, game, false);
-        } else {
-          requestAnimationFrame(syncWhenReady);
-        }
-      };
-      syncWhenReady();
-
-      // attach the correct onDrop handler now that we have puzzle state
-      // chessboard.js doesn't let us mutate onDrop; easiest is to keep one handler
-      // that calls a variable function.
-      currentDropHandler = playUserMove;
+      feedback.textContent = "";
+      hardSync();
+      updateUI();
     }
 
-    let currentDropHandler = () => false;
-
-    // re-init board with a stable onDrop that delegates
-    const rebindBoard = () => {
-      if (!ui.boardDiv) return;
-      try {
-        board = Chessboard(ui.boardDiv, {
-          draggable: true,
-          position: "start",
-          pieceTheme: PIECE_THEME,
-          onDrop: (src, dst) => (currentDropHandler(src, dst) ? true : "snapback")
-        });
-      } catch {
-        // if still 1003-ish layout, retry
-        requestAnimationFrame(rebindBoard);
-      }
-    };
-    requestAnimationFrame(rebindBoard);
-
-    function playUserMove(src, dst) {
+    function playUserMove(from, to) {
       if (!game || !allMoves) return false;
-      if (solved || busy) return false;
+      if (solved) return false;
+      if (!awaitingUser) return false;
       if (game.turn() !== solverSide) return false;
 
       const expected = allMoves[moveIndex];
       if (!expected) return false;
 
-      const mv = game.move({ from: src, to: dst, promotion: "q" });
+      const mv = game.move({ from, to, promotion: "q" });
       if (!mv) return false;
 
-      if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
+      const ok = normalizeSAN(mv.san) === normalizeSAN(expected);
+      if (!ok) {
         game.undo();
-        showWrong(ui.feedback);
-        updateTurn(ui.turnDiv, game, solved);
-        syncBoard(board, game, false);
+        hardSync();
+        showWrong(feedback);
+        updateUI();
         return false;
       }
 
       moveIndex++;
-      showCorrect(ui.feedback);
-      updateTurn(ui.turnDiv, game, solved);
-      syncBoard(board, game, false);
+      hardSync();
+      showCorrect(feedback);
 
-      autoOpponentMove();
+      awaitingUser = false;
+      updateUI();
+      autoPlayOpponentReply();
+
       return true;
     }
 
-    function autoOpponentMove() {
-      if (!game || !allMoves) return;
+    function autoPlayOpponentReply() {
+      if (!game || solved) return;
 
-      if (moveIndex >= allMoves.length) {
-        solved = true;
-        showSolved(ui.feedback);
-        updateTurn(ui.turnDiv, game, solved);
+      if (game.turn() === solverSide) {
+        awaitingUser = true;
+        updateUI();
         return;
       }
 
-      if (game.turn() === solverSide) {
-        updateTurn(ui.turnDiv, game, solved);
+      if (moveIndex >= allMoves.length) {
+        solved = true;
+        showSolved(feedback);
+        updateUI();
         return;
       }
 
       const san = allMoves[moveIndex];
-      if (!san) return;
+      const mv = game.move(san, { sloppy: true });
 
-      busy = true;
-      updateTurn(ui.turnDiv, game, solved);
+      if (!mv) {
+        solved = true;
+        showSolved(feedback);
+        updateUI();
+        return;
+      }
 
-      setTimeout(() => {
-        const mv = game.move(san, { sloppy: true });
-        if (!mv) {
-          solved = true;
-          showSolved(ui.feedback);
-          updateTurn(ui.turnDiv, game, solved);
-          busy = false;
-          return;
-        }
+      moveIndex++;
+      animateAutoMove(mv);
 
-        moveIndex++;
-        // opponent move: animate ONLY here
-        syncBoard(board, game, true);
+      awaitingUser = true;
+      updateUI();
 
-        busy = false;
-
-        if (moveIndex >= allMoves.length) {
-          solved = true;
-          showSolved(ui.feedback);
-        }
-        updateTurn(ui.turnDiv, game, solved);
-      }, 0);
+      if (moveIndex >= allMoves.length) {
+        solved = true;
+        showSolved(feedback);
+        updateUI();
+      }
     }
 
-    ui.prevBtn && (ui.prevBtn.onclick = () => loadPuzzle(puzzleIndex - 1));
-    ui.nextBtn && (ui.nextBtn.onclick = () => loadPuzzle(puzzleIndex + 1));
+    prev.addEventListener("click", () => loadPuzzle(puzzleIndex - 1));
+    next.addEventListener("click", () => loadPuzzle(puzzleIndex + 1));
 
+    // fetch + parse
     fetch(url)
-      .then(r => {
+      .then((r) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
         return r.text();
       })
-      .then(txt => {
-        // Robust PGN split: split on [Event ...] blocks
-        const games = txt.split(/\[Event\b/).slice(1).map(g => "[Event" + g);
+      .then((txt) => {
+        // split into games; accept broad PGN formats
+        const games = txt.split(/\n(?=\[Event\b)/g).filter(Boolean);
 
         puzzles = [];
         for (const g of games) {
           const fen = g.match(/\[FEN\s+"([^"]+)"/i)?.[1];
           if (!fen) continue;
           const moves = parsePGNMoves(g);
-          if (!moves.length) continue;
-          puzzles.push({ fen, all: moves });
+          if (moves.length) puzzles.push({ fen, moves });
         }
 
         if (!puzzles.length) {
-          ui.feedback.textContent = "❌ No puzzles found in PGN.";
+          feedback.textContent = "❌ No puzzles found in PGN.";
           return;
         }
 
-        updateCounter();
-        // load the first puzzle (index 0) as requested
-        loadPuzzle(0);
+        // wait for board readiness before first load (prevents 1003 + ensures display)
+        (function startWhenReady() {
+          if (board && typeof board.position === "function") {
+            loadPuzzle(0);
+          } else {
+            requestAnimationFrame(startWhenReady);
+          }
+        })();
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Remote PGN load failed:", err);
-        ui.feedback.textContent = "❌ Failed to load PGN.";
+        feedback.textContent = "❌ Failed to load PGN (" + err.message + ")";
       });
   }
 
-  // --- init ------------------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // Entry: scan <puzzle> blocks
+  // ----------------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const puzzleNodes = Array.from(document.querySelectorAll("puzzle"));
     let remoteUsed = false;
 
-    puzzleNodes.forEach(node => {
-      // IMPORTANT: use textContent, not innerHTML, to avoid markup breaking parsing
-      const raw = stripFigurines(node.textContent || "").trim();
+    puzzleNodes.forEach((node) => {
+      const raw = stripFigurines(node.textContent || node.innerText || node.innerHTML || "").trim();
 
       const wrap = document.createElement("div");
       wrap.className = "jc-puzzle-wrapper";
       node.replaceWith(wrap);
 
-      // Accept single-line or multi-line
-      const fenMatch = raw.match(/FEN:\s*([^\n]+)/i);
-      const movesMatch = raw.match(/Moves:\s*([^\n]+)/i);
-      const pgnUrlMatch = raw.match(/PGN:\s*(https?:\/\/\S+)/i);
-      const pgnInlineMatch = !pgnUrlMatch && raw.match(/PGN:\s*([\s\S]+)/i);
-
-      if (pgnUrlMatch && !fenMatch) {
+      const pgnUrlMatch = raw.match(/PGN:\s*(https?:\/\/[^\s<]+)/i);
+      if (pgnUrlMatch) {
         if (remoteUsed) {
           wrap.textContent = "⚠️ Only one remote PGN pack allowed per page.";
           return;
         }
         remoteUsed = true;
         initRemotePGNPack(wrap, pgnUrlMatch[1].trim());
+        return;
+      }
+
+      const fenMatch = raw.match(/FEN:\s*([^\n<]+)/i);
+      const movesMatch = raw.match(/Moves:\s*([^\n<]+)/i);
+      const pgnInlineMatch = raw.match(/PGN:\s*(1\.[\s\S]+)/i);
+
+      if (fenMatch && pgnInlineMatch) {
+        const fen = fenMatch[1].trim();
+        const allMoves = parsePGNMoves(pgnInlineMatch[1]);
+        renderLocalPuzzle(wrap, fen, allMoves);
         return;
       }
 
@@ -498,14 +543,10 @@
         return;
       }
 
-      if (fenMatch && pgnInlineMatch) {
-        const fen = fenMatch[1].trim();
-        const allMoves = parsePGNMoves(pgnInlineMatch[1]);
-        renderLocalPuzzle(wrap, fen, allMoves);
-        return;
-      }
-
       wrap.textContent = "❌ Invalid <puzzle> block.";
     });
+
+    // expose for manual reruns
+    window.JekyllChessPuzzle = { run: () => {} };
   });
 })();
