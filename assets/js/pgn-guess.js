@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN viewer (STACKING MODE - FINAL)
+// pgn-guess.js — Guess-the-move PGN viewer (STACKED + PAIRED MOVES)
 // ============================================================================
 
 (function () {
@@ -11,17 +11,16 @@
 
   const C = window.PGNCore;
 
-  function appendText(el, txt) {
-    if (txt) el.appendChild(document.createTextNode(txt));
-  }
-
   function ensureGuessStylesOnce() {
     if (document.getElementById("pgn-guess-style")) return;
     const style = document.createElement("style");
     style.id = "pgn-guess-style";
     style.textContent = `
-      .pgn-guess-move { font-weight: 900; margin-top: 0.5em; }
-      .pgn-guess-right .pgn-comment { font-weight: 400; margin-left: 0.5em; }
+      .pgn-move-row { font-weight: 900; margin-top: 0.5em; }
+      .pgn-move-no { margin-right: 0.3em; }
+      .pgn-move-white { margin-right: 0.6em; }
+      .pgn-move-black { margin-left: 0.3em; }
+      .pgn-guess-right .pgn-comment { font-weight: 400; margin-left: 1.2em; }
     `;
     document.head.appendChild(style);
   }
@@ -49,7 +48,6 @@
     }
   }
 
-  // ---- VARIATION EXTRACTION (FINAL) ----------------------------------------
   function extractVariationDisplay(text) {
     return text
       .replace(/\[%.*?]/g, "")
@@ -72,38 +70,29 @@
 
       this.moves = [];
       this.index = -1;
+      this.currentRow = null;
 
       this.build(src);
       this.parsePGN();
       this.initBoard();
     }
 
-    buildHeaderContent(h) {
-      const H = document.createElement("h3");
-      appendText(
-        H,
-        `${C.flipName(h.White || "")} – ${C.flipName(h.Black || "")}`
-      );
-      return H;
-    }
-
     build(src) {
       const wrapper = document.createElement("div");
       wrapper.className = "pgn-guess-block";
 
-      const cols = document.createElement("div");
-      cols.className = "pgn-guess-cols";
-      cols.innerHTML = `
-        <div class="pgn-guess-left">
-          <div class="pgn-guess-board"></div>
-          <div class="pgn-guess-buttons">
-            <button class="pgn-guess-btn pgn-guess-next">▶</button>
+      wrapper.innerHTML = `
+        <div class="pgn-guess-cols">
+          <div class="pgn-guess-left">
+            <div class="pgn-guess-board"></div>
+            <div class="pgn-guess-buttons">
+              <button class="pgn-guess-btn pgn-guess-next">▶</button>
+            </div>
           </div>
+          <div class="pgn-guess-right"></div>
         </div>
-        <div class="pgn-guess-right"></div>
       `;
 
-      wrapper.appendChild(cols);
       src.replaceWith(wrapper);
 
       this.boardDiv = wrapper.querySelector(".pgn-guess-board");
@@ -165,7 +154,8 @@
 
         this.moves.push({
           isWhite,
-          label: isWhite ? `${num}. ${tok}` : tok,
+          moveNo: num,
+          san: tok,
           fen: chess.fen(),
           comments: pending.splice(0)
         });
@@ -201,10 +191,29 @@
     appendMove() {
       const m = this.moves[this.index];
 
-      const moveDiv = document.createElement("div");
-      moveDiv.className = "pgn-guess-move";
-      moveDiv.textContent = m.label;
-      this.rightPane.appendChild(moveDiv);
+      if (m.isWhite) {
+        const row = document.createElement("div");
+        row.className = "pgn-move-row";
+
+        const no = document.createElement("span");
+        no.className = "pgn-move-no";
+        no.textContent = `${m.moveNo}.`;
+
+        const w = document.createElement("span");
+        w.className = "pgn-move-white";
+        w.textContent = m.san;
+
+        row.appendChild(no);
+        row.appendChild(w);
+
+        this.rightPane.appendChild(row);
+        this.currentRow = row;
+      } else if (this.currentRow) {
+        const b = document.createElement("span");
+        b.className = "pgn-move-black";
+        b.textContent = m.san;
+        this.currentRow.appendChild(b);
+      }
 
       m.comments.forEach((c) => {
         const p = document.createElement("p");
@@ -213,19 +222,16 @@
         this.rightPane.appendChild(p);
       });
 
-      // auto-scroll
       this.rightPane.scrollTop = this.rightPane.scrollHeight;
     }
 
     nextUserMove() {
       if (this.index + 1 >= this.moves.length) return;
 
-      // user move
       this.index++;
       this.board.position(this.moves[this.index].fen, true);
       this.appendMove();
 
-      // autoplay opponent replies
       while (this.index + 1 < this.moves.length) {
         const next = this.moves[this.index + 1];
         if (next.isWhite === this.userIsWhite) break;
