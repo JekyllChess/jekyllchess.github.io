@@ -1,9 +1,7 @@
 // ============================================================================
-// guess-pgn.js — PGN viewer that reveals moves progressively
-// Based on pgn-reader.js
+// guess-pgn.js — Progressive PGN viewer (layout identical to pgn-reader.js)
 // Difference:
-//   • Only shows moves/comments/variations up to current board position
-//   • Future content is hidden
+//   • Only shows moves/comments/variations up to the current move
 // ============================================================================
 
 (function () {
@@ -19,11 +17,18 @@
       ? C.makeCastlingUnbreakable
       : (x) => x;
 
-  // --------------------------------------------------------------------------
+  // ---- Chessboard 1003 fix (UNCHANGED) --------------------------------------
   function safeChessboard(targetEl, options, tries = 30, onReady) {
-    if (!targetEl) return null;
+    const el = targetEl;
+    if (!el) {
+      if (tries > 0)
+        requestAnimationFrame(() =>
+          safeChessboard(targetEl, options, tries - 1, onReady)
+        );
+      return null;
+    }
 
-    const rect = targetEl.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
     if ((rect.width <= 0 || rect.height <= 0) && tries > 0) {
       requestAnimationFrame(() =>
         safeChessboard(targetEl, options, tries - 1, onReady)
@@ -32,8 +37,8 @@
     }
 
     try {
-      const board = Chessboard(targetEl, options);
-      onReady && onReady(board);
+      const board = Chessboard(el, options);
+      if (typeof onReady === "function") onReady(board);
       return board;
     } catch {
       if (tries > 0) {
@@ -44,6 +49,7 @@
       return null;
     }
   }
+  // --------------------------------------------------------------------------
 
   function appendText(el, txt) {
     if (txt) el.appendChild(document.createTextNode(txt));
@@ -77,10 +83,11 @@
 
       this.sourceEl = src;
       this.wrapper = document.createElement("div");
-      this.wrapper.className = "guess-pgn-block";
+      this.wrapper.className = "pgn-reader-block"; // ✅ SAME CLASS
 
       this.board = null;
       this.plyCounter = 0;
+      this.mainlineIndex = -1;
 
       this.build();
       this.applyFigurines();
@@ -112,24 +119,25 @@
       const hasResultAlready = / (1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(moveText);
       const movetext = hasResultAlready ? moveText : moveText + (res ? " " + res : "");
 
+      // ✅ IDENTICAL MARKUP
       this.wrapper.innerHTML =
-        '<div class="guess-pgn-header"></div>' +
-        '<div class="guess-pgn-cols">' +
-          '<div class="guess-pgn-left">' +
-            '<div class="guess-pgn-board"></div>' +
-            '<div class="guess-pgn-buttons">' +
-              '<button class="guess-pgn-prev">◀</button>' +
-              '<button class="guess-pgn-next">▶</button>' +
+        '<div class="pgn-reader-header"></div>' +
+        '<div class="pgn-reader-cols">' +
+          '<div class="pgn-reader-left">' +
+            '<div class="pgn-reader-board"></div>' +
+            '<div class="pgn-reader-buttons">' +
+              '<button class="pgn-reader-btn pgn-reader-prev" type="button">◀</button>' +
+              '<button class="pgn-reader-btn pgn-reader-next" type="button">▶</button>' +
             '</div>' +
           '</div>' +
-          '<div class="guess-pgn-right"></div>' +
+          '<div class="pgn-reader-right"></div>' +
         '</div>';
 
       this.sourceEl.replaceWith(this.wrapper);
 
-      this.headerDiv = this.wrapper.querySelector(".guess-pgn-header");
-      this.movesCol = this.wrapper.querySelector(".guess-pgn-right");
-      this.boardDiv = this.wrapper.querySelector(".guess-pgn-board");
+      this.headerDiv = this.wrapper.querySelector(".pgn-reader-header");
+      this.movesCol = this.wrapper.querySelector(".pgn-reader-right");
+      this.boardDiv = this.wrapper.querySelector(".pgn-reader-board");
 
       this.headerDiv.appendChild(this.buildHeaderContent(head));
       this.parseMovetext(movetext);
@@ -144,6 +152,8 @@
       return H;
     }
 
+    // ------------------------------------------------------------------------
+    // Parsing (minimal changes: ply tracking only)
     // ------------------------------------------------------------------------
 
     ensure(ctx, cls) {
@@ -186,7 +196,7 @@
       if (!mv) return null;
 
       const span = document.createElement("span");
-      span.className = "pgn-move guess-move";
+      span.className = "pgn-move reader-move";
       span.textContent = unbreak(tok) + " ";
       span.dataset.fen = ctx.chess.fen();
       span.dataset.ply = ctx.currentPly;
@@ -263,19 +273,22 @@
         {
           position: "start",
           draggable: false,
-          pieceTheme: C.PIECE_THEME_URL
+          pieceTheme: C.PIECE_THEME_URL,
+          appearSpeed: 200,
+          moveSpeed: 200,
+          snapSpeed: 25,
+          snapbackSpeed: 50
         },
         30,
         (b) => (this.board = b)
       );
 
-      this.moveSpans = Array.from(this.wrapper.querySelectorAll(".guess-move"));
-      this.mainlineMoves = this.moveSpans.filter(m => m.dataset.mainline === "1");
-      this.mainlineIndex = -1;
+      this.moveSpans = Array.from(this.wrapper.querySelectorAll(".reader-move"));
+      this.mainlineMoves = this.moveSpans.filter(s => s.dataset.mainline === "1");
 
-      this.wrapper.querySelector(".guess-pgn-next")
+      this.wrapper.querySelector(".pgn-reader-next")
         .addEventListener("click", () => this.next());
-      this.wrapper.querySelector(".guess-pgn-prev")
+      this.wrapper.querySelector(".pgn-reader-prev")
         .addEventListener("click", () => this.prev());
     }
 
