@@ -49,26 +49,18 @@
     }
   }
 
-  // ---- VARIATION EXTRACTION (FIXED) ----------------------------------------
+  // ---- VARIATION EXTRACTION (FINAL, CORRECT) -------------------------------
   function extractVariationDisplay(text) {
-    text = text.replace(/\[%.*?]/g, "");
+    text = text
+      .replace(/\[%.*?]/g, "")
+      .replace(/\[D\]/g, "")
+      .replace(/\{\s*\}/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    const moveMatch = text.match(/(\d+\.\s*\S+)/);
-    const move = moveMatch ? moveMatch[1] : "";
-
-    const comments = [];
-    const commentRegex = /\{([^}]*)\}/g;
-    let m;
-    while ((m = commentRegex.exec(text)) !== null) {
-      const c = m[1].trim();
-      if (c) comments.push(c);
-    }
-
-    if (!move && !comments.length) return "";
-    return [move, comments.join(" ")].filter(Boolean).join(" ");
+    return text;
   }
 
-  // -------------------------------------------------------------------------
   class ReaderPGNView {
     constructor(src) {
       if (src.__pgnReaderRendered) return;
