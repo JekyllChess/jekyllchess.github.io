@@ -1,201 +1,126 @@
 // ============================================================================
-// guess-pgn.js — Guess-the-move training mode
-// Layout and styling identical to pgn-reader.js
+// guess-pgn.js — Guess-the-move mode built ON TOP OF pgn-reader.js
+// REQUIREMENT: pgn-reader.js must be loaded BEFORE this file
+//
+// Strategy:
+//   • Instantiate ReaderPGNView normally
+//   • Intercept .next() to require correct SAN guess
+//   • Zero DOM / layout changes
 // ============================================================================
 
 (function () {
   "use strict";
 
-  if (typeof Chess !== "function") return;
-  if (typeof Chessboard !== "function") return;
-  if (!window.PGNCore) return;
-
-  const C = window.PGNCore;
-  const unbreak =
-    typeof C.makeCastlingUnbreakable === "function"
-      ? C.makeCastlingUnbreakable
-      : (x) => x;
-
-  // ---- Chessboard 1003 fix (UNCHANGED) --------------------------------------
-  function safeChessboard(targetEl, options, tries = 30, onReady) {
-    if (!targetEl) return null;
-
-    const rect = targetEl.getBoundingClientRect();
-    if ((rect.width <= 0 || rect.height <= 0) && tries > 0) {
-      requestAnimationFrame(() =>
-        safeChessboard(targetEl, options, tries - 1, onReady)
-      );
-      return null;
-    }
-
-    try {
-      const board = Chessboard(targetEl, options);
-      onReady && onReady(board);
-      return board;
-    } catch {
-      if (tries > 0) {
-        requestAnimationFrame(() =>
-          safeChessboard(targetEl, options, tries - 1, onReady)
-        );
-      }
-      return null;
-    }
+  if (!window.ReaderPGNView) {
+    console.error("guess-pgn.js: ReaderPGNView not found. Load pgn-reader.js first.");
+    return;
   }
-  // --------------------------------------------------------------------------
 
   function normalizeSAN(s) {
-    return s
+    return (s || "")
       .replace(/0/g, "O")
       .replace(/[+#?!]/g, "")
+      .replace(/\s+/g, "")
       .trim();
   }
 
-  // ==========================================================================
+  // --------------------------------------------------------------------------
 
-  class GuessPGNView {
-    constructor(src) {
-      if (src.__guessPGNRendered) return;
-      src.__guessPGNRendered = true;
+  class GuessPGNTrainer {
+    constructor(el) {
+      this.el = el;
 
-      this.sourceEl = src;
-      this.wrapper = document.createElement("div");
-      this.wrapper.className = "pgn-reader-block";
+      // Create a NORMAL reader
+      this.reader = new ReaderPGNView(el);
 
-      this.board = null;
-      this.mainlineIndex = -1;
+      // Inject UI
+      this.injectGuessUI();
 
-      this.build();
-      this.applyFigurines();
-      this.initBoardAndControls();
-      this.bindGuessUI();
-      this.updateVisibility();
+      // Patch navigation
+      this.patchNext();
+
+      // Start at beginning
+      this.reader.mainlineIndex = -1;
     }
 
-    // ------------------------------------------------------------------------
+    injectGuessUI() {
+      const leftCol = this.reader.wrapper.querySelector(".pgn-reader-left");
+      if (!leftCol) return;
 
-    build() {
-      let raw = (this.sourceEl.textContent || "").trim();
-      raw = C.normalizeFigurines(raw);
+      const box = document.createElement("div");
+      box.className = "guess-pgn-input";
+      box.innerHTML =
+        'Your move: ' +
+        '<input type="text" class="guess-san" autocomplete="off" /> ' +
+        '<button type="button" class="guess-ok">OK</button>';
 
-      const chess = new Chess();
-      try { chess.load_pgn(raw, { sloppy: true }); } catch {}
+      leftCol.appendChild(box);
 
-      this.wrapper.innerHTML =
-        '<div class="pgn-reader-header"></div>' +
-        '<div class="pgn-reader-cols">' +
-          '<div class="pgn-reader-left">' +
-            '<div class="pgn-reader-board"></div>' +
-            '<div class="pgn-reader-buttons">' +
-              '<button class="pgn-reader-btn pgn-reader-prev">◀</button>' +
-              '<button class="pgn-reader-btn pgn-reader-next">▶</button>' +
-            '</div>' +
-            '<div class="guess-input">' +
-              'Your move: <input type="text" class="guess-san" autocomplete="off">' +
-              '<button class="guess-ok">OK</button>' +
-            '</div>' +
-          '</div>' +
-          '<div class="pgn-reader-right"></div>' +
-        '</div>';
+      this.input = box.querySelector(".guess-san");
+      this.button = box.querySelector(".guess-ok");
 
-      this.sourceEl.replaceWith(this.wrapper);
+      const submit = () => this.tryGuess();
 
-      this.boardDiv = this.wrapper.querySelector(".pgn-reader-board");
-      this.movesCol = this.wrapper.querySelector(".pgn-reader-right");
-
-      // reuse original reader to parse moves
-      new window.ReaderPGNView(this.wrapper);
-    }
-
-    // ------------------------------------------------------------------------
-
-    applyFigurines() {
-      const map = { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘" };
-      this.wrapper.querySelectorAll(".pgn-move").forEach((s) => {
-        const m = s.textContent.match(/^([KQRBN])(.+)/);
-        if (m) s.textContent = map[m[1]] + m[2];
-      });
-    }
-
-    initBoardAndControls() {
-      safeChessboard(
-        this.boardDiv,
-        {
-          position: "start",
-          draggable: false,
-          pieceTheme: C.PIECE_THEME_URL,
-          appearSpeed: 200,
-          moveSpeed: 200
-        },
-        30,
-        (b) => (this.board = b)
-      );
-
-      this.moveSpans = Array.from(this.wrapper.querySelectorAll(".reader-move"));
-      this.mainlineMoves = this.moveSpans.filter(m => m.dataset.mainline === "1");
-    }
-
-    // ------------------------------------------------------------------------
-    // GUESS LOGIC
-    // ------------------------------------------------------------------------
-
-    bindGuessUI() {
-      const input = this.wrapper.querySelector(".guess-san");
-      const btn = this.wrapper.querySelector(".guess-ok");
-
-      const submit = () => {
-        if (this.mainlineIndex + 1 >= this.mainlineMoves.length) return;
-
-        const guess = normalizeSAN(input.value);
-        const target = normalizeSAN(
-          this.mainlineMoves[this.mainlineIndex + 1].textContent
-        );
-
-        if (guess === target) {
-          this.mainlineIndex++;
-          this.gotoSpan(this.mainlineMoves[this.mainlineIndex]);
-          input.value = "";
-          input.classList.remove("guess-wrong");
-        } else {
-          input.classList.add("guess-wrong");
-          setTimeout(() => input.classList.remove("guess-wrong"), 300);
-        }
-      };
-
-      btn.addEventListener("click", submit);
-      input.addEventListener("keydown", e => {
+      this.button.addEventListener("click", submit);
+      this.input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") submit();
       });
     }
 
-    gotoSpan(span) {
-      if (!span || !this.board) return;
-      this.board.position(span.dataset.fen, true);
-      this.updateVisibility();
+    patchNext() {
+      const originalNext = this.reader.next.bind(this.reader);
+
+      this.reader.next = () => {
+        // If already at end, allow
+        if (this.reader.mainlineIndex + 1 >= this.reader.mainlineMoves.length) {
+          originalNext();
+          return;
+        }
+
+        const targetSpan =
+          this.reader.mainlineMoves[this.reader.mainlineIndex + 1];
+
+        const targetSAN = normalizeSAN(targetSpan.textContent);
+        const guessSAN = normalizeSAN(this.input.value);
+
+        if (!guessSAN) {
+          this.flash(false);
+          return;
+        }
+
+        if (guessSAN === targetSAN) {
+          this.input.value = "";
+          this.flash(true);
+          originalNext();
+        } else {
+          this.flash(false);
+        }
+      };
     }
 
-    updateVisibility() {
-      const maxIndex = this.mainlineIndex;
+    tryGuess() {
+      this.reader.next();
+    }
 
-      this.moveSpans.forEach((s, i) => {
-        s.style.display = i <= maxIndex ? "" : "none";
-      });
-
-      this.movesCol.querySelectorAll("p").forEach(p => {
-        p.style.display =
-          p.querySelector(".reader-move") ? "" :
-          "none";
-      });
+    flash(ok) {
+      if (!this.input) return;
+      this.input.classList.remove("guess-ok-flash", "guess-wrong-flash");
+      void this.input.offsetWidth; // reflow
+      this.input.classList.add(ok ? "guess-ok-flash" : "guess-wrong-flash");
     }
   }
 
   // --------------------------------------------------------------------------
 
   function init() {
-    document.querySelectorAll("guess-pgn").forEach(el => new GuessPGNView(el));
+    document.querySelectorAll("guess-pgn").forEach((el) => {
+      new GuessPGNTrainer(el);
+    });
   }
 
-  if (document.readyState === "loading")
+  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
-  else init();
-
+  } else {
+    init();
+  }
 })();
