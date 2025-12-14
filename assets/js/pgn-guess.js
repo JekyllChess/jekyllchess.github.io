@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (AUTHORITATIVE WORKING VERSION)
+// pgn-guess.js — Guess-the-move PGN trainer (FINAL, empty {} stripped)
 // ============================================================================
 
 (function () {
@@ -24,27 +24,11 @@
     style.id = "pgn-guess-style";
     style.textContent = `
       .pgn-guess-wrapper { margin-bottom: 1rem; }
-
-      .pgn-guess-header {
-        margin: 0 0 .6rem 0;
-        font-weight: 600;
-      }
-
+      .pgn-guess-header { margin:0 0 .6rem 0; font-weight:600; }
       .pgn-guess-cols { display:flex; gap:1rem; align-items:flex-start; }
-
       .pgn-guess-board { width:360px; max-width:100%; touch-action:manipulation; }
-
-      .pgn-guess-status {
-        margin-top:.4em;
-        font-size:.95em;
-        white-space:nowrap;
-      }
-      .pgn-guess-status button {
-        margin-left:.3em;
-        font-size:1em;
-        padding:0 .4em;
-      }
-
+      .pgn-guess-status { margin-top:.4em; font-size:.95em; white-space:nowrap; }
+      .pgn-guess-status button { margin-left:.3em; font-size:1em; padding:0 .4em; }
       .pgn-guess-right { flex:1; max-height:420px; overflow-y:auto; }
 
       .pgn-move-row { font-weight:900; margin-top:.5em; }
@@ -71,11 +55,13 @@
   }
 
   function sanitizeComment(text) {
-    return (text || "")
+    const c = (text || "")
       .replace(/\[%.*?]/g, "")
       .replace(/\[D\]/g, "")
       .replace(/\s+/g, " ")
       .trim();
+
+    return c || null;
   }
 
   function parseHeaders(text) {
@@ -247,7 +233,7 @@
 
         const san = normalizeSAN(tok);
         if (!san) continue;
-        if (!chess.move(san, { sloppy: true })) continue;
+        if (!chess.move(san, { sloppy:true })) continue;
 
         this.moves.push({
           isWhite: ply % 2 === 0,
@@ -262,7 +248,7 @@
     }
 
     // ------------------------------------------------------------------------
-    // Board
+    // Board + logic (unchanged from last confirmed working version)
     // ------------------------------------------------------------------------
 
     initBoard() {
@@ -285,24 +271,20 @@
       }, AUTOPLAY_DELAY);
     }
 
-    // ------------------------------------------------------------------------
-    // Logic
-    // ------------------------------------------------------------------------
-
     isGuessTurn() {
-      const next = this.moves[this.index + 1];
-      return next && next.isWhite === this.userIsWhite;
+      const n = this.moves[this.index + 1];
+      return n && n.isWhite === this.userIsWhite;
     }
 
     autoplayOpponentMoves() {
       while (this.index + 1 < this.moves.length) {
-        const next = this.moves[this.index + 1];
-        if (next.isWhite === this.userIsWhite) break;
+        const n = this.moves[this.index + 1];
+        if (n.isWhite === this.userIsWhite) break;
 
         this.index++;
-        this.game.move(normalizeSAN(next.san), { sloppy: true });
-        this.currentFen = next.fen;
-        this.board.position(next.fen, true);
+        this.game.move(normalizeSAN(n.san), { sloppy:true });
+        this.currentFen = n.fen;
+        this.board.position(n.fen, true);
         this.appendMove();
       }
       this.resultMessage = "";
@@ -361,7 +343,7 @@
       if (!this.isGuessTurn()) return "snapback";
 
       const expected = this.moves[this.index + 1];
-      const legal = this.game.moves({ verbose: true });
+      const legal = this.game.moves({ verbose:true });
 
       const ok = legal.some(m => {
         if (m.from !== source || m.to !== target) return false;
@@ -433,7 +415,7 @@
   }
 
   document.readyState === "loading"
-    ? document.addEventListener("DOMContentLoaded", init, { once: true })
+    ? document.addEventListener("DOMContentLoaded", init, { once:true })
     : init();
 
 })();
