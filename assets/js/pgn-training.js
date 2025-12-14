@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (FINAL, empty {} stripped)
+// pgn-training.js — Guess-the-move PGN trainer (CLEAN, FINAL, COMMENT-SAFE)
 // ============================================================================
 
 (function () {
@@ -18,24 +18,52 @@
   // --------------------------------------------------------------------------
 
   function ensureGuessStylesOnce() {
-    if (document.getElementById("pgn-guess-style")) return;
+    if (document.getElementById("pgn-training-style")) return;
 
     const style = document.createElement("style");
-    style.id = "pgn-guess-style";
+    style.id = "pgn-training-style";
     style.textContent = `
-      .pgn-guess-wrapper { margin-bottom: 1rem; }
-      .pgn-guess-header { margin:0 0 .6rem 0; font-weight:600; }
-      .pgn-guess-cols { display:flex; gap:1rem; align-items:flex-start; }
-      .pgn-guess-board { width:360px; max-width:100%; touch-action:manipulation; }
-      .pgn-guess-status { margin-top:.4em; font-size:.95em; white-space:nowrap; }
-      .pgn-guess-status button { margin-left:.3em; font-size:1em; padding:0 .4em; }
-      .pgn-guess-right { flex:1; max-height:420px; overflow-y:auto; }
+      .pgn-training-wrapper { margin-bottom: 1rem; }
+      .pgn-training-header { margin:0 0 .6rem 0; font-weight:600; }
+
+      .pgn-training-cols {
+        display:flex;
+        gap:1rem;
+        align-items:flex-start;
+      }
+
+      .pgn-training-board {
+        width:360px;
+        max-width:100%;
+        touch-action:manipulation;
+      }
+
+      .pgn-training-status {
+        margin-top:.4em;
+        font-size:.95em;
+        white-space:nowrap;
+      }
+
+      .pgn-training-status button {
+        margin-left:.3em;
+        font-size:1em;
+        padding:0 .4em;
+      }
+
+      .pgn-training-right {
+        flex:1;
+        max-height:420px;
+        overflow-y:auto;
+      }
 
       .pgn-move-row { font-weight:900; margin-top:.5em; }
       .pgn-move-no { margin-right:.3em; }
       .pgn-move-white { margin-right:.6em; }
       .pgn-move-black { margin-left:.3em; }
-      .pgn-comment { font-weight:400; margin:.35em 0; }
+
+      .pgn-comment {
+        font-weight:400;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -99,7 +127,7 @@
       this.rawText = (src.textContent || "").trim();
       this.headers = parseHeaders(this.rawText);
 
-      this.flipBoard = src.tagName.toLowerCase() === "pgn-guess-black";
+      this.flipBoard = src.tagName.toLowerCase() === "pgn-training-black";
       this.userIsWhite = !this.flipBoard;
 
       this.moves = [];
@@ -140,7 +168,7 @@
       if (!W && !B && !eventLine && !opening) return;
 
       const H = document.createElement("h3");
-      H.className = "pgn-guess-header";
+      H.className = "pgn-training-header";
 
       if (W || B) {
         H.append(W || "?", " – ", B || "?");
@@ -159,26 +187,26 @@
 
     build(src) {
       this.wrapper = document.createElement("div");
-      this.wrapper.className = "pgn-guess-wrapper";
+      this.wrapper.className = "pgn-training-wrapper";
 
       this.renderHeader();
 
       const cols = document.createElement("div");
-      cols.className = "pgn-guess-cols";
+      cols.className = "pgn-training-cols";
       cols.innerHTML = `
         <div>
-          <div class="pgn-guess-board"></div>
-          <div class="pgn-guess-status"></div>
+          <div class="pgn-training-board"></div>
+          <div class="pgn-training-status"></div>
         </div>
-        <div class="pgn-guess-right"></div>
+        <div class="pgn-training-right"></div>
       `;
 
       this.wrapper.appendChild(cols);
       src.replaceWith(this.wrapper);
 
-      this.boardDiv = cols.querySelector(".pgn-guess-board");
-      this.statusEl = cols.querySelector(".pgn-guess-status");
-      this.rightPane = cols.querySelector(".pgn-guess-right");
+      this.boardDiv = cols.querySelector(".pgn-training-board");
+      this.statusEl = cols.querySelector(".pgn-training-status");
+      this.rightPane = cols.querySelector(".pgn-training-right");
     }
 
     // ------------------------------------------------------------------------
@@ -195,9 +223,17 @@
 
       const attach = (t) => {
         const c = sanitizeComment(t);
-        if (!c) return;
-        if (this.moves.length) this.moves[this.moves.length - 1].comments.push(c);
-        else pending.push(c);
+
+        if (c === null) {
+          pending.length = 0;
+          return;
+        }
+
+        if (this.moves.length) {
+          this.moves[this.moves.length - 1].comments.push(c);
+        } else {
+          pending.push(c);
+        }
       };
 
       while (i < raw.length) {
@@ -248,7 +284,7 @@
     }
 
     // ------------------------------------------------------------------------
-    // Board + logic (unchanged from last confirmed working version)
+    // Board + logic
     // ------------------------------------------------------------------------
 
     initBoard() {
@@ -398,11 +434,12 @@
         this.currentRow.appendChild(b);
       }
 
+      // INLINE comments
       m.comments.forEach(c => {
-        const p = document.createElement("p");
-        p.className = "pgn-comment";
-        p.textContent = c;
-        this.rightPane.appendChild(p);
+        const span = document.createElement("span");
+        span.className = "pgn-comment";
+        span.textContent = " " + c;
+        if (this.currentRow) this.currentRow.appendChild(span);
       });
 
       this.rightPane.scrollTop = this.rightPane.scrollHeight;
@@ -410,7 +447,7 @@
   }
 
   function init() {
-    document.querySelectorAll("pgn-guess, pgn-guess-black")
+    document.querySelectorAll("pgn-training, pgn-training-black")
       .forEach(el => new ReaderPGNView(el));
   }
 
