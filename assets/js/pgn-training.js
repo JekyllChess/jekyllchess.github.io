@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-training.js — Guess-the-move PGN trainer (literature-correct mainline)
+// pgn-training.js — Guess-the-move PGN trainer (literature-correct, puzzle-safe)
 // ============================================================================
 
 (function () {
@@ -83,7 +83,6 @@
       .replace(/[{}]/g, "")
       .replace(/\s+/g, " ")
       .trim();
-
     return c || null;
   }
 
@@ -445,10 +444,6 @@
             b.textContent =
               " " + this.formatBlackReplyAfterComment(m.moveNo, next.san);
             row.appendChild(b);
-
-            this.index++;
-            this.game.load(next.fen);
-            this.currentFen = next.fen;
           }
         }
 
