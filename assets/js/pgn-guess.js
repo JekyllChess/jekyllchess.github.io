@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-guess.js — Guess-the-move PGN trainer (FULL + header + stable logic)
+// pgn-guess.js — Guess-the-move PGN trainer (AUTHORITATIVE WORKING VERSION)
 // ============================================================================
 
 (function () {
@@ -10,9 +10,8 @@
   if (!window.PGNCore) return;
 
   const C = window.PGNCore;
-
-  const AUTOPLAY_DELAY = 700;  // show turn indicator first, then autoplay
-  const FEEDBACK_DELAY = 600;  // show "Correct! ✅" briefly before autoplay continues
+  const AUTOPLAY_DELAY = 700;
+  const FEEDBACK_DELAY = 600;
 
   // --------------------------------------------------------------------------
   // Styles
@@ -27,7 +26,7 @@
       .pgn-guess-wrapper { margin-bottom: 1rem; }
 
       .pgn-guess-header {
-        margin: 0 0 0.6rem 0;
+        margin: 0 0 .6rem 0;
         font-weight: 600;
       }
 
@@ -35,8 +34,16 @@
 
       .pgn-guess-board { width:360px; max-width:100%; touch-action:manipulation; }
 
-      .pgn-guess-status { margin-top:.4em; font-size:.95em; white-space:nowrap; }
-      .pgn-guess-status button { margin-left:.3em; font-size:1em; padding:0 .4em; }
+      .pgn-guess-status {
+        margin-top:.4em;
+        font-size:.95em;
+        white-space:nowrap;
+      }
+      .pgn-guess-status button {
+        margin-left:.3em;
+        font-size:1em;
+        padding:0 .4em;
+      }
 
       .pgn-guess-right { flex:1; max-height:420px; overflow-y:auto; }
 
@@ -53,34 +60,10 @@
   // Helpers
   // --------------------------------------------------------------------------
 
-  function safeChessboard(targetEl, options, tries = 30, onReady) {
-    if (!targetEl) return null;
-
-    const r = targetEl.getBoundingClientRect();
-    if ((r.width <= 0 || r.height <= 0) && tries > 0) {
-      requestAnimationFrame(() =>
-        safeChessboard(targetEl, options, tries - 1, onReady)
-      );
-      return null;
-    }
-
-    try {
-      const b = Chessboard(targetEl, options);
-      onReady && onReady(b);
-      return b;
-    } catch {
-      if (tries > 0) {
-        requestAnimationFrame(() =>
-          safeChessboard(targetEl, options, tries - 1, onReady)
-        );
-      }
-      return null;
-    }
-  }
-
   function normalizeSAN(tok) {
     return tok
       .replace(/\[%.*?]/g, "")
+      .replace(/\[D\]/g, "")
       .replace(/[!?]+/g, "")
       .replace(/[+#]$/, "")
       .replace(/0/g, "O")
@@ -89,7 +72,8 @@
 
   function sanitizeComment(text) {
     return (text || "")
-      .replace(/\[%.*?]/g, "")   // strip engine/clock tags
+      .replace(/\[%.*?]/g, "")
+      .replace(/\[D\]/g, "")
       .replace(/\s+/g, " ")
       .trim();
   }
@@ -103,14 +87,15 @@
     return headers;
   }
 
-  function safeFlipName(name) {
-    if (typeof C.flipName === "function") return C.flipName(name || "");
-    return (name || "").trim();
+  function flipNameSafe(name) {
+    return typeof C.flipName === "function"
+      ? C.flipName(name || "")
+      : (name || "");
   }
 
-  function safeExtractYear(dateStr) {
-    if (typeof C.extractYear === "function") return C.extractYear(dateStr);
-    const m = String(dateStr || "").match(/(\d{4})/);
+  function extractYearSafe(date) {
+    if (typeof C.extractYear === "function") return C.extractYear(date);
+    const m = String(date || "").match(/(\d{4})/);
     return m ? m[1] : "";
   }
 
@@ -129,14 +114,14 @@
       this.headers = parseHeaders(this.rawText);
 
       this.flipBoard = src.tagName.toLowerCase() === "pgn-guess-black";
-      this.userIsWhite = !this.flipBoard; // <pgn-guess> => user guesses White; <pgn-guess-black> => user guesses Black
+      this.userIsWhite = !this.flipBoard;
 
       this.moves = [];
       this.index = -1;
       this.currentRow = null;
 
       this.game = new Chess();
-      this.currentFen = "start";   // authoritative fen for snap-end resync
+      this.currentFen = "start";
       this.resultMessage = "";
       this.solved = false;
 
@@ -146,48 +131,40 @@
     }
 
     // ------------------------------------------------------------------------
-    // Header (players + event + opening) — OUTSIDE the 2-column layout
+    // Header
     // ------------------------------------------------------------------------
 
     renderHeader() {
-      const h = this.headers || {};
+      const h = this.headers;
 
       const W =
         (h.WhiteTitle ? h.WhiteTitle + " " : "") +
-        safeFlipName(h.White || "") +
+        flipNameSafe(h.White) +
         (h.WhiteElo ? " (" + h.WhiteElo + ")" : "");
 
       const B =
         (h.BlackTitle ? h.BlackTitle + " " : "") +
-        safeFlipName(h.Black || "") +
+        flipNameSafe(h.Black) +
         (h.BlackElo ? " (" + h.BlackElo + ")" : "");
 
-      const Y = safeExtractYear(h.Date);
-      const line2 = (h.Event || "") + (Y ? ", " + Y : "");
+      const year = extractYearSafe(h.Date);
+      const eventLine = (h.Event || "") + (year ? ", " + year : "");
       const opening = (h.Opening || "").trim();
 
-      // If there's nothing meaningful, don't render an empty header
-      if (!W && !B && !line2 && !opening) return;
+      if (!W && !B && !eventLine && !opening) return;
 
       const H = document.createElement("h3");
       H.className = "pgn-guess-header";
 
-      // Line 1: Players
       if (W || B) {
-        H.appendChild(document.createTextNode((W || "?") + " – " + (B || "?")));
+        H.append(W || "?", " – ", B || "?");
         H.appendChild(document.createElement("br"));
       }
-
-      // Line 2: Event + year
-      if (line2) {
-        H.appendChild(document.createTextNode(line2));
+      if (eventLine) {
+        H.append(eventLine);
         if (opening) H.appendChild(document.createElement("br"));
       }
-
-      // Line 3: Opening (optional)
-      if (opening) {
-        H.appendChild(document.createTextNode(opening));
-      }
+      if (opening) H.append(opening);
 
       this.wrapper.appendChild(H);
     }
@@ -198,13 +175,10 @@
       this.wrapper = document.createElement("div");
       this.wrapper.className = "pgn-guess-wrapper";
 
-      // Header first (NOT part of 2-col layout)
       this.renderHeader();
 
-      // Columns (board/status left, move list right)
       const cols = document.createElement("div");
       cols.className = "pgn-guess-cols";
-
       cols.innerHTML = `
         <div>
           <div class="pgn-guess-board"></div>
@@ -222,7 +196,7 @@
     }
 
     // ------------------------------------------------------------------------
-    // Safe PGN parser (comments/variations ok; eval/clk stripped)
+    // PGN parsing
     // ------------------------------------------------------------------------
 
     parsePGN() {
@@ -243,7 +217,6 @@
       while (i < raw.length) {
         const ch = raw[i];
 
-        // ( ... ) variation
         if (ch === "(") {
           let d = 1, j = i + 1;
           while (j < raw.length && d) {
@@ -256,7 +229,6 @@
           continue;
         }
 
-        // { ... } comment
         if (ch === "{") {
           let j = i + 1;
           while (j < raw.length && raw[j] !== "}") j++;
@@ -267,24 +239,21 @@
 
         if (/\s/.test(ch)) { i++; continue; }
 
-        // token
         const s = i;
         while (i < raw.length && !/\s/.test(raw[i]) && !"(){}".includes(raw[i])) i++;
         const tok = raw.slice(s, i);
 
-        // move numbers
         if (/^\d+\.{1,3}$/.test(tok)) continue;
 
         const san = normalizeSAN(tok);
         if (!san) continue;
-
         if (!chess.move(san, { sloppy: true })) continue;
 
         this.moves.push({
           isWhite: ply % 2 === 0,
           moveNo: Math.floor(ply / 2) + 1,
-          san: tok,          // display token
-          fen: chess.fen(),  // authoritative resulting fen
+          san: tok,
+          fen: chess.fen(),
           comments: pending.splice(0)
         });
 
@@ -293,103 +262,79 @@
     }
 
     // ------------------------------------------------------------------------
-    // Board init
+    // Board
     // ------------------------------------------------------------------------
 
     initBoard() {
-      safeChessboard(
-        this.boardDiv,
-        {
-          position: "start",
-          orientation: this.flipBoard ? "black" : "white",
-          draggable: true,
-          pieceTheme: C.PIECE_THEME_URL,
-          moveSpeed: 200,
+      this.board = Chessboard(this.boardDiv, {
+        position: "start",
+        orientation: this.flipBoard ? "black" : "white",
+        draggable: true,
+        pieceTheme: C.PIECE_THEME_URL,
+        moveSpeed: 200,
+        onDragStart: () => !this.solved && this.isGuessTurn(),
+        onDrop: (s, t) => this.onUserDrop(s, t),
+        onSnapEnd: () => this.board.position(this.currentFen, false)
+      });
 
-          onDragStart: () => !this.solved && this.isGuessTurn(),
-          onDrop: (s, t) => this.onUserDrop(s, t),
+      this.updateStatus();
 
-          // After any animation (captures especially), force-sync to authoritative fen
-          onSnapEnd: () => {
-            if (!this.board) return;
-            this.board.position(this.currentFen, false);
-          }
-        },
-        30,
-        (b) => {
-          this.board = b;
-
-          // Show initial indicator immediately
-          this.updateStatus();
-
-          // Delay then autoplay opponent moves
-          setTimeout(() => {
-            this.autoplayOpponentMoves();
-            this.updateStatus();
-          }, AUTOPLAY_DELAY);
-        }
-      );
+      setTimeout(() => {
+        this.autoplayOpponentMoves();
+        this.updateStatus();
+      }, AUTOPLAY_DELAY);
     }
 
     // ------------------------------------------------------------------------
-    // Autoplay + puzzle turn logic
+    // Logic
     // ------------------------------------------------------------------------
 
     isGuessTurn() {
       const next = this.moves[this.index + 1];
-      return !!next && next.isWhite === this.userIsWhite;
+      return next && next.isWhite === this.userIsWhite;
     }
 
     autoplayOpponentMoves() {
       while (this.index + 1 < this.moves.length) {
         const next = this.moves[this.index + 1];
-
-        // Stop at user's puzzle move
         if (next.isWhite === this.userIsWhite) break;
 
         this.index++;
         this.game.move(normalizeSAN(next.san), { sloppy: true });
-
         this.currentFen = next.fen;
-        this.board.position(next.fen, true); // animate autoplay
+        this.board.position(next.fen, true);
         this.appendMove();
       }
-
-      // Clear feedback after autoplay finishes at a puzzle
       this.resultMessage = "";
     }
-
-    // ------------------------------------------------------------------------
-    // Status + solved navigation
-    // ------------------------------------------------------------------------
 
     updateStatus() {
       this.statusEl.innerHTML = "";
 
       if (this.solved) {
-        const solved = document.createElement("span");
-        solved.textContent = "Training solved! 🏆";
-        this.statusEl.appendChild(solved);
+        const s = document.createElement("span");
+        s.textContent = "Training solved! 🏆";
+        this.statusEl.appendChild(s);
 
         this.statusEl.append(
-          this.makeNavButton("↻", () => this.goto(-1), this.index < 0),
-          this.makeNavButton("◀", () => this.goto(this.index - 1), this.index < 0),
-          this.makeNavButton("▶", () => this.goto(this.index + 1), this.index >= this.moves.length - 1)
+          this.navBtn("↻", () => this.goto(-1), this.index < 0),
+          this.navBtn("◀", () => this.goto(this.index - 1), this.index < 0),
+          this.navBtn("▶", () => this.goto(this.index + 1), this.index >= this.moves.length - 1)
         );
         return;
       }
 
       const flag = this.game.turn() === "w" ? "⚐" : "⚑";
       const side = this.game.turn() === "w" ? "White" : "Black";
-      const suffix = this.resultMessage ? ` · ${this.resultMessage}` : "";
-      this.statusEl.textContent = `${flag} ${side} to move${suffix}`;
+      const msg = this.resultMessage ? ` · ${this.resultMessage}` : "";
+      this.statusEl.textContent = `${flag} ${side} to move${msg}`;
     }
 
-    makeNavButton(icon, onClick, disabled) {
+    navBtn(icon, cb, dis) {
       const b = document.createElement("button");
       b.textContent = icon;
-      b.disabled = disabled;
-      b.addEventListener("click", onClick);
+      b.disabled = dis;
+      b.onclick = cb;
       return b;
     }
 
@@ -402,32 +347,23 @@
       if (i === -1) {
         this.game.reset();
         this.currentFen = "start";
-        this.board.position("start", false);
       } else {
         this.game.load(this.moves[i].fen);
         this.currentFen = this.moves[i].fen;
-        this.board.position(this.currentFen, false);
       }
 
+      this.board.position(this.currentFen, false);
       this.updateStatus();
     }
 
-    // ------------------------------------------------------------------------
-    // User move via drag-drop
-    // ------------------------------------------------------------------------
-
     onUserDrop(source, target) {
-      // Ignore clicks / non-moves
       if (source === target) return "snapback";
-
-      if (this.solved) return "snapback";
       if (!this.isGuessTurn()) return "snapback";
 
       const expected = this.moves[this.index + 1];
       const legal = this.game.moves({ verbose: true });
 
-      // Validate by resulting FEN (supports alternate SANs / multiple correct moves)
-      const ok = legal.some((m) => {
+      const ok = legal.some(m => {
         if (m.from !== source || m.to !== target) return false;
         const g = new Chess(this.game.fen());
         g.move(m);
@@ -440,22 +376,18 @@
         return "snapback";
       }
 
-      // Correct: advance without animation
       this.index++;
       this.game.load(expected.fen);
       this.currentFen = expected.fen;
       this.board.position(expected.fen, false);
       this.appendMove();
 
-      // Solved?
       if (this.index === this.moves.length - 1) {
         this.solved = true;
-        this.resultMessage = "";
         this.updateStatus();
         return;
       }
 
-      // Show correct briefly, then autoplay opponent replies
       this.resultMessage = "Correct! ✅";
       this.updateStatus();
 
@@ -465,10 +397,6 @@
       }, FEEDBACK_DELAY);
     }
 
-    // ------------------------------------------------------------------------
-    // Move list rendering (stacked + paired + comments revealed as played)
-    // ------------------------------------------------------------------------
-
     appendMove() {
       const m = this.moves[this.index];
       if (!m) return;
@@ -476,18 +404,9 @@
       if (m.isWhite) {
         const row = document.createElement("div");
         row.className = "pgn-move-row";
-
-        const no = document.createElement("span");
-        no.className = "pgn-move-no";
-        no.textContent = `${m.moveNo}.`;
-
-        const w = document.createElement("span");
-        w.className = "pgn-move-white";
-        w.textContent = m.san;
-
-        row.appendChild(no);
-        row.appendChild(w);
-
+        row.innerHTML =
+          `<span class="pgn-move-no">${m.moveNo}.</span>` +
+          `<span class="pgn-move-white">${m.san}</span>`;
         this.rightPane.appendChild(row);
         this.currentRow = row;
       } else if (this.currentRow) {
@@ -497,7 +416,7 @@
         this.currentRow.appendChild(b);
       }
 
-      m.comments.forEach((c) => {
+      m.comments.forEach(c => {
         const p = document.createElement("p");
         p.className = "pgn-comment";
         p.textContent = c;
@@ -508,13 +427,9 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Init
-  // --------------------------------------------------------------------------
-
   function init() {
     document.querySelectorAll("pgn-guess, pgn-guess-black")
-      .forEach((el) => new ReaderPGNView(el));
+      .forEach(el => new ReaderPGNView(el));
   }
 
   document.readyState === "loading"
