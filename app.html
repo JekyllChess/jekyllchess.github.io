@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PGN Viewer</title>
+
+<link rel="stylesheet" href="chessboardjs/chessboard-1.0.0.min.css">
+<link rel="stylesheet" href="styles.css">
+
+<script src="chess.js"></script>
+<script src="chessboardjs/chessboard-1.0.0.min.js"></script>
+<script defer src="app.js"></script>
+</head>
+
+<body>
+<div class="app" data-theme="dark">
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">♟</div>
+    <div class="titles">
+      <div class="title">PGN Viewer</div>
+      <div class="subtitle" id="gameLine">—</div>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button id="btnFlip">Flip</button>
+    <button id="btnCopyFEN">Copy FEN</button>
+    <button id="btnCopyPGN">Copy PGN</button>
+    <button id="btnTheme">☾</button>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="panel board-panel">
+    <div id="board" class="board"></div>
+
+    <div class="controls">
+      <button id="btnFirst">⏮</button>
+      <button id="btnPrev">◀</button>
+      <button id="btnPlay">▶</button>
+      <button id="btnNext">▶</button>
+      <button id="btnLast">⏭</button>
+
+      <label>
+        Speed
+        <input id="speed" type="range" min="200" max="1200" step="50" value="450">
+      </label>
+    </div>
+  </section>
+
+  <section class="panel moves-panel">
+    <div id="moves"></div>
+  </section>
+</main>
+
+<!-- PGN lives here -->
+<pgn-data>
+[Event "Demo Game"]
+[Site "Istanbul"]
+[Date "2025.12.16"]
+[Round "-"]
+[White "White Player"]
+[Black "Black Player"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6
+4. Ba4 Nf6 5. O-O Be7
+6. Re1 b5 7. Bb3 d6
+8. c3 O-O 9. h3 1-0
+</pgn-data>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const pgnText = document.querySelector("pgn-data").textContent.trim();
+
+  const chess = new Chess();
+  chess.load_pgn(pgnText, { sloppy: true });
+
+  const moves = chess.history({ verbose: true });
+  chess.reset();
+
+  const board = Chessboard("board", {
+    position: "start",
+    pieceTheme: "chessboardjs/img/chesspieces/wikipedia/{piece}.png",
+    moveSpeed: 200,
+    snapSpeed: 30
+  });
+
+  const movesDiv = document.getElementById("moves");
+  const gameLine = document.getElementById("gameLine");
+
+  const headers = chess.header();
+  gameLine.textContent =
+    `${headers.White || ""} – ${headers.Black || ""}`.trim();
+
+  let index = -1;
+  let autoplay = null;
+  let orientation = "white";
+
+  // render move list
+  moves.forEach((m, i) => {
+    const span = document.createElement("span");
+    span.className = "move";
+    span.textContent =
+      (m.color === "w" ? `${Math.floor(i / 2) + 1}. ` : "") + m.san + " ";
+    span.onclick = () => goto(i);
+    movesDiv.appendChild(span);
+  });
+
+  function goto(i) {
+    chess.reset();
+    for (let j = 0; j <= i; j++) chess.move(moves[j]);
+    board.position(chess.fen(), true);
+    index = i;
+
+    document.querySelectorAll(".move").forEach((m, k) =>
+      m.classList.toggle("active", k === i)
+    );
+  }
+
+  function next() {
+    if (index < moves.length - 1) goto(index + 1);
+  }
+
+  function prev() {
+    if (index >= 0) goto(index - 1);
+    else {
+      chess.reset();
+      board.position("start", true);
+    }
+  }
+
+  // buttons
+  btnNext.onclick = next;
+  btnPrev.onclick = prev;
+  btnFirst.onclick = () => goto(-1);
+  btnLast.onclick = () => goto(moves.length - 1);
+
+  btnPlay.onclick = () => {
+    if (autoplay) {
+      clearInterval(autoplay);
+      autoplay = null;
+      btnPlay.textContent = "▶";
+      return;
+    }
+    btnPlay.textContent = "⏸";
+    autoplay = setInterval(next, +speed.value);
+  };
+
+  btnFlip.onclick = () => {
+    orientation = orientation === "white" ? "black" : "white";
+    board.orientation(orientation);
+  };
+
+  btnCopyFEN.onclick = () =>
+    navigator.clipboard.writeText(chess.fen());
+
+  btnCopyPGN.onclick = () =>
+    navigator.clipboard.writeText(pgnText);
+
+  btnTheme.onclick = () => {
+    document.body.dataset.theme =
+      document.body.dataset.theme === "dark" ? "light" : "dark";
+  };
+
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") next();
+    if (e.key === "ArrowLeft") prev();
+  });
+})();
+</script>
+</body>
+</html>
