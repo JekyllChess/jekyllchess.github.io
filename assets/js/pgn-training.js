@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-training.js — stable, non-blocking, full UI restored
+// pgn-training.js — stable, non-blocking, refined UI symbols & controls
 // ============================================================================
 
 (function () {
@@ -43,8 +43,17 @@
       .pgn-move-white { margin-right:.6em; }
       .pgn-move-black { margin-left:.3em; }
       .pgn-comment { font-weight:400; }
-      .pgn-training-status span { margin-right:.6em; }
-      .pgn-training-actions button { margin-right:.4em; }
+      .pgn-training-status span { margin-right:.6em; font-size:1.1em; }
+      .pgn-training-actions button {
+        font-size:1.1em;
+        padding:.1em .4em;
+        margin-right:.3em;
+        cursor:pointer;
+      }
+      .pgn-training-actions button:disabled {
+        opacity:.35;
+        cursor:default;
+      }
     `;
     document.head.appendChild(s);
   }
@@ -130,23 +139,21 @@
       const wrap = document.createElement("div");
       wrap.className = "pgn-training-wrapper";
 
-      // ===== HEADING (requested format) =====
+      // Heading
       if (this.headers.White && this.headers.Black) {
         const h = document.createElement("h3");
         h.className = "pgn-training-header";
 
-        const year = this.headers.Date
-          ? this.headers.Date.slice(0, 4)
-          : "";
+        const year = this.headers.Date ? this.headers.Date.slice(0, 4) : "";
 
         const line1 = `${this.headers.White} – ${this.headers.Black}`;
 
-        const line2Parts = [];
-        if (this.headers.Event) line2Parts.push(this.headers.Event);
-        if (this.headers.Site) line2Parts.push(this.headers.Site);
-        if (year) line2Parts.push(year);
+        const line2 = [
+          this.headers.Event,
+          this.headers.Site,
+          year
+        ].filter(Boolean).join(", ");
 
-        const line2 = line2Parts.join(", ");
         const line3 = this.headers.Opening || "";
 
         h.innerHTML =
@@ -165,11 +172,11 @@
           <div class="pgn-training-status">
             <span class="turn"></span>
             <span class="feedback"></span>
-            <span class="solved" hidden>🏆 Puzzle solved</span>
+            <span class="solved" hidden>🏆</span>
             <span class="pgn-training-actions" hidden>
-              <button data-act="restart">Restart</button>
-              <button data-act="solution">Show solution</button>
-              <button data-act="copy">Copy PGN</button>
+              <button data-act="reset">↺</button>
+              <button data-act="prev">◀</button>
+              <button data-act="next">▶</button>
             </span>
           </div>
         </div>
@@ -186,6 +193,14 @@
       this.feedbackEl = cols.querySelector(".feedback");
       this.solvedEl = cols.querySelector(".solved");
       this.actionsEl = cols.querySelector(".pgn-training-actions");
+
+      this.btnReset = cols.querySelector('[data-act="reset"]');
+      this.btnPrev = cols.querySelector('[data-act="prev"]');
+      this.btnNext = cols.querySelector('[data-act="next"]');
+
+      this.btnReset.onclick = () => this.reset();
+      this.btnPrev.onclick = () => this.step(-1);
+      this.btnNext.onclick = () => this.step(1);
     }
 
     // ----------------------------------------------------------------------
@@ -210,11 +225,8 @@
       const rawAll = PGNCore.normalizeFigurines(this.rawText);
       const raw = stripHeaders(rawAll);
 
-      const resultMatch = rawAll.match(/\b(1-0|0-1|1\/2-1\/2)\b\s*$/);
-      this.result = resultMatch ? resultMatch[1] : "";
-
       const chess = new Chess();
-      let i = 0, ply = 0, pending = [];
+      let i = 0, ply = 0;
 
       const step = () => {
         const start = performance.now();
@@ -230,10 +242,6 @@
           if (ch === "{") {
             let j = i + 1;
             while (j < raw.length && raw[j] !== "}") j++;
-            const c = sanitizeComment(raw.slice(i + 1, j));
-            if (c && this.moves.length) {
-              this.moves[this.moves.length - 1].comments.push(c);
-            }
             i = j + 1;
             continue;
           }
@@ -262,15 +270,14 @@
             isWhite: ply % 2 === 0,
             moveNo: Math.floor(ply / 2) + 1,
             san: tok,
-            fen: chess.fen(),
-            comments: pending.splice(0)
+            fen: chess.fen()
           });
 
           ply++;
         }
 
         this.updateTurn();
-        requestAnimationFrame(() => this.autoplayOpponentMoves());
+        this.autoplayOpponentMoves();
       };
 
       requestAnimationFrame(step);
@@ -282,7 +289,7 @@
       const n = this.moves[this.index + 1];
       if (!n) return;
       this.turnEl.textContent =
-        n.isWhite === this.userIsWhite ? "Your move" : "Opponent thinking…";
+        n.isWhite ? "🏳️" : "⚑";
     }
 
     isGuessTurn() {
@@ -296,12 +303,13 @@
         if (n.isWhite === this.userIsWhite) break;
 
         this.index++;
-        try { this.game.move(normalizeSAN(n.san), { sloppy:true }); } catch {}
+        this.game.move(normalizeSAN(n.san), { sloppy:true });
         this.currentFen = n.fen;
         this.board.position(n.fen, true);
         this.appendMove();
       }
       this.updateTurn();
+      this.updateButtons();
     }
 
     onUserDrop(source, target) {
@@ -317,7 +325,7 @@
         return g.fen() === expected.fen;
       });
 
-      this.feedbackEl.textContent = ok ? "✓ Correct" : "✗ Try again";
+      this.feedbackEl.textContent = ok ? "✅" : "❌";
       if (!ok) return "snapback";
 
       this.index++;
@@ -331,7 +339,44 @@
         this.actionsEl.hidden = false;
       }
 
-      setTimeout(() => this.autoplayOpponentMoves(), 500);
+      setTimeout(() => this.autoplayOpponentMoves(), 400);
+    }
+
+    // ----------------------------------------------------------------------
+
+    step(dir) {
+      const next = this.index + dir;
+      if (next < -1 || next >= this.moves.length) return;
+
+      this.index = next;
+      this.game.reset();
+
+      for (let i = 0; i <= this.index; i++) {
+        this.game.move(normalizeSAN(this.moves[i].san), { sloppy:true });
+      }
+
+      this.currentFen = this.index >= 0 ? this.moves[this.index].fen : "start";
+      this.board.position(this.currentFen, false);
+      this.updateButtons();
+      this.updateTurn();
+    }
+
+    reset() {
+      this.index = -1;
+      this.game.reset();
+      this.currentFen = "start";
+      this.board.position("start", false);
+      this.rightPane.innerHTML = "";
+      this.solvedEl.hidden = true;
+      this.actionsEl.hidden = true;
+      this.feedbackEl.textContent = "";
+      this.updateTurn();
+      this.updateButtons();
+    }
+
+    updateButtons() {
+      this.btnPrev.disabled = this.index < 0;
+      this.btnNext.disabled = this.index >= this.moves.length - 1;
     }
 
     // ----------------------------------------------------------------------
@@ -348,27 +393,11 @@
           `<span class="pgn-move-white">${m.san}</span>`;
         this.rightPane.appendChild(row);
         this.currentRow = row;
-
-        m.comments.forEach(c => {
-          const s = document.createElement("span");
-          s.className = "pgn-comment";
-          s.textContent = " " + c;
-          row.appendChild(s);
-        });
       } else if (this.currentRow) {
         const b = document.createElement("span");
         b.className = "pgn-move-black";
         b.textContent = ` ${m.san}`;
         this.currentRow.appendChild(b);
-
-        if (this.index === this.moves.length - 1) {
-          if (m.comments.length) {
-            this.currentRow.append(" " + m.comments.join(" "));
-          }
-          if (this.result) {
-            this.currentRow.append(" " + this.result);
-          }
-        }
       }
 
       this.rightPane.scrollTop = this.rightPane.scrollHeight;
