@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-training.js — FINAL, CLEAN VARIATION TEXT (NO TRAILING ")")
+// pgn-training.js — FINAL with correct flag update after correct move
 // ============================================================================
 
 (function () {
@@ -101,18 +101,17 @@
     return c || null;
   }
 
-  // ✅ FIXED: no trailing ")"
   function sanitizeVariationText(t) {
-    let x = String(t || "");
-    x = x.replace(/\[%.*?]/g, "");
-    x = x.replace(/\[D\]/g, "");
-    x = x.replace(/\{[^}]*\}/g, "");
-    x = x.replace(/\s+/g, " ").trim();
+    let x = String(t || "")
+      .replace(/\[%.*?]/g, "")
+      .replace(/\[D\]/g, "")
+      .replace(/\{[^}]*\}/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (!x) return null;
     if (x.startsWith("(")) x = x.slice(1);
     if (x.endsWith(")")) x = x.slice(0, -1);
-
     return x.trim() || null;
   }
 
@@ -126,19 +125,6 @@
       h[k] = v;
     });
     return h;
-  }
-
-  function skipVariation(raw, i) {
-    let d = 0;
-    while (i < raw.length) {
-      if (raw[i] === "(") d++;
-      else if (raw[i] === ")") {
-        d--;
-        if (d <= 0) return i + 1;
-      }
-      i++;
-    }
-    return i;
   }
 
   function captureVariation(raw, i) {
@@ -387,6 +373,9 @@
       this.currentFen = expected.fen;
       this.board.position(expected.fen, false);
       this.appendMove();
+
+      // ✅ FIX: immediately update turn flag after correct move
+      this.updateTurn();
 
       if (this.index === this.moves.length - 1 && !this.isSolved) {
         this.isSolved = true;
