@@ -1,5 +1,5 @@
 // ============================================================================
-// pgn-training.js — Guess-the-move PGN trainer (white-screen safe)
+// pgn-training.js  (patched: no-freeze parsing + safe init)
 // ============================================================================
 
 (function () {
@@ -11,8 +11,12 @@
     if (!window.PGNCore) return;
 
     const C = window.PGNCore;
+
     const AUTOPLAY_DELAY = 700;
     const FEEDBACK_DELAY = 600;
+
+    // Parsing timeslice (ms). Keep small to avoid freezing.
+    const PARSE_BUDGET_MS = 10;
 
     // ------------------------------------------------------------------------
     // Styles
@@ -80,6 +84,33 @@
       return c || null;
     }
 
+    function stripTagPairs(pgnText) {
+      // Remove header tag-pairs like: [Event "…"]
+      return String(pgnText || "").replace(/^\s*\[[^\]]*\]\s*$/gm, "");
+    }
+
+    // Skip a balanced (...) variation block starting at i (where raw[i] === '(')
+    function skipVariation(raw, i) {
+      let depth = 0;
+      while (i < raw.length) {
+        const ch = raw[i];
+        if (ch === "{") {
+          // skip comment quickly
+          i++;
+          while (i < raw.length && raw[i] !== "}") i++;
+          i++;
+          continue;
+        }
+        if (ch === "(") depth++;
+        else if (ch === ")") {
+          depth--;
+          if (depth <= 0) return i + 1;
+        }
+        i++;
+      }
+      return i;
+    }
+
     // ------------------------------------------------------------------------
     // Main class
     // ------------------------------------------------------------------------
@@ -100,8 +131,20 @@
         this.currentFen = "start";
         this.rowHasInterveningComment = false;
 
+        this._parsed = false;
+        this._raw = "";
+        this._i = 0;
+        this._ply = 0;
+        this._pending = [];
+        this._chess = new Chess();
+
         this.build(src);
-        this.parsePGN();
+
+        // Parse in timeslices so the page never “hangs”
+        this.status("Parsing PGN…");
+        this.beginParse();
+
+        // Board can init immediately; we just won’t autoplay until parse finishes
         this.initBoard();
       }
 
@@ -127,93 +170,157 @@
         this.rightPane = cols.querySelector(".pgn-training-right");
       }
 
-      parsePGN() {
-        const raw = C.normalizeFigurines(this.rawText);
-        const chess = new Chess();
-        let i = 0, ply = 0, pending = [];
+      status(text) {
+        if (!this.statusEl) return;
+        this.statusEl.textContent = text || "";
+      }
 
-        const attach = (t) => {
-          const c = sanitizeComment(t);
-          if (!c) { pending.length = 0; return; }
-          if (this.moves.length) this.moves[this.moves.length - 1].comments.push(c);
-          else pending.push(c);
-        };
+      beginParse() {
+        // 1) normalize figurines (your existing helper)
+        // 2) strip header tag-pairs
+        // 3) keep everything else (comments, moves)
+        this._raw = stripTagPairs(C.normalizeFigurines(this.rawText));
+        this._i = 0;
+        this._ply = 0;
+        this._pending = [];
+        this._chess = new Chess();
+        this.moves = [];
+        this._parsed = false;
 
-        while (i < raw.length) {
-          const ch = raw[i];
+        const step = () => {
+          const start = performance.now();
 
-          if (ch === "{") {
-            let j = i + 1;
-            while (j < raw.length && raw[j] !== "}") j++;
-            attach(raw.slice(i + 1, j));
-            i = j + 1;
-            continue;
+          while (this._i < this._raw.length) {
+            if (performance.now() - start > PARSE_BUDGET_MS) {
+              // yield to browser so the page stays responsive
+              requestAnimationFrame(step);
+              return;
+            }
+
+            const raw = this._raw;
+            let i = this._i;
+            const ch = raw[i];
+
+            // comments { ... }
+            if (ch === "{") {
+              let j = i + 1;
+              while (j < raw.length && raw[j] !== "}") j++;
+              const c = sanitizeComment(raw.slice(i + 1, j));
+              if (c) {
+                if (this.moves.length) this.moves[this.moves.length - 1].comments.push(c);
+                else this._pending.push(c);
+              } else {
+                this._pending.length = 0;
+              }
+              this._i = j + 1;
+              continue;
+            }
+
+            // skip variations ( ... )
+            if (ch === "(") {
+              this._i = skipVariation(raw, i);
+              continue;
+            }
+
+            // whitespace
+            if (/\s/.test(ch)) {
+              this._i++;
+              continue;
+            }
+
+            // token
+            const s = i;
+            while (i < raw.length && !/\s/.test(raw[i]) && !"(){}".includes(raw[i])) i++;
+            const tok = raw.slice(s, i);
+            this._i = i;
+
+            // move numbers like 12. or 12... (also tolerate 12..)
+            if (/^\d+\.{1,3}$/.test(tok)) continue;
+
+            const sanNorm = normalizeSAN(tok);
+            if (!sanNorm) continue;
+
+            // apply to chess; ignore junk tokens
+            const ok = this._chess.move(sanNorm, { sloppy: true });
+            if (!ok) continue;
+
+            this.moves.push({
+              isWhite: this._ply % 2 === 0,
+              moveNo: Math.floor(this._ply / 2) + 1,
+              san: tok,
+              fen: this._chess.fen(),
+              comments: this._pending.splice(0)
+            });
+
+            this._ply++;
           }
 
-          if (/\s/.test(ch)) { i++; continue; }
+          this._parsed = true;
+          this.status(this.moves.length ? "Ready." : "No moves parsed.");
+          // If board exists, start autoplay now that we have moves
+          setTimeout(() => this.autoplayOpponentMoves(), AUTOPLAY_DELAY);
+        };
 
-          const s = i;
-          while (i < raw.length && !/\s/.test(raw[i]) && !"(){}".includes(raw[i])) i++;
-          const tok = raw.slice(s, i);
-
-          if (/^\d+\.{1,3}$/.test(tok)) continue;
-
-          const san = normalizeSAN(tok);
-          if (!san) continue;
-          if (!chess.move(san, { sloppy: true })) continue;
-
-          this.moves.push({
-            isWhite: ply % 2 === 0,
-            moveNo: Math.floor(ply / 2) + 1,
-            san: tok,
-            fen: chess.fen(),
-            comments: pending.splice(0)
-          });
-
-          ply++;
-        }
+        requestAnimationFrame(step);
       }
 
       initBoard() {
-        safeChessboard(this.boardDiv, {
-          position: "start",
-          orientation: this.flipBoard ? "black" : "white",
-          draggable: true,
-          pieceTheme: C.PIECE_THEME_URL,
-          onDragStart: () => this.isGuessTurn(),
-          onDrop: (s, t) => this.onUserDrop(s, t),
-          onSnapEnd: () => this.board.position(this.currentFen, false)
-        }, 30, (b) => {
-          this.board = b;
-          setTimeout(() => this.autoplayOpponentMoves(), AUTOPLAY_DELAY);
-        });
+        safeChessboard(
+          this.boardDiv,
+          {
+            position: "start",
+            orientation: this.flipBoard ? "black" : "white",
+            draggable: true,
+            pieceTheme: C.PIECE_THEME_URL,
+            onDragStart: () => this.isGuessTurn(),
+            onDrop: (s, t) => this.onUserDrop(s, t),
+            onSnapEnd: () => {
+              // IMPORTANT: guard for init-time calls
+              if (this.board) this.board.position(this.currentFen, false);
+            }
+          },
+          30,
+          (b) => {
+            this.board = b;
+            // If parsing already finished quickly, autoplay will run; if not, beginParse will trigger it later.
+            if (this._parsed) setTimeout(() => this.autoplayOpponentMoves(), AUTOPLAY_DELAY);
+          }
+        );
       }
 
       isGuessTurn() {
         const n = this.moves[this.index + 1];
-        return n && n.isWhite === this.userIsWhite;
+        return !!(n && n.isWhite === this.userIsWhite);
       }
 
       autoplayOpponentMoves() {
+        if (!this.board || !this._parsed) return;
+
         while (this.index + 1 < this.moves.length) {
           const n = this.moves[this.index + 1];
           if (n.isWhite === this.userIsWhite) break;
+
           this.index++;
           this.game.move(normalizeSAN(n.san), { sloppy: true });
           this.currentFen = n.fen;
+
           this.board.position(n.fen, true);
           this.appendMove();
         }
       }
 
       onUserDrop(source, target) {
+        if (!this.board) return "snapback";
         if (source === target) return "snapback";
+        if (!this._parsed) return "snapback";
         if (!this.isGuessTurn()) return "snapback";
 
         const expected = this.moves[this.index + 1];
+        if (!expected) return "snapback";
+
         const legal = this.game.moves({ verbose: true });
 
-        const ok = legal.some(m => {
+        const ok = legal.some((m) => {
           if (m.from !== source || m.to !== target) return false;
           const g = new Chess(this.game.fen());
           g.move(m);
@@ -246,14 +353,13 @@
           this.currentRow = row;
           this.rowHasInterveningComment = false;
 
-          m.comments.forEach(c => {
+          m.comments.forEach((c) => {
             this.rowHasInterveningComment = true;
             const span = document.createElement("span");
             span.className = "pgn-comment";
             span.textContent = " " + c;
             row.appendChild(span);
           });
-
         } else if (this.currentRow) {
           const b = document.createElement("span");
           b.className = "pgn-move-black";
@@ -271,13 +377,12 @@
     function init() {
       document
         .querySelectorAll("pgn-training, pgn-training-black")
-        .forEach(el => new ReaderPGNView(el));
+        .forEach((el) => new ReaderPGNView(el));
     }
 
     document.readyState === "loading"
       ? document.addEventListener("DOMContentLoaded", init, { once: true })
       : init();
-
   } catch (e) {
     console.error("pgn-training.js fatal error:", e);
   }
