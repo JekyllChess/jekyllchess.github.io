@@ -1,42 +1,157 @@
+---
+layout: none
+title: PGN Viewer
+pgn: |
+  [Event "Demo Game"]
+  [Site "Istanbul"]
+  [Date "2025.12.16"]
+  [Round "-"]
+  [White "White Player"]
+  [Black "Black Player"]
+  [Result "1-0"]
+
+  1. e4 {King's Pawn} e5
+  2. Nf3 Nc6?!
+  3. Bb5 a6
+  4. Ba4 Nf6
+  5. O-O Be7?!
+  6. Re1 b5
+  7. Bb3 d6
+  8. c3 O-O
+  9. h3 {A quiet move} 1-0
+---
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PGN App</title>
 
+<title>{{ page.title }}</title>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 <link rel="stylesheet"
   href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
 
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-
 <style>
-body {
+/* ---------- RESET ---------- */
+* { box-sizing: border-box; }
+html, body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  height: 100%;
+  background: #0f1115;
+  color: #e6e6e6;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
+/* ---------- APP ---------- */
 .app {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- TOP BAR ---------- */
+.topbar {
+  height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #171a21;
+  border-bottom: 1px solid #222;
+}
+
+.title {
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+#gameLine {
+  opacity: .85;
+  font-size: 14px;
+}
+
+.spacer { flex: 1; }
+
+/* ---------- BOARD ---------- */
+.board-wrap {
+  padding: 12px;
 }
 
 #board {
-  width: 360px;
-  max-width: 100%;
-  margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* ---------- CONTROLS ---------- */
+.controls {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+}
+
+.controls button {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  border-radius: 6px;
+  background: #1f2430;
+  color: #ddd;
+  font-size: 16px;
+}
+
+.controls button:active {
+  background: #2a3150;
+}
+
+/* ---------- MOVES ---------- */
+.moves {
+  padding: 12px;
+  overflow-y: auto;
+  line-height: 1.9;
+  font-size: 15px;
 }
 
 .move {
   cursor: pointer;
-  padding: 0 0.15rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.move:hover {
+  background: #20263a;
 }
 
 .move.active {
-  background: #ffe08a;
+  background: #3a7afe;
+  color: #fff;
+}
+
+.nag {
+  color: #ffcc00;
+  margin-left: 2px;
+}
+
+.comment {
+  display: none;
+  margin: 4px 0 8px 16px;
+  padding: 6px 8px;
+  background: #1c2230;
+  border-left: 3px solid #3a7afe;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #cfd6ff;
+}
+
+/* ---------- DESKTOP ---------- */
+@media (min-width: 900px) {
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+  }
 }
 </style>
 </head>
@@ -45,52 +160,45 @@ body {
 
 <div class="app">
 
-<h1>PGN Viewer</h1>
-<div id="gameLine">—</div>
+  <div class="topbar">
+    <div class="title">♟ PGN Viewer</div>
+    <div id="gameLine"></div>
+    <div class="spacer"></div>
+    <button id="btnFlip">⇄</button>
+  </div>
 
-<div id="board"></div>
+  <div class="main">
+    <div>
+      <div class="board-wrap">
+        <div id="board"></div>
+      </div>
 
-<div class="controls">
-  <button id="btnFirst">⏮</button>
-  <button id="btnPrev">◀</button>
-  <button id="btnPlay">▶️</button>
-  <button id="btnNext">▶</button>
-  <button id="btnLast">⏭</button>
+      <div class="controls">
+        <button id="btnFirst">⏮</button>
+        <button id="btnPrev">◀</button>
+        <button id="btnPlay">▶</button>
+        <button id="btnNext">▶</button>
+        <button id="btnLast">⏭</button>
+      </div>
+    </div>
 
-  <label>
-    Speed
-    <input id="speed" type="range" min="200" max="1200" step="50" value="450">
-  </label>
-
-  <button id="btnFlip">Flip</button>
+    <div class="moves" id="moves"></div>
+  </div>
 </div>
 
-<div id="moves"></div>
-
-<!-- PGN DATA (Jekyll-safe, invisible) -->
-<script type="text/plain" id="pgn-data">
-[Event "Demo Game"]
-[Site "Istanbul"]
-[Date "2025.12.16"]
-[Round "-"]
-[White "White Player"]
-[Black "Black Player"]
-[Result "1-0"]
-
-1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 1-0
+<!-- PGN FROM FRONT-MATTER -->
+<script id="pgn-data" type="application/json">
+{{ page.pgn | jsonify }}
 </script>
-
-</div>
 
 <script>
 (() => {
-  "use strict";
-
-  const pgnText =
-    document.getElementById("pgn-data").textContent.trim();
+  const pgn = JSON.parse(
+    document.getElementById("pgn-data").textContent
+  );
 
   const chess = new Chess();
-  chess.load_pgn(pgnText, { sloppy: true });
+  chess.load_pgn(pgn, { sloppy: true });
 
   const moves = chess.history({ verbose: true });
   chess.reset();
@@ -98,34 +206,53 @@ body {
   const board = Chessboard("board", {
     position: "start",
     pieceTheme:
-      "https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png",
-    moveSpeed: 200,
-    snapSpeed: 30
+      "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
   });
 
   const movesDiv = document.getElementById("moves");
   const gameLine = document.getElementById("gameLine");
 
-  const headers = chess.header();
+  const h = chess.header();
   gameLine.textContent =
-    `${headers.White || ""} – ${headers.Black || ""}`.trim();
+    `${h.White || ""} – ${h.Black || ""}`;
 
   let index = -1;
   let autoplay = null;
   let orientation = "white";
 
   moves.forEach((m, i) => {
-    const span = document.createElement("span");
-    span.className = "move";
-    span.textContent =
-      (m.color === "w" ? `${Math.floor(i / 2) + 1}. ` : "") + m.san + " ";
-    span.onclick = () => goto(i);
-    movesDiv.appendChild(span);
+    const moveSpan = document.createElement("span");
+    moveSpan.className = "move";
+    moveSpan.innerHTML =
+      (m.color === "w" ? `${Math.floor(i/2)+1}. ` : "") +
+      m.san.replace(/[!?]+/g, s =>
+        `<span class="nag">${s}</span>`
+      ) + " ";
+
+    movesDiv.appendChild(moveSpan);
+
+    let commentDiv = null;
+    if (m.comment) {
+      commentDiv = document.createElement("div");
+      commentDiv.className = "comment";
+      commentDiv.textContent = m.comment;
+      movesDiv.appendChild(commentDiv);
+    }
+
+    moveSpan.onclick = () => {
+      goto(i);
+      if (commentDiv) {
+        commentDiv.style.display =
+          commentDiv.style.display === "block"
+            ? "none"
+            : "block";
+      }
+    };
   });
 
   function highlight(i) {
     document.querySelectorAll(".move")
-      .forEach((m, k) => m.classList.toggle("active", k === i));
+      .forEach((m,k)=>m.classList.toggle("active",k===i));
   }
 
   function resetBoard() {
@@ -143,42 +270,34 @@ body {
     highlight(i);
   }
 
-  function next() {
-    if (index < moves.length - 1) {
-      goto(index + 1);
-    } else if (autoplay) {
-      clearInterval(autoplay);
-      autoplay = null;
-      btnPlay.textContent = "▶";
-    }
+  function stop() {
+    clearInterval(autoplay);
+    autoplay = null;
+    btnPlay.textContent = "▶";
   }
 
-  function prev() {
-    if (index > 0) goto(index - 1);
-    else resetBoard();
+  function next() {
+    if (index < moves.length - 1) goto(index + 1);
+    else stop();
   }
 
   btnFirst.onclick = resetBoard;
-  btnPrev.onclick = prev;
+  btnPrev.onclick = () =>
+    index > 0 ? goto(index - 1) : resetBoard();
   btnNext.onclick = next;
   btnLast.onclick = () => goto(moves.length - 1);
 
   btnPlay.onclick = () => {
-    if (autoplay) {
-      clearInterval(autoplay);
-      autoplay = null;
-      btnPlay.textContent = "▶";
-      return;
-    }
+    if (autoplay) return stop();
     btnPlay.textContent = "⏸";
-    autoplay = setInterval(next, +speed.value);
+    autoplay = setInterval(next, 500);
   };
 
   btnFlip.onclick = () => {
-    orientation = orientation === "white" ? "black" : "white";
+    orientation =
+      orientation === "white" ? "black" : "white";
     board.orientation(orientation);
   };
-
 })();
 </script>
 
