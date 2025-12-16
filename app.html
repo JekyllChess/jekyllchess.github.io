@@ -165,6 +165,7 @@ body{
 <div class="wrap">
   <div class="main">
 
+    <!-- LEFT -->
     <div>
       <div id="board"></div>
       <div class="controls">
@@ -175,6 +176,7 @@ body{
       </div>
     </div>
 
+    <!-- RIGHT -->
     <div>
       <div class="card">
         <div class="head">Moves</div>
@@ -203,6 +205,7 @@ body{
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p).replace(/=([QRBN])/g,(_,p)=>"="+FIG[p]);
 
+/* ---------- tree ---------- */
 let NODE_SEQ=1;
 class Node{
   constructor(san,parent){
@@ -214,14 +217,13 @@ class Node{
     this.variations=[];
   }
 }
-
 const root=new Node(null,null);
 let cursor=root;
 let navNode=null;
 
+/* ---------- chess ---------- */
 const chess=new Chess();
 const boardEl=document.getElementById("board");
-
 const board=Chessboard("board",{
   position:"start",
   draggable:true,
@@ -240,6 +242,7 @@ function rebuildTo(n,animate=true){
 
 /* ---------- rendering ---------- */
 const movesDiv=document.getElementById("moves");
+const pgnText=document.getElementById("pgnText");
 
 function clearActive(){
   document.querySelectorAll(".move").forEach(m=>m.classList.remove("active"));
@@ -256,6 +259,7 @@ function renderLine(start,container,ply){
       clearActive();
       span.classList.add("active");
       cursor=n;
+      if(isOnMainline(n)) navNode=n;
       rebuildTo(n,true);
       showMoveMenu(e.pageX,e.pageY,n);
     };
@@ -307,7 +311,76 @@ function renderVariation(vRoot,container,ply){
 function renderAll(){
   movesDiv.innerHTML="";
   renderLine(root,movesDiv,0);
+  syncPGN();
 }
+
+/* ---------- PGN serialization ---------- */
+function serializeFrom(node,startPly){
+  let out=[],ply=startPly;
+  let n=node.next;
+  while(n){
+    const moveNo=Math.floor(ply/2)+1;
+    const isWhite=ply%2===0;
+    if(isWhite) out.push(`${moveNo}.`);
+    out.push(n.san);
+    if(n.comment) out.push(`{${n.comment}}`);
+    n.variations.forEach(v=>{
+      out.push(`(${serializeFrom({next:v},ply+1)})`);
+    });
+    n=n.next;
+    ply++;
+  }
+  return out.join(" ");
+}
+
+function syncPGN(){
+  pgnText.value=(serializeFrom(root,0)+" *").trim();
+}
+
+/* ---------- navigation ---------- */
+function mainlineNodes(){
+  const a=[];
+  let n=root.next;
+  while(n){a.push(n);n=n.next}
+  return a;
+}
+function isOnMainline(n){
+  return mainlineNodes().includes(n);
+}
+
+btnStart.onclick=()=>{
+  navNode=null;
+  cursor=root;
+  rebuildTo(root,true);
+  clearActive();
+};
+btnEnd.onclick=()=>{
+  const a=mainlineNodes();
+  if(!a.length)return;
+  navNode=a[a.length-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+};
+btnPrev.onclick=()=>{
+  if(!navNode)return;
+  const a=mainlineNodes();
+  const i=a.indexOf(navNode);
+  if(i<=0) return btnStart.onclick();
+  navNode=a[i-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+};
+btnNext.onclick=()=>{
+  const a=mainlineNodes();
+  if(!a.length)return;
+  if(!navNode) navNode=a[0];
+  else{
+    const i=a.indexOf(navNode);
+    navNode=a[Math.min(a.length-1,i+1)];
+  }
+  cursor=navNode;
+  rebuildTo(navNode,true);
+};
 
 /* ---------- tooltip ---------- */
 const tooltip=document.getElementById("tooltip");
@@ -382,7 +455,6 @@ function deleteNode(n){
   rebuildTo(p,true);
   renderAll();
 }
-
 function promote(n){
   const p=n.parent;
   p.variations=p.variations.filter(v=>v!==n);
@@ -406,7 +478,7 @@ function showPromotionUI(x,y,cb){
   showTooltip(x,y,row);
 }
 
-/* ---------- move entry (FIXED) ---------- */
+/* ---------- move entry ---------- */
 function onDrop(from,to){
   const piece=chess.get(from);
 
@@ -415,7 +487,6 @@ function onDrop(from,to){
     const m=test.move({from,to,promotion});
     if(!m) return "snapback";
 
-    // legal: commit to tree
     if(cursor.next&&cursor.next.san===m.san){
       cursor=cursor.next;
     }else{
@@ -428,16 +499,11 @@ function onDrop(from,to){
     renderAll();
   };
 
-  // promotion candidate
-  if(piece && piece.type==="p" && (to[1]==="8" || to[1]==="1")){
-    const test=new Chess(chess.fen());
-    if(!test.move({from,to,promotion:"q"})) return "snapback";
-
+  if(piece&&piece.type==="p"&&(to[1]==="8"||to[1]==="1")){
     const r=boardEl.getBoundingClientRect();
     showPromotionUI(r.left+r.width/2, r.top+r.height/2, tryMove);
     return;
   }
-
   return tryMove("q");
 }
 
