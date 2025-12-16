@@ -9,6 +9,7 @@
 <!-- jQuery REQUIRED by chessboard.js -->
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 
+<!-- Chess libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 <link rel="stylesheet"
@@ -22,9 +23,69 @@ body{
   color:#e6e6e6;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.wrap{padding:12px;display:flex;flex-direction:column;gap:10px}
-#board{width:min(92vw,560px);margin:0 auto}
 
+/* ---------- banner ---------- */
+.top{
+  padding:10px 14px;
+  background:#171a21;
+  border-bottom:1px solid #222;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.top img{width:22px;height:22px;filter:invert(1)}
+.top .title{font-weight:700}
+
+/* ---------- layout ---------- */
+.wrap{
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.main{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+@media(min-width:900px){
+  .main{grid-template-columns:560px 1fr}
+}
+
+/* ---------- board ---------- */
+#board{margin:0 auto}
+
+/* ---------- nav ---------- */
+.controls{
+  display:flex;
+  gap:6px;
+  margin:0 auto;
+}
+.controls button{
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background:#1f2430;
+  color:#ddd;
+  cursor:pointer;
+}
+.controls button:disabled{opacity:.4}
+
+/* ---------- panels ---------- */
+.card{
+  border:1px solid #222;
+  border-radius:12px;
+  background:#0f1115;
+}
+.card .head{
+  padding:10px 12px;
+  background:#141820;
+  border-bottom:1px solid #222;
+  font-weight:600;
+}
+.card .body{padding:12px}
+
+/* ---------- moves ---------- */
 .moves{font-size:18px;line-height:2.1}
 .move{
   display:inline-block;
@@ -48,7 +109,33 @@ body{
   font-size:14px;
 }
 
-/* unified tooltip */
+/* ---------- pgn ---------- */
+.pgnBox{
+  width:100%;
+  height:320px;
+  border-radius:12px;
+  border:1px solid #222;
+  background:#0f1115;
+  color:#e6e6e6;
+  padding:12px;
+  font-family:ui-monospace,monospace;
+}
+.pgnActions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+.pgnActions button{
+  flex:1;
+  padding:10px 0;
+  border:none;
+  border-radius:10px;
+  background:#1f2430;
+  color:#ddd;
+  cursor:pointer;
+}
+
+/* ---------- tooltip ---------- */
 #tooltip{
   position:absolute;
   display:none;
@@ -57,12 +144,8 @@ body{
   border-radius:10px;
   padding:8px;
   z-index:1000;
-  min-width:120px;
 }
-#tooltip .row{
-  display:flex;
-  gap:6px;
-}
+#tooltip .row{display:flex;gap:6px}
 #tooltip button{
   background:#1f2430;
   border:none;
@@ -72,8 +155,6 @@ body{
   color:#ddd;
   cursor:pointer;
 }
-#tooltip button:hover{background:#2a3150}
-
 #tooltip textarea{
   width:180px;
   min-height:60px;
@@ -83,16 +164,52 @@ body{
   border-radius:8px;
   padding:6px;
   font-size:14px;
-  resize:none;
 }
 </style>
 </head>
 
 <body>
 
+<div class="top">
+  <img src="https://jekyllchess.github.io/assets/favicon.png">
+  <div class="title">JekyllChess PGN App</div>
+</div>
+
 <div class="wrap">
-  <div id="board"></div>
-  <div class="moves" id="moves"></div>
+
+  <div class="main">
+
+    <!-- LEFT -->
+    <div>
+      <div id="board"></div>
+      <div class="controls">
+        <button id="btnStart">⏮</button>
+        <button id="btnPrev">◀</button>
+        <button id="btnNext">▶</button>
+        <button id="btnEnd">⏭</button>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="card">
+        <div class="head">Moves</div>
+        <div class="body"><div class="moves" id="moves"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="head">PGN text</div>
+        <div class="body">
+          <textarea id="pgnText" class="pgnBox"></textarea>
+          <div class="pgnActions">
+            <button id="copyPGN">Copy PGN</button>
+            <button id="copyFEN">Copy FEN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div id="tooltip"></div>
@@ -102,9 +219,8 @@ body{
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p).replace(/=([QRBN])/g,(_,p)=>"="+FIG[p]);
 
+/* ---------- tree ---------- */
 let NODE_SEQ=1;
-const byId=new Map();
-
 class Node{
   constructor(san,parent){
     this.id="n"+NODE_SEQ++;
@@ -113,14 +229,13 @@ class Node{
     this.parent=parent;
     this.next=null;
     this.variations=[];
-    byId.set(this.id,this);
   }
 }
-
 const root=new Node(null,null);
 let cursor=root;
-let activeNode=null;
+let navNode=null;
 
+/* ---------- chess ---------- */
 const chess=new Chess();
 const board=Chessboard("board",{
   position:"start",
@@ -129,30 +244,17 @@ const board=Chessboard("board",{
   onDrop
 });
 
-function rebuildTo(n){
+/* ---------- rebuild ---------- */
+function rebuildTo(n,animate=true){
   chess.reset();
   const chain=[];
   while(n&&n!==root){chain.push(n);n=n.parent}
   chain.reverse().forEach(m=>chess.move(m.san));
-  board.position(chess.fen(),true);
-}
-
-const movesDiv=document.getElementById("moves");
-const tooltip=document.getElementById("tooltip");
-
-function hideTooltip(){ tooltip.style.display="none"; tooltip.innerHTML=""; }
-
-document.body.addEventListener("click",hideTooltip);
-
-function showTooltip(x,y,content){
-  tooltip.innerHTML="";
-  tooltip.appendChild(content);
-  tooltip.style.left=x+"px";
-  tooltip.style.top=y+"px";
-  tooltip.style.display="block";
+  board.position(chess.fen(),animate);
 }
 
 /* ---------- rendering ---------- */
+const movesDiv=document.getElementById("moves");
 
 function clearActive(){
   document.querySelectorAll(".move").forEach(m=>m.classList.remove("active"));
@@ -168,9 +270,9 @@ function renderLine(start,container,ply){
       e.stopPropagation();
       clearActive();
       span.classList.add("active");
-      activeNode=n;
       cursor=n;
-      rebuildTo(n);
+      if(isOnMainline(n))navNode=n;
+      rebuildTo(n,true);
       showMoveMenu(e.pageX,e.pageY,n);
     };
     container.appendChild(span);
@@ -202,9 +304,8 @@ function renderVariation(vRoot,container,ply){
     e.stopPropagation();
     clearActive();
     span.classList.add("active");
-    activeNode=vRoot;
     cursor=vRoot;
-    rebuildTo(vRoot);
+    rebuildTo(vRoot,true);
     showMoveMenu(e.pageX,e.pageY,vRoot);
   };
   container.appendChild(span);
@@ -224,30 +325,84 @@ function renderAll(){
   renderLine(root,movesDiv,0);
 }
 
-/* ---------- tooltip menus ---------- */
+/* ---------- navigation ---------- */
+function mainlineNodes(){
+  const a=[];
+  let n=root.next;
+  while(n){a.push(n);n=n.next}
+  return a;
+}
+
+function isOnMainline(n){
+  return mainlineNodes().some(x=>x===n);
+}
+
+function goStart(){ navNode=null; cursor=root; rebuildTo(root,true); clearActive(); }
+function goEnd(){
+  const a=mainlineNodes();
+  if(!a.length)return;
+  navNode=a[a.length-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+function goPrev(){
+  const a=mainlineNodes();
+  if(!navNode)return;
+  const i=a.indexOf(navNode);
+  if(i<=0)return goStart();
+  navNode=a[i-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+function goNext(){
+  const a=mainlineNodes();
+  if(!a.length)return;
+  if(!navNode)navNode=a[0];
+  else navNode=a[Math.min(a.length-1,a.indexOf(navNode)+1)];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+
+btnStart.onclick=goStart;
+btnPrev.onclick=goPrev;
+btnNext.onclick=goNext;
+btnEnd.onclick=goEnd;
+
+/* ---------- tooltip ---------- */
+const tooltip=document.getElementById("tooltip");
+function hideTooltip(){ tooltip.style.display="none"; tooltip.innerHTML=""; }
+document.body.onclick=hideTooltip;
+
+function showTooltip(x,y,el){
+  tooltip.innerHTML="";
+  tooltip.appendChild(el);
+  tooltip.style.left=x+"px";
+  tooltip.style.top=y+"px";
+  tooltip.style.display="block";
+}
 
 function showMoveMenu(x,y,node){
-  const box=document.createElement("div");
-  box.className="row";
+  const row=document.createElement("div");
+  row.className="row";
 
-  if(node.parent && node.parent.variations.includes(node)){
+  if(node.parent&&node.parent.variations.includes(node)){
     const up=document.createElement("button");
     up.textContent="⬆";
-    up.onclick=(e)=>{e.stopPropagation();promote(node);hideTooltip();};
-    box.appendChild(up);
+    up.onclick=()=>{promote(node);hideTooltip();};
+    row.appendChild(up);
   }
 
   const plus=document.createElement("button");
   plus.textContent="➕";
-  plus.onclick=(e)=>{e.stopPropagation();showCommentEditor(x,y,node);};
-  box.appendChild(plus);
+  plus.onclick=()=>showCommentEditor(x,y,node);
+  row.appendChild(plus);
 
   const del=document.createElement("button");
   del.textContent="🗑";
-  del.onclick=(e)=>{e.stopPropagation();deleteNode(node);hideTooltip();};
-  box.appendChild(del);
+  del.onclick=()=>{deleteNode(node);hideTooltip();};
+  row.appendChild(del);
 
-  showTooltip(x,y,box);
+  showTooltip(x,y,row);
 }
 
 function showCommentEditor(x,y,node){
@@ -261,16 +416,14 @@ function showCommentEditor(x,y,node){
 
   const save=document.createElement("button");
   save.textContent="Save";
-  save.onclick=(e)=>{
-    e.stopPropagation();
+  save.onclick=()=>{
     node.comment=ta.value.replace(/\}/g,"").trim();
     hideTooltip();
     renderAll();
   };
-
   const cancel=document.createElement("button");
   cancel.textContent="Cancel";
-  cancel.onclick=(e)=>{e.stopPropagation();hideTooltip();};
+  cancel.onclick=hideTooltip;
 
   row.appendChild(save);
   row.appendChild(cancel);
@@ -279,23 +432,19 @@ function showCommentEditor(x,y,node){
   showTooltip(x,y,box);
 }
 
-/* ---------- structure ops ---------- */
-
+/* ---------- structure ---------- */
 function deleteNode(n){
-  if(!n||n===root)return;
   const p=n.parent;
   if(p.next===n)p.next=null;
   p.variations=p.variations.filter(v=>v!==n);
   cursor=p;
-  rebuildTo(p);
+  rebuildTo(p,true);
   renderAll();
 }
 
 function promote(n){
   const p=n.parent;
-  const idx=p.variations.indexOf(n);
-  if(idx<0)return;
-  p.variations.splice(idx,1);
+  p.variations=p.variations.filter(v=>v!==n);
   const old=p.next;
   if(old)p.variations.unshift(old);
   p.next=n;
@@ -304,47 +453,49 @@ function promote(n){
 }
 
 /* ---------- underpromotion ---------- */
-
 function showPromotionUI(x,y,cb){
   const row=document.createElement("div");
   row.className="row";
   ["q","r","b","n"].forEach(p=>{
     const b=document.createElement("button");
     b.textContent=FIG[p.toUpperCase()];
-    b.onclick=(e)=>{e.stopPropagation();hideTooltip();cb(p);};
+    b.onclick=()=>{hideTooltip();cb(p);};
     row.appendChild(b);
   });
   showTooltip(x,y,row);
 }
 
 /* ---------- move entry ---------- */
-
 function onDrop(from,to){
   const piece=chess.get(from);
   const doMove=(promotion)=>{
-    const m=chess.move({from,to,promotion});
+    const test=new Chess(chess.fen());
+    const m=test.move({from,to,promotion});
     if(!m)return"snapback";
 
-    let next;
-    if(cursor.next&&cursor.next.san===m.san)next=cursor.next;
-    else{
-      next=new Node(m.san,cursor);
-      if(!cursor.next)cursor.next=next;
-      else cursor.variations.push(next);
+    if(cursor.next&&cursor.next.san===m.san){
+      cursor=cursor.next;
+    }else{
+      const n=new Node(m.san,cursor);
+      if(!cursor.next)cursor.next=n;
+      else cursor.variations.push(n);
+      cursor=n;
     }
-    cursor=next;
-    board.position(chess.fen(),false);
+    rebuildTo(cursor,false);
     renderAll();
   };
 
   if(piece&&piece.type==="p"&&(to[1]==="8"||to[1]==="1")){
-    const rect=document.getElementById("board").getBoundingClientRect();
-    showPromotionUI(rect.left+rect.width/2,rect.top+rect.height/2,doMove);
+    const r=boardEl.getBoundingClientRect();
+    showPromotionUI(r.left+r.width/2,r.top+r.height/2,doMove);
     return;
   }
   doMove("q");
 }
 
+const boardEl=document.getElementById("board");
+
+/* ---------- init ---------- */
 renderAll();
 })();
 </script>
