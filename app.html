@@ -158,7 +158,7 @@ body{
 <body>
 
 <div class="top">
-  <img src="https://jekyllchess.github.io/assets/favicon.png">
+  <img src="https://jekyllchess.github.io/assets/favicon.png" alt="">
   <div class="title">JekyllChess PGN App</div>
 </div>
 
@@ -221,9 +221,22 @@ const root=new Node(null,null);
 let cursor=root;
 let navNode=null;
 
+/* ---------- DOM ---------- */
+const movesDiv=document.getElementById("moves");
+const pgnText=document.getElementById("pgnText");
+const boardEl=document.getElementById("board");
+const tooltip=document.getElementById("tooltip");
+
+const btnStart = document.getElementById("btnStart");
+const btnPrev  = document.getElementById("btnPrev");
+const btnNext  = document.getElementById("btnNext");
+const btnEnd   = document.getElementById("btnEnd");
+
+const copyPGN = document.getElementById("copyPGN");
+const copyFEN = document.getElementById("copyFEN");
+
 /* ---------- chess ---------- */
 const chess=new Chess();
-const boardEl=document.getElementById("board");
 const board=Chessboard("board",{
   position:"start",
   draggable:true,
@@ -235,157 +248,41 @@ const board=Chessboard("board",{
 function rebuildTo(n,animate=true){
   chess.reset();
   const chain=[];
-  while(n&&n!==root){chain.push(n);n=n.parent}
+  while(n && n!==root){ chain.push(n); n=n.parent; }
   chain.reverse().forEach(m=>chess.move(m.san));
   board.position(chess.fen(),animate);
 }
 
-/* ---------- rendering ---------- */
-const movesDiv=document.getElementById("moves");
-const pgnText=document.getElementById("pgnText");
-
+/* ---------- active highlight ---------- */
 function clearActive(){
   document.querySelectorAll(".move").forEach(m=>m.classList.remove("active"));
 }
 
-function renderLine(start,container,ply){
-  let n=start.next;
-  while(n){
-    const span=document.createElement("span");
-    span.className="move";
-    span.textContent=((ply%2===0)?`${Math.floor(ply/2)+1}. `:"")+figSAN(n.san)+" ";
-    span.onclick=(e)=>{
-      e.stopPropagation();
-      clearActive();
-      span.classList.add("active");
-      cursor=n;
-      if(isOnMainline(n)) navNode=n;
-      rebuildTo(n,true);
-      showMoveMenu(e.pageX,e.pageY,n);
-    };
-    container.appendChild(span);
-
-    if(n.comment){
-      const c=document.createElement("div");
-      c.className="commentRow";
-      c.textContent=n.comment;
-      container.appendChild(c);
-    }
-
-    n.variations.forEach(v=>{
-      const vDiv=document.createElement("div");
-      vDiv.className="variation";
-      renderVariation(v,vDiv,ply);
-      container.appendChild(vDiv);
-    });
-
-    n=n.next;
-    ply++;
-  }
-}
-
-function renderVariation(vRoot,container,ply){
-  const span=document.createElement("span");
-  span.className="move";
-  span.textContent=((ply%2===0)?`${Math.floor(ply/2)+1}. `:`${Math.floor(ply/2)+1}... `)+figSAN(vRoot.san)+" ";
-  span.onclick=(e)=>{
-    e.stopPropagation();
-    clearActive();
-    span.classList.add("active");
-    cursor=vRoot;
-    rebuildTo(vRoot,true);
-    showMoveMenu(e.pageX,e.pageY,vRoot);
-  };
-  container.appendChild(span);
-
-  if(vRoot.comment){
-    const c=document.createElement("div");
-    c.className="commentRow";
-    c.textContent=vRoot.comment;
-    container.appendChild(c);
-  }
-
-  renderLine(vRoot,container,ply+1);
-}
-
-function renderAll(){
-  movesDiv.innerHTML="";
-  renderLine(root,movesDiv,0);
-  syncPGN();
-}
-
 /* ---------- PGN serialization ---------- */
 function serializeFrom(node,startPly){
-  let out=[],ply=startPly;
+  let out=[], ply=startPly;
   let n=node.next;
   while(n){
     const moveNo=Math.floor(ply/2)+1;
-    const isWhite=ply%2===0;
+    const isWhite=(ply%2===0);
     if(isWhite) out.push(`${moveNo}.`);
     out.push(n.san);
     if(n.comment) out.push(`{${n.comment}}`);
     n.variations.forEach(v=>{
-      out.push(`(${serializeFrom({next:v},ply+1)})`);
+      out.push(`(${serializeFrom({next:v}, ply+1)})`);
     });
     n=n.next;
     ply++;
   }
-  return out.join(" ");
+  return out.join(" ").trim();
 }
-
 function syncPGN(){
   pgnText.value=(serializeFrom(root,0)+" *").trim();
 }
 
-/* ---------- navigation ---------- */
-function mainlineNodes(){
-  const a=[];
-  let n=root.next;
-  while(n){a.push(n);n=n.next}
-  return a;
-}
-function isOnMainline(n){
-  return mainlineNodes().includes(n);
-}
-
-btnStart.onclick=()=>{
-  navNode=null;
-  cursor=root;
-  rebuildTo(root,true);
-  clearActive();
-};
-btnEnd.onclick=()=>{
-  const a=mainlineNodes();
-  if(!a.length)return;
-  navNode=a[a.length-1];
-  cursor=navNode;
-  rebuildTo(navNode,true);
-};
-btnPrev.onclick=()=>{
-  if(!navNode)return;
-  const a=mainlineNodes();
-  const i=a.indexOf(navNode);
-  if(i<=0) return btnStart.onclick();
-  navNode=a[i-1];
-  cursor=navNode;
-  rebuildTo(navNode,true);
-};
-btnNext.onclick=()=>{
-  const a=mainlineNodes();
-  if(!a.length)return;
-  if(!navNode) navNode=a[0];
-  else{
-    const i=a.indexOf(navNode);
-    navNode=a[Math.min(a.length-1,i+1)];
-  }
-  cursor=navNode;
-  rebuildTo(navNode,true);
-};
-
-/* ---------- tooltip ---------- */
-const tooltip=document.getElementById("tooltip");
+/* ---------- tooltip helpers ---------- */
 function hideTooltip(){ tooltip.style.display="none"; tooltip.innerHTML=""; }
-document.body.onclick=hideTooltip;
+document.body.addEventListener("click", hideTooltip);
 
 function showTooltip(x,y,el){
   tooltip.innerHTML="";
@@ -399,21 +296,21 @@ function showMoveMenu(x,y,node){
   const row=document.createElement("div");
   row.className="row";
 
-  if(node.parent&&node.parent.variations.includes(node)){
+  if(node.parent && node.parent.variations.includes(node)){
     const up=document.createElement("button");
     up.textContent="⬆";
-    up.onclick=()=>{promote(node);hideTooltip();};
+    up.onclick=(e)=>{e.stopPropagation(); promote(node); hideTooltip(); renderAll();};
     row.appendChild(up);
   }
 
   const plus=document.createElement("button");
   plus.textContent="➕";
-  plus.onclick=()=>showCommentEditor(x,y,node);
+  plus.onclick=(e)=>{e.stopPropagation(); showCommentEditor(x,y,node);};
   row.appendChild(plus);
 
   const del=document.createElement("button");
   del.textContent="🗑";
-  del.onclick=()=>{deleteNode(node);hideTooltip();};
+  del.onclick=(e)=>{e.stopPropagation(); deleteNode(node); hideTooltip();};
   row.appendChild(del);
 
   showTooltip(x,y,row);
@@ -430,14 +327,16 @@ function showCommentEditor(x,y,node){
 
   const save=document.createElement("button");
   save.textContent="Save";
-  save.onclick=()=>{
+  save.onclick=(e)=>{
+    e.stopPropagation();
     node.comment=ta.value.replace(/\}/g,"").trim();
     hideTooltip();
     renderAll();
   };
+
   const cancel=document.createElement("button");
   cancel.textContent="Cancel";
-  cancel.onclick=hideTooltip;
+  cancel.onclick=(e)=>{e.stopPropagation(); hideTooltip();};
 
   row.appendChild(save);
   row.appendChild(cancel);
@@ -446,39 +345,188 @@ function showCommentEditor(x,y,node){
   showTooltip(x,y,box);
 }
 
-/* ---------- structure ---------- */
-function deleteNode(n){
-  const p=n.parent;
-  if(p.next===n)p.next=null;
-  p.variations=p.variations.filter(v=>v!==n);
-  cursor=p;
-  rebuildTo(p,true);
-  renderAll();
-}
-function promote(n){
-  const p=n.parent;
-  p.variations=p.variations.filter(v=>v!==n);
-  const old=p.next;
-  if(old)p.variations.unshift(old);
-  p.next=n;
-  n.parent=p;
-  renderAll();
-}
-
-/* ---------- underpromotion ---------- */
 function showPromotionUI(x,y,cb){
   const row=document.createElement("div");
   row.className="row";
   ["q","r","b","n"].forEach(p=>{
     const b=document.createElement("button");
     b.textContent=FIG[p.toUpperCase()];
-    b.onclick=()=>{hideTooltip();cb(p);};
+    b.onclick=(e)=>{e.stopPropagation(); hideTooltip(); cb(p);};
     row.appendChild(b);
   });
   showTooltip(x,y,row);
 }
 
-/* ---------- move entry ---------- */
+/* ---------- structure ops ---------- */
+function deleteNode(n){
+  if(!n || n===root) return;
+  const p=n.parent;
+  if(p.next===n) p.next=null;
+  p.variations=p.variations.filter(v=>v!==n);
+  cursor=p;
+  navNode = isOnMainline(p) ? p : null;
+  rebuildTo(p,true);
+  renderAll();
+}
+
+function promote(n){
+  const p=n.parent;
+  if(!p) return;
+  const idx=p.variations.indexOf(n);
+  if(idx<0) return;
+  p.variations.splice(idx,1);
+  const old=p.next;
+  if(old) p.variations.unshift(old);
+  p.next=n;
+  n.parent=p;
+}
+
+/* ---------- mainline helpers ---------- */
+function mainlineNodes(){
+  const a=[];
+  let n=root.next;
+  while(n){ a.push(n); n=n.next; }
+  return a;
+}
+function isOnMainline(n){
+  let cur=root.next;
+  while(cur){ if(cur===n) return true; cur=cur.next; }
+  return false;
+}
+function updateNavButtons(){
+  const has = mainlineNodes().length>0;
+  [btnStart,btnPrev,btnNext,btnEnd].forEach(b => b.disabled = !has);
+}
+
+/* ---------- navigation ---------- */
+function goStart(){
+  navNode=null;
+  cursor=root;
+  rebuildTo(root,true);
+  clearActive();
+}
+function goEnd(){
+  const a=mainlineNodes();
+  if(!a.length) return goStart();
+  navNode=a[a.length-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+function goPrev(){
+  const a=mainlineNodes();
+  if(!a.length) return;
+  if(!navNode) return;
+  const i=a.indexOf(navNode);
+  if(i<=0) return goStart();
+  navNode=a[i-1];
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+function goNext(){
+  const a=mainlineNodes();
+  if(!a.length) return;
+  if(!navNode) navNode=a[0];
+  else{
+    const i=a.indexOf(navNode);
+    navNode=a[Math.min(a.length-1, i+1)];
+  }
+  cursor=navNode;
+  rebuildTo(navNode,true);
+}
+
+btnStart.addEventListener("click",(e)=>{e.stopPropagation(); hideTooltip(); goStart();});
+btnPrev .addEventListener("click",(e)=>{e.stopPropagation(); hideTooltip(); goPrev();});
+btnNext .addEventListener("click",(e)=>{e.stopPropagation(); hideTooltip(); goNext();});
+btnEnd  .addEventListener("click",(e)=>{e.stopPropagation(); hideTooltip(); goEnd();});
+
+/* ---------- rendering ---------- */
+function renderLine(start,container,ply){
+  let n=start.next;
+  while(n){
+    const node = n; // FIX: capture current node for handlers
+    const span=document.createElement("span");
+    span.className="move";
+    span.textContent=((ply%2===0)?`${Math.floor(ply/2)+1}. `:"")+figSAN(node.san)+" ";
+    span.addEventListener("click",(e)=>{
+      e.stopPropagation();
+      clearActive();
+      span.classList.add("active");
+      cursor=node;
+      if(isOnMainline(node)) navNode=node;
+      rebuildTo(node,true);
+      showMoveMenu(e.pageX,e.pageY,node);
+    });
+    container.appendChild(span);
+
+    if(node.comment){
+      const c=document.createElement("div");
+      c.className="commentRow";
+      c.textContent=node.comment;
+      container.appendChild(c);
+    }
+
+    node.variations.forEach(v=>{
+      const vNode = v; // FIX: capture
+      const vDiv=document.createElement("div");
+      vDiv.className="variation";
+      renderVariation(vNode,vDiv,ply);
+      container.appendChild(vDiv);
+    });
+
+    n=n.next;
+    ply++;
+  }
+}
+
+function renderVariation(vRoot,container,ply){
+  const node = vRoot; // FIX: capture
+  const span=document.createElement("span");
+  span.className="move";
+  span.textContent=((ply%2===0)?`${Math.floor(ply/2)+1}. `:`${Math.floor(ply/2)+1}... `)+figSAN(node.san)+" ";
+  span.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    clearActive();
+    span.classList.add("active");
+    cursor=node;
+    // navNode should NOT change when selecting a variation
+    rebuildTo(node,true);
+    showMoveMenu(e.pageX,e.pageY,node);
+  });
+  container.appendChild(span);
+
+  if(node.comment){
+    const c=document.createElement("div");
+    c.className="commentRow";
+    c.textContent=node.comment;
+    container.appendChild(c);
+  }
+
+  renderLine(node,container,ply+1);
+}
+
+function renderAll(){
+  movesDiv.innerHTML="";
+  renderLine(root,movesDiv,0);
+  syncPGN();
+  updateNavButtons();
+}
+
+/* ---------- clipboard ---------- */
+function writeClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  const ta=document.createElement("textarea");
+  ta.value=text;
+  ta.style.position="fixed";
+  ta.style.left="-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+copyPGN.addEventListener("click",(e)=>{e.stopPropagation(); writeClipboard(pgnText.value);});
+copyFEN.addEventListener("click",(e)=>{e.stopPropagation(); writeClipboard(chess.fen());});
+
+/* ---------- move entry (illegal snaps back + underpromotion tooltip) ---------- */
 function onDrop(from,to){
   const piece=chess.get(from);
 
@@ -487,23 +535,36 @@ function onDrop(from,to){
     const m=test.move({from,to,promotion});
     if(!m) return "snapback";
 
-    if(cursor.next&&cursor.next.san===m.san){
+    // Commit move into tree only after legality is confirmed
+    if(cursor.next && cursor.next.san===m.san){
       cursor=cursor.next;
     }else{
-      const n=new Node(m.san,cursor);
-      if(!cursor.next) cursor.next=n;
-      else cursor.variations.push(n);
-      cursor=n;
+      const newNode=new Node(m.san,cursor);
+      if(!cursor.next) cursor.next=newNode;
+      else cursor.variations.push(newNode);
+      cursor=newNode;
     }
+
+    // rebuild from cursor to keep chess authoritative & in sync
     rebuildTo(cursor,false);
+
+    // keep navNode sensible if we’re on mainline
+    if(isOnMainline(cursor)) navNode=cursor;
+
     renderAll();
   };
 
-  if(piece&&piece.type==="p"&&(to[1]==="8"||to[1]==="1")){
+  // promotion candidate
+  if(piece && piece.type==="p" && (to[1]==="8" || to[1]==="1")){
+    // guard: if not even a queen-promo is legal, snap back immediately
+    const guard=new Chess(chess.fen());
+    if(!guard.move({from,to,promotion:"q"})) return "snapback";
+
     const r=boardEl.getBoundingClientRect();
     showPromotionUI(r.left+r.width/2, r.top+r.height/2, tryMove);
     return;
   }
+
   return tryMove("q");
 }
 
