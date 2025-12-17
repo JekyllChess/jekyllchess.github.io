@@ -6,7 +6,10 @@
 
 <title>JekyllChess PGN App</title>
 
+<!-- jQuery REQUIRED by chessboard.js -->
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+
+<!-- Chess libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 <link rel="stylesheet"
@@ -14,54 +17,146 @@
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0f1115;color:#e6e6e6;font-family:system-ui}
-.top{padding:10px 14px;background:#171a21;border-bottom:1px solid #222;display:flex;gap:10px;align-items:center}
+body{
+  margin:0;
+  background:#0f1115;
+  color:#e6e6e6;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+.top{
+  padding:10px 14px;
+  background:#171a21;
+  border-bottom:1px solid #222;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 .top img{width:22px;height:22px;filter:invert(1)}
+.top .title{font-weight:700}
+
 .wrap{padding:12px}
 .main{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:900px){.main{grid-template-columns:560px 1fr}}
 #board{width:min(92vw,560px);margin:0 auto}
 
-.controls{display:flex;gap:6px;margin-top:8px}
-.controls button{flex:1;padding:8px;border:none;border-radius:10px;background:#1f2430;color:#ddd}
-.controls button:disabled{opacity:.4}
+.controls{
+  width:min(92vw,560px);
+  margin:10px auto 0;
+  display:flex;
+  gap:6px;
+}
+.controls button{
+  flex:1;
+  padding:10px 0;
+  border:none;
+  border-radius:10px;
+  background:#1f2430;
+  color:#ddd;
+  cursor:pointer;
+  font-size:15px;
+}
+.controls button:disabled{opacity:.4;cursor:default}
 
-.card{border:1px solid #222;border-radius:12px;overflow:hidden}
-.cardHead{padding:10px 12px;background:#141820;border-bottom:1px solid #222;font-weight:700}
+.card{
+  border:1px solid #222;
+  border-radius:12px;
+  overflow:hidden;
+  background:#0f1115;
+}
+.cardHead{
+  padding:10px 12px;
+  background:#141820;
+  border-bottom:1px solid #222;
+  font-weight:700;
+}
 .cardBody{padding:12px}
 
-.moves{font-size:18px;line-height:2}
-.move{display:inline-block;padding:2px 6px;border-radius:7px;cursor:pointer}
+.moves{font-size:18px;line-height:2.05;word-break:break-word}
+.move{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:7px;
+  cursor:pointer;
+  user-select:none;
+}
+.move:hover{background:#20263a}
 .move.active{background:#3a7afe;color:#fff}
 
-.variation{margin-left:24px;padding-left:10px;border-left:2px dashed #444}
+.variation{
+  margin:6px 0 10px 26px;
+  padding-left:10px;
+  border-left:2px dashed #444;
+  opacity:.95;
+}
 
+/* Tooltip */
 #pop{
   position:fixed;
   z-index:9999;
   background:#0b0f18;
   border:1px solid #2a3350;
   border-radius:12px;
+  box-shadow:0 16px 50px rgba(0,0,0,.55);
   padding:8px;
   display:none;
+  min-width:170px;
 }
-#pop .row{display:flex;gap:8px}
-#pop button{
-  width:36px;height:36px;border-radius:10px;border:none;
-  background:#1f2430;color:#e6e6e6;font-size:18px;cursor:pointer
+#pop .row{display:flex;gap:8px;align-items:center}
+.popBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  border:none;
+  background:#1f2430;
+  color:#e6e6e6;
+  cursor:pointer;
+  font-size:18px;
 }
-#pop input{
-  width:160px;border-radius:10px;border:1px solid #2a3350;
-  background:#0f1115;color:#e6e6e6;padding:8px
+.popBtn:hover{background:#2a3150}
+.popInputRow{display:flex;gap:8px;margin-top:8px}
+.popInputRow input{
+  flex:1;
+  border-radius:10px;
+  border:1px solid #2a3350;
+  background:#0f1115;
+  color:#e6e6e6;
+  padding:10px;
+  font-size:14px;
 }
+.popSave{
+  width:44px;
+  height:42px;
+  border-radius:10px;
+  border:none;
+  background:#3a7afe;
+  color:#fff;
+  cursor:pointer;
+  font-size:16px;
+}
+.popPieces{display:flex;gap:8px}
+.popPieceBtn{
+  flex:1;
+  height:44px;
+  border-radius:12px;
+  border:1px solid #2a3350;
+  background:#121724;
+  color:#e6e6e6;
+  cursor:pointer;
+  font-size:22px;
+}
+.popPieceBtn:hover{background:#1b2340}
+.popLabel{font-size:12px;opacity:.75;margin:6px 2px 0}
 </style>
 </head>
 
 <body>
 
 <div class="top">
-  <img src="https://jekyllchess.github.io/assets/favicon.png">
-  <div>JekyllChess PGN App</div>
+  <img src="https://jekyllchess.github.io/assets/favicon.png" alt="">
+  <div class="title">JekyllChess PGN App</div>
 </div>
 
 <div class="wrap">
@@ -69,10 +164,10 @@ body{margin:0;background:#0f1115;color:#e6e6e6;font-family:system-ui}
     <div>
       <div id="board"></div>
       <div class="controls">
-        <button id="btnStart">⏮</button>
-        <button id="btnPrev">◀</button>
-        <button id="btnNext">▶</button>
-        <button id="btnEnd">⏭</button>
+        <button id="btnStart" type="button">⏮</button>
+        <button id="btnPrev"  type="button">◀</button>
+        <button id="btnNext"  type="button">▶</button>
+        <button id="btnEnd"   type="button">⏭</button>
       </div>
     </div>
 
@@ -89,230 +184,541 @@ body{margin:0;background:#0f1115;color:#e6e6e6;font-family:system-ui}
 
 <script>
 (() => {
-const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
-const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p).replace(/=([QRBN])/g,(_,p)=>"="+FIG[p]);
+  const FIG = { K:"♔", Q:"♕", R:"♖", B:"♗", N:"♘" };
+  const figSAN = (s) => (s||"")
+    .replace(/^[KQRBN]/, p => FIG[p] || p)
+    .replace(/=([QRBN])/g, (_,p)=>"="+(FIG[p]||p));
 
-let ID=1;
-class Node{
-  constructor(san,parent){
-    this.id="n"+ID++;
-    this.san=san;
-    this.parent=parent;
-    this.next=null;
-    this.vars=[];
-    this.comment="";
-  }
-}
-const root=new Node(null,null);
-let cursor=root;
-let navNode=null;
-
-const chess=new Chess();
-const board=Chessboard("board",{
-  position:"start",
-  draggable:true,
-  pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
-  onDrop
-});
-
-const movesDiv=document.getElementById("moves");
-const pop=document.getElementById("pop");
-
-/* ---------- PROMOTION (DO NOT TOUCH CORE LOGIC) ---------- */
-let pendingPromotion=null;
-
-function openPromotion(from,to){
-  pop.innerHTML="";
-  const row=document.createElement("div");
-  row.className="row";
-  ["q","r","b","n"].forEach(p=>{
-    const b=document.createElement("button");
-    b.textContent=FIG[p.toUpperCase()];
-    b.onclick=()=>commitPromotion(from,to,p);
-    row.appendChild(b);
-  });
-  pop.appendChild(row);
-  placePopCenter();
-}
-
-function commitPromotion(from,to,p){
-  chess.load(pendingPromotion);
-  const m=chess.move({from,to,promotion:p});
-  if(!m){hidePop();return}
-  addMove(m.san);
-  hidePop();
-  rebuild(cursor,false);
-  render();
-}
-
-/* ---------- TREE ---------- */
-function addMove(san){
-  if(cursor.next && cursor.next.san===san){
-    cursor=cursor.next;
-    return;
-  }
-  const v=cursor.vars.find(x=>x.san===san);
-  if(v){cursor=v;return}
-  const n=new Node(san,cursor);
-  if(cursor.next) cursor.vars.push(n);
-  else cursor.next=n;
-  cursor=n;
-}
-
-/* ---------- BOARD ---------- */
-function rebuild(n,anim){
-  chess.reset();
-  const a=[];
-  while(n&&n!==root){a.push(n);n=n.parent}
-  a.reverse().forEach(x=>chess.move(x.san));
-  board.position(chess.fen(),!!anim);
-}
-
-/* ---------- DROP ---------- */
-function onDrop(from,to){
-  hidePop();
-  const test=new Chess(chess.fen());
-  const mQ=test.move({from,to,promotion:"q"});
-  if(!mQ) return "snapback";
-
-  if(mQ.flags.includes("p")){
-    pendingPromotion=chess.fen();
-    openPromotion(from,to);
-    return "snapback";
-  }
-
-  const m=chess.move({from,to,promotion:"q"});
-  if(!m) return "snapback";
-
-  addMove(m.san);
-  rebuild(cursor,false);
-  render();
-}
-
-/* ---------- RENDER ---------- */
-function render(){
-  movesDiv.innerHTML="";
-  function line(start,ply){
-    let n=start.next;
-    while(n){
-      const s=document.createElement("span");
-      s.className="move"+(n===cursor?" active":"");
-      s.textContent=((ply%2===0)?Math.floor(ply/2)+1+". ":"")+figSAN(n.san)+" ";
-      s.onclick=e=>{
-        e.stopPropagation();
-        cursor=n;
-        navNode=isMainline(n)?n:navNode;
-        rebuild(n,true);
-        render();
-        openMovePop(n,s);
-      };
-      movesDiv.appendChild(s);
-
-      if(n.vars.length){
-        n.vars.forEach(v=>{
-          const d=document.createElement("div");
-          d.className="variation";
-          movesDiv.appendChild(d);
-          line({next:v},ply+1);
-        });
-      }
-      n=n.next;ply++;
+  // ---------- Tree ----------
+  let NODE_SEQ = 1;
+  class Node {
+    constructor(san=null, parent=null){
+      this.id = "n" + (NODE_SEQ++);
+      this.san = san;
+      this.parent = parent;
+      this.next = null;   // mainline continuation
+      this.vars = [];     // variation roots (first move of each variation)
+      this.comment = "";  // comment after move
     }
   }
-  line(root,0);
-  updateNav();
-}
 
-/* ---------- TOOLTIP ---------- */
-function openMovePop(node,el){
-  pop.innerHTML="";
-  const row=document.createElement("div");
-  row.className="row";
+  const root = new Node(null, null);
+  let cursor = root;
 
-  if(node.parent&&node.parent.next!==node){
-    const up=document.createElement("button");
-    up.textContent="⬆";
-    up.onclick=()=>{promote(node);hidePop();render()};
-    row.appendChild(up);
+  // Mainline navigation pointer (null = start position)
+  let navNode = null;
+
+  // ---------- Chess + Board ----------
+  const chess = new Chess();
+
+  const board = Chessboard("board", {
+    position: "start",
+    draggable: true,
+    pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+    onDrop: onDrop
+  });
+
+  function rebuildToNode(target, animate){
+    chess.reset();
+    if(!target || target === root){
+      board.position("start", !!animate);
+      return;
+    }
+    const chain = [];
+    let n = target;
+    while(n && n !== root){ chain.push(n); n = n.parent; }
+    chain.reverse();
+    for(const mv of chain) chess.move(mv.san);
+    board.position(chess.fen(), !!animate);
   }
 
-  const c=document.createElement("button");
-  c.textContent="＋";
-  c.onclick=()=>{
-    pop.innerHTML="";
-    const i=document.createElement("input");
-    i.value=node.comment;
-    i.onkeydown=e=>{
-      if(e.key==="Enter"){node.comment=i.value;hidePop();render()}
+  function isOnMainline(node){
+    let n = root.next;
+    while(n){ if(n === node) return true; n = n.next; }
+    return false;
+  }
+
+  function mainlineArray(){
+    const arr = [];
+    let n = root.next;
+    while(n){ arr.push(n); n = n.next; }
+    return arr;
+  }
+
+  function navIndex(){
+    if(!navNode) return -1;
+    const arr = mainlineArray();
+    return arr.findIndex(x => x === navNode);
+  }
+
+  // ---------- Promotion (KEEP THIS WORKING FLOW) ----------
+  const pop = document.getElementById("pop");
+  let pendingPromotionFen = null;
+  let pendingPromotionMove = null; // {from,to}
+
+  function hidePop(){
+    pop.style.display = "none";
+    pop.innerHTML = "";
+    pendingPromotionMove = null;
+  }
+
+  // keep pop open when interacting
+  pop.addEventListener("mousedown", (e)=>e.stopPropagation());
+  pop.addEventListener("click", (e)=>e.stopPropagation());
+  document.addEventListener("mousedown", ()=>hidePop());
+
+  function placePopCenterBoard(){
+    const r = document.getElementById("board").getBoundingClientRect();
+    pop.style.left = (r.left + r.width/2) + "px";
+    pop.style.top  = (r.top  + r.height/2) + "px";
+    pop.style.transform = "translate(-50%,-50%)";
+  }
+
+  function placePopNear(el){
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2;
+    const y = r.top;
+    pop.style.left = x + "px";
+    pop.style.top  = (y - 10) + "px";
+    pop.style.transform = "translate(-50%,-100%)";
+  }
+
+  function openPromotion(from, to){
+    pop.innerHTML = `
+      <div class="popLabel" style="margin:0 2px 6px;">Promote to</div>
+      <div class="popPieces">
+        <button class="popPieceBtn" data-p="q" title="Queen">♕</button>
+        <button class="popPieceBtn" data-p="r" title="Rook">♖</button>
+        <button class="popPieceBtn" data-p="b" title="Bishop">♗</button>
+        <button class="popPieceBtn" data-p="n" title="Knight">♘</button>
+      </div>
+      <div class="popLabel">Esc to cancel</div>
+    `;
+    pendingPromotionMove = {from, to};
+    placePopCenterBoard();
+    pop.style.display = "block";
+
+    pop.querySelectorAll(".popPieceBtn").forEach(btn=>{
+      btn.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        commitPromotion(btn.getAttribute("data-p"));
+      });
+    });
+  }
+
+  function commitPromotion(p){
+    if(!pendingPromotionMove) { hidePop(); return; }
+
+    // DO NOT change this mechanism: load fen-before + apply chosen promotion
+    chess.load(pendingPromotionFen);
+    const m = chess.move({ from: pendingPromotionMove.from, to: pendingPromotionMove.to, promotion: p });
+    if(!m){ hidePop(); return; }
+
+    addMoveToTree(m.san);
+    hidePop();
+
+    rebuildToNode(cursor, false);
+    render();
+  }
+
+  document.addEventListener("keydown",(e)=>{
+    if(pop.style.display !== "none" && e.key === "Escape"){
+      hidePop();
+    }
+  });
+
+  // ---------- Variation-correct insertion ----------
+  function addMoveToTree(san){
+    // continue mainline if same
+    if(cursor.next && cursor.next.san === san){
+      cursor = cursor.next;
+      if(isOnMainline(cursor)) navNode = cursor;
+      return;
+    }
+    // continue an existing variation if same
+    const existingVar = cursor.vars.find(v => v.san === san);
+    if(existingVar){
+      cursor = existingVar;
+      return;
+    }
+    // create new node
+    const n = new Node(san, cursor);
+
+    // if mainline exists and differs => branch into variation
+    if(cursor.next){
+      cursor.vars.push(n);
+    }else{
+      cursor.next = n;
+    }
+
+    cursor = n;
+    if(isOnMainline(cursor)) navNode = cursor;
+  }
+
+  // ---------- Tooltip-based move actions ----------
+  function openMoveActions(node, anchorEl){
+    pop.innerHTML = "";
+
+    const row = document.createElement("div");
+    row.className = "row";
+
+    // Promote to mainline only if this node is a variation root under its parent
+    const parent = node.parent;
+    const isVarRoot = parent && parent !== root && parent.vars.some(v => v === node);
+
+    if(isVarRoot){
+      const up = document.createElement("button");
+      up.className = "popBtn";
+      up.textContent = "⬆";
+      up.title = "Promote variation to mainline";
+      up.onclick = (e)=>{
+        e.stopPropagation();
+        promoteVariation(parent, node);
+        hidePop();
+        render();
+        rebuildToNode(cursor, false);
+      };
+      row.appendChild(up);
+    }
+
+    const plus = document.createElement("button");
+    plus.className = "popBtn";
+    plus.textContent = "＋";
+    plus.title = "Add comment after move";
+    plus.onclick = (e)=>{
+      e.stopPropagation();
+      pop.innerHTML = "";
+      const box = document.createElement("div");
+      box.className = "popInputRow";
+
+      const input = document.createElement("input");
+      input.value = node.comment || "";
+      input.placeholder = "Short comment…";
+      input.addEventListener("mousedown",(ev)=>ev.stopPropagation());
+      input.addEventListener("click",(ev)=>ev.stopPropagation());
+
+      const save = document.createElement("button");
+      save.className = "popSave";
+      save.textContent = "✓";
+      save.title = "Save";
+      const doSave = ()=>{
+        node.comment = (input.value||"").replace(/\}/g,"").trim();
+        hidePop();
+        render();
+      };
+      save.onclick = (ev)=>{ ev.stopPropagation(); doSave(); };
+      input.onkeydown = (ev)=>{
+        if(ev.key === "Enter"){ ev.preventDefault(); doSave(); }
+        if(ev.key === "Escape"){ ev.preventDefault(); hidePop(); }
+      };
+
+      box.appendChild(input);
+      box.appendChild(save);
+      pop.appendChild(box);
+
+      placePopNear(anchorEl);
+      pop.style.display = "block";
+      input.focus();
     };
-    pop.appendChild(i);
-  };
-  row.appendChild(c);
+    row.appendChild(plus);
 
-  const d=document.createElement("button");
-  d.textContent="🗑";
-  d.onclick=()=>{remove(node);hidePop();render()};
-  row.appendChild(d);
+    const del = document.createElement("button");
+    del.className = "popBtn";
+    del.textContent = "🗑";
+    del.title = "Delete move (and continuation in that branch)";
+    del.onclick = (e)=>{
+      e.stopPropagation();
+      deleteNode(node);
+      hidePop();
+      render();
+      rebuildToNode(cursor, true);
+    };
+    row.appendChild(del);
 
-  pop.appendChild(row);
-  placePop(el);
-}
+    pop.appendChild(row);
+    placePopNear(anchorEl);
+    pop.style.display = "block";
+  }
 
-/* ---------- HELPERS ---------- */
-function promote(n){
-  const p=n.parent;
-  p.vars=p.vars.filter(x=>x!==n);
-  const old=p.next;
-  p.next=n;
-  if(old) p.vars.unshift(old);
-}
-function remove(n){
-  const p=n.parent;
-  if(p.next===n) p.next=null;
-  else p.vars=p.vars.filter(x=>x!==n);
-  cursor=p;
-}
-function isMainline(n){
-  let x=root.next;
-  while(x){if(x===n)return true;x=x.next}
-  return false;
-}
-function placePop(el){
-  const r=el.getBoundingClientRect();
-  pop.style.left=r.left+"px";
-  pop.style.top=(r.top-40)+"px";
-  pop.style.display="block";
-}
-function placePopCenter(){
-  const r=document.getElementById("board").getBoundingClientRect();
-  pop.style.left=(r.left+r.width/2)+"px";
-  pop.style.top=(r.top+r.height/2)+"px";
-  pop.style.display="block";
-}
-function hidePop(){pop.style.display="none";}
+  function promoteVariation(parent, vNode){
+    // swap parent.next with vNode (vNode must be in parent.vars)
+    parent.vars = parent.vars.filter(x => x !== vNode);
+    const oldMain = parent.next;
+    parent.next = vNode;
 
-/* ---------- NAV ---------- */
-const btnStart=btn("btnStart",()=>{cursor=root;navNode=null;rebuild(root,true);render()});
-const btnPrev=btn("btnPrev",()=>{if(navNode){navNode=navNode.parent;cursor=navNode||root;rebuild(cursor,true);render()}});
-const btnNext=btn("btnNext",()=>{if(!navNode)navNode=root.next;else navNode=navNode.next;cursor=navNode||cursor;rebuild(cursor,true);render()});
-const btnEnd =btn("btnEnd", ()=>{let n=root.next;while(n&&n.next)n=n.next;cursor=n||root;navNode=cursor;rebuild(cursor,true);render()});
+    if(oldMain){
+      parent.vars.unshift(oldMain);
+      oldMain.parent = parent;
+    }
+    vNode.parent = parent;
 
-function updateNav(){
-  btnStart.disabled=cursor===root;
-  btnPrev.disabled=cursor===root;
-  btnNext.disabled=!cursor.next;
-  btnEnd.disabled=!cursor.next;
-}
-function btn(id,fn){const b=document.getElementById(id);b.onclick=fn;return b}
+    // if cursor is on old mainline subtree, its parent pointers still valid
+    // navNode will be recomputed by clicks/navigation
+  }
 
-/* ---------- KEYS ---------- */
-document.addEventListener("keydown",e=>{
-  if(pop.style.display==="block")return;
-  if(e.key==="ArrowLeft") btnPrev.click();
-  if(e.key==="ArrowRight") btnNext.click();
-});
+  function deleteNode(node){
+    const parent = node.parent;
+    if(!parent) return;
 
-render();
+    if(parent.next === node){
+      parent.next = null;
+    }else{
+      parent.vars = parent.vars.filter(v => v !== node);
+    }
+
+    cursor = parent;
+    if(isOnMainline(cursor)) navNode = cursor; else navNode = null;
+  }
+
+  // ---------- Rendering (and click-to-rebuild FIX) ----------
+  const movesDiv = document.getElementById("moves");
+
+  function render(){
+    movesDiv.innerHTML = "";
+
+    function line(startNode, ply){
+      let n = startNode.next;
+      let localPly = ply;
+
+      while(n){
+        const isWhite = (localPly % 2 === 0);
+        const moveNo = Math.floor(localPly/2) + 1;
+
+        const span = document.createElement("span");
+        span.className = "move" + (n === cursor ? " active" : "");
+        span.textContent = (isWhite ? `${moveNo}. ` : "") + figSAN(n.san) + " ";
+        span.dataset.nodeId = n.id;
+
+        // CRITICAL: rebuild to clicked node (no extra state changes before rebuild)
+        span.onclick = (e)=>{
+          e.stopPropagation();
+          cursor = n;
+          if(isOnMainline(n)) navNode = n;
+          rebuildToNode(n, true);
+          render();
+          openMoveActions(n, span);
+        };
+
+        movesDiv.appendChild(span);
+
+        // comment display
+        if(n.comment && n.comment.trim()){
+          const c = document.createElement("div");
+          c.style.margin = "4px 0 10px 18px";
+          c.style.padding = "6px 8px";
+          c.style.borderLeft = "3px solid #3a7afe";
+          c.style.borderRadius = "8px";
+          c.style.background = "#121724";
+          c.style.color = "#cfd6ff";
+          c.style.fontSize = "14px";
+          c.textContent = n.comment;
+          movesDiv.appendChild(c);
+        }
+
+        // variations after this move
+        if(n.vars.length){
+          n.vars.forEach(vRoot=>{
+            const vDiv = document.createElement("div");
+            vDiv.className = "variation";
+            movesDiv.appendChild(vDiv);
+
+            // render variation as its own line starting at vRoot (then vRoot.next...)
+            // We need a small local renderer that prints vRoot as first move.
+            function renderVarLine(varNode, varPly){
+              let cur = varNode;
+              let p = varPly;
+
+              while(cur){
+                const w = (p % 2 === 0);
+                const mn = Math.floor(p/2) + 1;
+
+                const sp = document.createElement("span");
+                sp.className = "move" + (cur === cursor ? " active" : "");
+                sp.textContent = (w ? `${mn}. ` : "") + figSAN(cur.san) + " ";
+                sp.onclick = (e)=>{
+                  e.stopPropagation();
+                  cursor = cur;
+                  // navNode unchanged if variation
+                  rebuildToNode(cur, true);
+                  render();
+                  openMoveActions(cur, sp);
+                };
+                vDiv.appendChild(sp);
+
+                if(cur.comment && cur.comment.trim()){
+                  const cc = document.createElement("div");
+                  cc.style.margin = "4px 0 10px 18px";
+                  cc.style.padding = "6px 8px";
+                  cc.style.borderLeft = "3px solid #3a7afe";
+                  cc.style.borderRadius = "8px";
+                  cc.style.background = "#121724";
+                  cc.style.color = "#cfd6ff";
+                  cc.style.fontSize = "14px";
+                  cc.textContent = cur.comment;
+                  vDiv.appendChild(cc);
+                }
+
+                // nested variations
+                if(cur.vars.length){
+                  cur.vars.forEach(nv=>{
+                    const nvDiv = document.createElement("div");
+                    nvDiv.className = "variation";
+                    vDiv.appendChild(nvDiv);
+
+                    // recurse nested
+                    const savedDiv = vDiv;
+                    const saved = vDiv;
+                    // easiest: temporary closure using same helper but with target div
+                    (function renderNestedLine(targetDiv, nodeStart, plyStart){
+                      let nn = nodeStart;
+                      let pp = plyStart;
+                      while(nn){
+                        const ww = (pp % 2 === 0);
+                        const mm = Math.floor(pp/2) + 1;
+                        const ssp = document.createElement("span");
+                        ssp.className = "move" + (nn === cursor ? " active" : "");
+                        ssp.textContent = (ww ? `${mm}. ` : "") + figSAN(nn.san) + " ";
+                        ssp.onclick = (e)=>{
+                          e.stopPropagation();
+                          cursor = nn;
+                          rebuildToNode(nn, true);
+                          render();
+                          openMoveActions(nn, ssp);
+                        };
+                        targetDiv.appendChild(ssp);
+                        nn = nn.next;
+                        pp++;
+                      }
+                    })(nvDiv, nv, p+1);
+                  });
+                }
+
+                // continue along variation mainline
+                cur = cur.next;
+                p++;
+              }
+            }
+
+            renderVarLine(vRoot, localPly + 1);
+          });
+        }
+
+        n = n.next;
+        localPly++;
+      }
+    }
+
+    line(root, 0);
+    updateNavButtons();
+  }
+
+  // ---------- Navigation (FIXED disable logic + keyboard) ----------
+  const btnStart = document.getElementById("btnStart");
+  const btnPrev  = document.getElementById("btnPrev");
+  const btnNext  = document.getElementById("btnNext");
+  const btnEnd   = document.getElementById("btnEnd");
+
+  function goStart(){
+    navNode = null;
+    cursor = root;
+    rebuildToNode(root, true);
+    render();
+  }
+
+  function goEnd(){
+    const arr = mainlineArray();
+    if(!arr.length){ goStart(); return; }
+    navNode = arr[arr.length-1];
+    cursor = navNode;
+    rebuildToNode(cursor, true);
+    render();
+  }
+
+  function goPrev(){
+    const arr = mainlineArray();
+    const i = navIndex();
+    if(i <= -1){ return; } // already at start
+    if(i === 0){
+      goStart();
+      return;
+    }
+    navNode = arr[i-1];
+    cursor = navNode;
+    rebuildToNode(cursor, true);
+    render();
+  }
+
+  function goNext(){
+    const arr = mainlineArray();
+    if(!arr.length) return;
+    const i = navIndex();
+    if(i === -1){
+      navNode = arr[0];
+    }else{
+      navNode = arr[Math.min(arr.length-1, i+1)];
+    }
+    cursor = navNode;
+    rebuildToNode(cursor, true);
+    render();
+  }
+
+  function updateNavButtons(){
+    const arr = mainlineArray();
+    const i = navIndex();
+    const has = arr.length > 0;
+
+    // at start: i === -1
+    btnStart.disabled = !has || i === -1;
+    btnPrev.disabled  = !has || i === -1;
+
+    // at end: i === arr.length-1
+    btnEnd.disabled   = !has || i === arr.length-1;
+    btnNext.disabled  = !has || i === arr.length-1;
+  }
+
+  btnStart.onclick = (e)=>{ e.stopPropagation(); hidePop(); goStart(); };
+  btnPrev.onclick  = (e)=>{ e.stopPropagation(); hidePop(); goPrev(); };
+  btnNext.onclick  = (e)=>{ e.stopPropagation(); hidePop(); goNext(); };
+  btnEnd.onclick   = (e)=>{ e.stopPropagation(); hidePop(); goEnd(); };
+
+  // Keyboard: call functions directly (NOT .click()), so it works even if buttons are disabled
+  document.addEventListener("keydown",(e)=>{
+    const active = document.activeElement;
+    const typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+    if(typing) return;
+    if(pop.style.display !== "none") return;
+
+    if(e.key === "ArrowLeft"){ e.preventDefault(); goPrev(); }
+    else if(e.key === "ArrowRight"){ e.preventDefault(); goNext(); }
+  });
+
+  // ---------- Drop handler (promotion preserved) ----------
+  function onDrop(from, to){
+    hidePop();
+
+    const test = new Chess(chess.fen());
+    const mQ = test.move({ from, to, promotion:"q" });
+    if(!mQ) return "snapback";
+
+    // KEEP THIS: promotion detection + snapback + popup
+    if(mQ.flags && mQ.flags.includes("p")){
+      pendingPromotionFen = chess.fen();
+      openPromotion(from, to);
+      return "snapback";
+    }
+
+    const m = chess.move({ from, to, promotion:"q" });
+    if(!m) return "snapback";
+
+    addMoveToTree(m.san);
+    rebuildToNode(cursor, false);
+    render();
+  }
+
+  // ---------- Init ----------
+  render();
+  rebuildToNode(root, false);
+  window.addEventListener("resize", ()=>board.resize());
 })();
 </script>
 
