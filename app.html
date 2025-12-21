@@ -136,8 +136,6 @@ const board=Chessboard("board",{
 
 function rebuildTo(node,animate){
   const fen = (node && node.fen) ? node.fen : START_FEN;
-
-  // chess.load returns true/false
   const ok = chess.load(fen);
 
   if(!ok){
@@ -189,19 +187,15 @@ promo.onclick=e=>{
 function applyMove(san,fen){
   let n=null;
 
-  // reuse mainline if identical SAN
   if(cursor.next && cursor.next.san===san){
     n = cursor.next;
-    // IMPORTANT: ensure fen is stored (or refreshed)
     n.fen = fen || n.fen;
   }else{
-    // reuse existing variation move if identical SAN
     const v = cursor.vars.find(x=>x.san===san);
     if(v){
       n = v;
       n.fen = fen || n.fen;
     }else{
-      // create new node
       n = new Node(san,cursor,fen);
       if(cursor.next) cursor.vars.push(n);
       else cursor.next=n;
@@ -213,7 +207,7 @@ function applyMove(san,fen){
   render();
 }
 
-/* ───────── Rendering ───────── */
+/* ───────── Rendering (FIXED: capture node in closure) ───────── */
 
 const movesDiv=document.getElementById("moves");
 
@@ -223,22 +217,23 @@ function render(){
   function line(start,ply,wrap){
     let n=start.next;
     while(n){
+      const node = n; // ✅ capture this iteration's node
+
       const span=document.createElement("span");
-      span.className="move"+(n===cursor?" active":"");
+      span.className="move"+(node===cursor?" active":"");
       const num=ply%2===0 ? (Math.floor(ply/2)+1+". ") : "";
-      span.textContent=num+figSAN(n.san)+" ";
+      span.textContent=num+figSAN(node.san)+" ";
 
       span.onclick=()=>{
-        // clicking MUST be pure navigation; never depends on mainline/variation logic
-        cursor = navNode = n;
-        rebuildTo(n,true);
+        cursor = navNode = node;
+        rebuildTo(node,true);
         render();
       };
 
       wrap.appendChild(span);
 
-      if(n.vars.length){
-        n.vars.forEach(v=>{
+      if(node.vars.length){
+        node.vars.forEach(v=>{
           const d=document.createElement("div");
           d.className="variation";
           wrap.appendChild(d);
@@ -246,7 +241,7 @@ function render(){
         });
       }
 
-      n=n.next; ply++;
+      n=node.next; ply++;
     }
   }
 
