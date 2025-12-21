@@ -112,13 +112,15 @@ class Node{
     this.id="n"+ID++;
     this.san=san;
     this.parent=parent;
-    this.fen=fen;
+    this.fen=fen;     // ALWAYS a valid FEN string
     this.next=null;
     this.vars=[];
   }
 }
 
-const root=new Node(null,null,"start");
+const START_FEN = new Chess().fen();
+const root=new Node(null,null,START_FEN);
+
 let cursor=root;
 let navNode=root;
 
@@ -130,16 +132,21 @@ const board=Chessboard("board",{
   onDrop
 });
 
-/* ───────── Rebuild (FEN-based) ───────── */
+/* ───────── Rebuild (FEN-based & safe) ───────── */
 
 function rebuildTo(node,animate){
-  if(node===root){
+  const fen = (node && node.fen) ? node.fen : START_FEN;
+
+  // chess.load returns true/false
+  const ok = chess.load(fen);
+
+  if(!ok){
     chess.reset();
-    board.position("start",animate);
+    board.position("start", !!animate);
     return;
   }
-  chess.load(node.fen);
-  board.position(node.fen,animate);
+
+  board.position(chess.fen(), !!animate);
 }
 
 /* ───────── Promotion handling ───────── */
@@ -150,39 +157,58 @@ const promo=document.getElementById("promo");
 function onDrop(from,to){
   const test=new Chess(chess.fen());
   const piece=test.get(from);
-  const isPromo=piece?.type==="p"&&(to[1]==="8"||to[1]==="1");
+  const isPromo=piece?.type==="p" && (to[1]==="8" || to[1]==="1");
 
   if(isPromo){
     pending={from,to};
     promo.style.display="flex";
     return;
   }
+
   const m=test.move({from,to,promotion:"q"});
   if(!m) return "snapback";
-  applyMove(m.san,test.fen());
+
+  applyMove(m.san, test.fen());
 }
 
 promo.onclick=e=>{
   if(!e.target.dataset.p) return;
+
   promo.style.display="none";
+
   const test=new Chess(chess.fen());
-  const m=test.move({...pending,promotion:e.target.dataset.p});
+  const m=test.move({from:pending.from, to:pending.to, promotion:e.target.dataset.p});
   pending=null;
-  if(m) applyMove(m.san,test.fen());
+
+  if(!m) return;
+  applyMove(m.san, test.fen());
 };
 
-/* ───────── Apply move (stores FEN!) ───────── */
+/* ───────── Apply move (ensures FEN even on reuse) ───────── */
 
 function applyMove(san,fen){
-  let n;
+  let n=null;
+
+  // reuse mainline if identical SAN
   if(cursor.next && cursor.next.san===san){
-    n=cursor.next;
+    n = cursor.next;
+    // IMPORTANT: ensure fen is stored (or refreshed)
+    n.fen = fen || n.fen;
   }else{
-    n=new Node(san,cursor,fen);
-    if(cursor.next) cursor.vars.push(n);
-    else cursor.next=n;
+    // reuse existing variation move if identical SAN
+    const v = cursor.vars.find(x=>x.san===san);
+    if(v){
+      n = v;
+      n.fen = fen || n.fen;
+    }else{
+      // create new node
+      n = new Node(san,cursor,fen);
+      if(cursor.next) cursor.vars.push(n);
+      else cursor.next=n;
+    }
   }
-  cursor=navNode=n;
+
+  cursor = navNode = n;
   rebuildTo(n,false);
   render();
 }
@@ -193,18 +219,22 @@ const movesDiv=document.getElementById("moves");
 
 function render(){
   movesDiv.innerHTML="";
+
   function line(start,ply,wrap){
     let n=start.next;
     while(n){
       const span=document.createElement("span");
       span.className="move"+(n===cursor?" active":"");
-      const num=ply%2===0?Math.floor(ply/2)+1+". ":"";
+      const num=ply%2===0 ? (Math.floor(ply/2)+1+". ") : "";
       span.textContent=num+figSAN(n.san)+" ";
+
       span.onclick=()=>{
-        cursor=navNode=n;
+        // clicking MUST be pure navigation; never depends on mainline/variation logic
+        cursor = navNode = n;
         rebuildTo(n,true);
         render();
       };
+
       wrap.appendChild(span);
 
       if(n.vars.length){
@@ -215,9 +245,11 @@ function render(){
           line({next:v},ply+1,d);
         });
       }
+
       n=n.next; ply++;
     }
   }
+
   line(root,0,movesDiv);
 }
 
@@ -228,16 +260,22 @@ btnEnd.onclick=()=>{let n=root;while(n.next)n=n.next;cursor=navNode=n;rebuildTo(
 btnPrev.onclick=()=>{if(navNode.parent){cursor=navNode=navNode.parent;rebuildTo(navNode,true);render();}}
 btnNext.onclick=()=>{if(navNode.next){cursor=navNode=navNode.next;rebuildTo(navNode,true);render();}}
 
-/* ───────── Keyboard navigation ───────── */
+/* ───────── Keyboard navigation (← →) ───────── */
 
 document.addEventListener("keydown",e=>{
-  if(e.key==="ArrowLeft" && navNode.parent){
-    cursor=navNode=navNode.parent;
-  }else if(e.key==="ArrowRight" && navNode.next){
-    cursor=navNode=navNode.next;
-  }else return;
-  rebuildTo(navNode,true);
-  render();
+  if(e.key==="ArrowLeft"){
+    if(navNode.parent){
+      cursor=navNode=navNode.parent;
+      rebuildTo(navNode,true);
+      render();
+    }
+  }else if(e.key==="ArrowRight"){
+    if(navNode.next){
+      cursor=navNode=navNode.next;
+      rebuildTo(navNode,true);
+      render();
+    }
+  }
 });
 
 /* ───────── Init ───────── */
