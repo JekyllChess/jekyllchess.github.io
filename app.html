@@ -13,17 +13,162 @@
   href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
 
 <style>
-/* (CSS unchanged – omitted here for brevity in explanation,
-   but INCLUDED IN FULL when you paste below) */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#0f1115;
+  color:#e6e6e6;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+.top{
+  padding:10px 14px;
+  background:#171a21;
+  border-bottom:1px solid #222;
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.top img{width:22px;filter:invert(1)}
+
+.wrap{padding:12px}
+.main{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.main{grid-template-columns:560px 1fr}}
+#board{width:min(92vw,560px);margin:0 auto}
+
+.controls{display:flex;gap:6px;margin-top:8px}
+.controls button{
+  flex:1;padding:10px;border:none;border-radius:10px;
+  background:#1f2430;color:#ddd;cursor:pointer;font-size:15px;
+}
+
+.card{
+  border:1px solid #222;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+}
+.cardHead{
+  padding:10px 12px;
+  background:#141820;
+  border-bottom:1px solid #222;
+  font-weight:700;
+}
+.cardBody{padding:12px}
+
+/* ───────── Move list ───────── */
+
+.moves{font-size:18px;line-height:1.9}
+
+.fullmove{
+  display:grid;
+  grid-template-columns:3ch auto auto;
+  column-gap:6px;
+  align-items:baseline;
+}
+
+.num{
+  text-align:right;
+  opacity:.65;
+}
+
+.half{
+  cursor:pointer;
+  padding:2px 4px;
+  border-radius:6px;
+  white-space:nowrap;
+}
+.half.active{
+  background:#3a7afe;
+  color:#fff;
+}
+
+.variation{
+  margin-left:26px;
+  padding-left:10px;
+  border-left:2px dashed #444;
+}
+
+/* comments */
+.comment{
+  margin:4px 0 10px 26px;
+  padding:6px 10px;
+  border-left:4px solid #3a7afe;
+  background:#121724;
+  border-radius:8px;
+  font-size:14px;
+  font-style:italic;
+}
+
+/* promotion chooser */
+#promo{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+#promo .box{
+  background:#161a24;
+  padding:16px;
+  border-radius:12px;
+  display:flex;
+  gap:10px;
+}
+#promo button{
+  font-size:28px;
+  padding:10px 14px;
+  background:#1f2430;
+  border:none;
+  border-radius:10px;
+  color:#fff;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<!-- (HTML unchanged – INCLUDED IN FULL BELOW) -->
+<div class="top">
+  <img src="https://jekyllchess.github.io/assets/favicon.png">
+  <div>JekyllChess PGN App</div>
+</div>
+
+<div class="wrap">
+  <div class="main">
+    <div>
+      <div id="board"></div>
+      <div class="controls">
+        <button id="btnStart">⏮</button>
+        <button id="btnPrev">◀</button>
+        <button id="btnNext">▶</button>
+        <button id="btnEnd">⏭</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardHead">Move list</div>
+      <div class="cardBody">
+        <div id="moves" class="moves"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="promo">
+  <div class="box">
+    <button data-p="q">♕</button>
+    <button data-p="r">♖</button>
+    <button data-p="b">♗</button>
+    <button data-p="n">♘</button>
+  </div>
+</div>
 
 <script>
 (() => {
+
+const moves = document.getElementById("moves"); // ✅ FIX
 
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
@@ -46,77 +191,109 @@ const root=new Node(null,null,START_FEN);
 let cursor=root;
 let navNode=root;
 
-/* ───────── Rendering with CORRECT numbering ───────── */
+const chess=new Chess();
+const board=Chessboard("board",{
+  position:"start",
+  draggable:true,
+  pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+  onDrop
+});
+
+function rebuildTo(node,animate){
+  chess.load(node?.fen||START_FEN);
+  board.position(chess.fen(),!!animate);
+}
+
+/* ───────── Promotion ───────── */
+
+let pending=null;
+promo.onclick=e=>{
+  if(!e.target.dataset.p) return;
+  promo.style.display="none";
+  const t=new Chess(chess.fen());
+  const m=t.move({...pending,promotion:e.target.dataset.p});
+  pending=null;
+  if(m) applyMove(m.san,t.fen());
+};
+
+function onDrop(from,to){
+  const t=new Chess(chess.fen());
+  const p=t.get(from);
+  if(p?.type==="p"&&(to[1]==="8"||to[1]==="1")){
+    pending={from,to};
+    promo.style.display="flex";
+    return;
+  }
+  const m=t.move({from,to,promotion:"q"});
+  if(!m) return "snapback";
+  applyMove(m.san,t.fen());
+}
+
+function applyMove(san,fen){
+  let n;
+  if(cursor.next&&cursor.next.san===san){
+    n=cursor.next;n.fen=fen;
+  }else{
+    n=new Node(san,cursor,fen);
+    if(cursor.next) cursor.vars.push(n);
+    else cursor.next=n;
+  }
+  cursor=navNode=n;
+  rebuildTo(n,false);
+  render();
+}
+
+/* ───────── Rendering (correct numbering + no duplicates) ───────── */
 
 function render(){
   moves.innerHTML="";
-  renderLine(root, 1, "w", moves);
+  renderLine(root,1,"w",moves);
 }
 
-/**
- * @param start   parent node wrapper ({next})
- * @param moveNo  full-move number (1,2,3…)
- * @param side    "w" or "b"
- */
-function renderLine(start, moveNo, side, wrap){
+function renderLine(start,moveNo,side,wrap){
   let n=start.next;
-
   while(n){
     const row=document.createElement("div");
     row.className="fullmove";
 
-    // Move number cell
     const num=document.createElement("div");
     num.className="num";
-    num.textContent =
-      side==="w" ? `${moveNo}.` : `${moveNo}...`;
+    num.textContent = side==="w" ? `${moveNo}.` : `${moveNo}...`;
     row.appendChild(num);
 
-    // White cell
     const wCell=document.createElement("div");
     if(side==="w"){
       wCell.appendChild(makeHalf(n));
-      n = n.next;
+      n=n.next;
     }
     row.appendChild(wCell);
 
-    // Black cell
     const bCell=document.createElement("div");
     if(n){
       bCell.appendChild(makeHalf(n));
-      n = n.next;
+      n=n.next;
     }
     row.appendChild(bCell);
 
     wrap.appendChild(row);
 
-    // Render variations (DEDUPLICATED)
-    const nodesToCheck = [];
-    if(side==="w" && wCell.firstChild) nodesToCheck.push(wCell.firstChild.__node);
-    if(bCell.firstChild) nodesToCheck.push(bCell.firstChild.__node);
-
-    nodesToCheck.forEach(node=>{
-      const seen = new Set();
+    [wCell,bCell].forEach(cell=>{
+      const span=cell.querySelector(".half");
+      if(!span) return;
+      const node=span.__node;
+      const seen=new Set();
       node.vars.forEach(v=>{
         if(seen.has(v.san)) return;
         seen.add(v.san);
-
         const d=document.createElement("div");
         d.className="variation";
         wrap.appendChild(d);
-
-        // Variation inherits SAME move number & side
-        renderLine({next:v}, moveNo, side==="w"?"b":"w", d);
+        renderLine({next:v},moveNo,side==="w"?"b":"w",d);
       });
     });
 
-    // Advance move context
-    if(side==="w"){
-      side="b";
-    }else{
-      side="w";
-      moveNo++;
-    }
+    if(side==="w") side="b";
+    else{ side="w"; moveNo++; }
   }
 }
 
@@ -125,29 +302,13 @@ function makeHalf(node){
   span.className="half"+(node===cursor?" active":"");
   span.textContent=figSAN(node.san);
   span.__node=node;
-
   span.onclick=()=>{
     cursor=navNode=node;
     rebuildTo(node,true);
     render();
   };
-
-  const frag=document.createDocumentFragment();
-  frag.appendChild(span);
-
-  if(node.comment){
-    const c=document.createElement("div");
-    c.className="comment";
-    c.textContent=node.comment;
-    frag.appendChild(c);
-  }
-
-  return frag;
+  return span;
 }
-
-/* ───────── Chessboard / moves logic unchanged ───────── */
-/* (Promotion chooser, delete, comment, keyboard nav etc.
-   remain exactly as in your previous working version) */
 
 /* init */
 render();
