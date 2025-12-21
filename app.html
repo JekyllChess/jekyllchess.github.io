@@ -59,6 +59,32 @@ body{
   padding-left:10px;
   border-left:2px dashed #444;
 }
+
+/* promotion chooser */
+#promo{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+#promo .box{
+  background:#161a24;
+  padding:16px;
+  border-radius:12px;
+  display:flex;
+  gap:10px;
+}
+#promo button{
+  font-size:28px;
+  padding:10px 14px;
+  background:#1f2430;
+  border:none;
+  border-radius:10px;
+  color:#fff;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -85,10 +111,20 @@ body{
   </div>
 </div>
 
+<div id="promo">
+  <div class="box">
+    <button data-p="q">♕</button>
+    <button data-p="r">♖</button>
+    <button data-p="b">♗</button>
+    <button data-p="n">♘</button>
+  </div>
+</div>
+
 <script>
 (() => {
 
 const moves = document.getElementById("moves");
+
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
 
@@ -110,6 +146,43 @@ let cursor=root;
 let navNode=root;
 
 const chess=new Chess();
+
+/* ───────── onDrop RESTORED ───────── */
+let pendingPromotion=null;
+
+function onDrop(from,to){
+  const test=new Chess(chess.fen());
+  const piece=test.get(from);
+
+  // promotion
+  if(piece?.type==="p" && (to[1]==="8" || to[1]==="1")){
+    pendingPromotion={from,to};
+    promo.style.display="flex";
+    return;
+  }
+
+  const m=test.move({from,to,promotion:"q"});
+  if(!m) return "snapback";
+
+  applyMove(m.san,test.fen());
+}
+
+promo.onclick=e=>{
+  if(!e.target.dataset.p) return;
+  promo.style.display="none";
+
+  const test=new Chess(chess.fen());
+  const m=test.move({
+    from: pendingPromotion.from,
+    to: pendingPromotion.to,
+    promotion: e.target.dataset.p
+  });
+  pendingPromotion=null;
+
+  if(m) applyMove(m.san,test.fen());
+};
+
+/* ───────── Chessboard ───────── */
 const board=Chessboard("board",{
   position:"start",
   draggable:true,
@@ -122,7 +195,7 @@ function rebuildTo(node,animate){
   board.position(chess.fen(),!!animate);
 }
 
-/* move application */
+/* ───────── Move logic ───────── */
 function applyMove(san,fen){
   let n;
   if(cursor.next && cursor.next.san===san){
@@ -138,7 +211,7 @@ function applyMove(san,fen){
   render();
 }
 
-/* rendering — FIXED */
+/* ───────── Rendering (correct mainline numbering) ───────── */
 function render(){
   moves.innerHTML="";
   renderMainline(root,1,moves);
@@ -170,7 +243,7 @@ function renderMainline(start,moveNo,wrap){
 
     wrap.appendChild(row);
 
-    // variations from white or black
+    // variations
     [wCell,bCell].forEach(cell=>{
       const span=cell.querySelector(".half");
       if(!span) return;
@@ -192,7 +265,6 @@ function renderMainline(start,moveNo,wrap){
 
 function renderVariation(node,moveNo,wrap){
   let n=node;
-
   while(n){
     const row=document.createElement("div");
     row.className="fullmove";
@@ -202,16 +274,15 @@ function renderVariation(node,moveNo,wrap){
     num.textContent=moveNo+"...";
     row.appendChild(num);
 
-    const wCell=document.createElement("div");
-    row.appendChild(wCell);
+    row.appendChild(document.createElement("div"));
 
     const bCell=document.createElement("div");
     bCell.appendChild(makeHalf(n));
-    n=n.next;
     row.appendChild(bCell);
 
     wrap.appendChild(row);
 
+    n=n.next;
     moveNo++;
   }
 }
@@ -229,7 +300,7 @@ function makeHalf(node){
   return span;
 }
 
-/* navigation buttons */
+/* ───────── Navigation buttons ───────── */
 btnStart.onclick=()=>{cursor=navNode=root;rebuildTo(root,true);render();}
 btnEnd.onclick=()=>{
   let n=root;while(n.next)n=n.next;
@@ -238,6 +309,7 @@ btnEnd.onclick=()=>{
 btnPrev.onclick=()=>{if(navNode.parent){cursor=navNode=navNode.parent;rebuildTo(navNode,true);render();}}
 btnNext.onclick=()=>{if(navNode.next){cursor=navNode=navNode.next;rebuildTo(navNode,true);render();}}
 
+/* init */
 render();
 rebuildTo(root,false);
 
