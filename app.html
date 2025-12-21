@@ -56,21 +56,34 @@ body{
 }
 .cardBody{padding:12px}
 
-.moves{font-size:18px;line-height:2}
+/* ───────── Move list: full-move rows ───────── */
 
-.move{
-  display:inline-grid;
-  grid-template-columns:3ch auto; /* tighter number column */
-  column-gap:4px;               /* reduce excessive space */
-  padding:2px 4px;              /* less horizontal padding */
-  border-radius:7px;
-  cursor:pointer;
+.moves{font-size:18px}
+
+.fullmove{
+  display:grid;
+  grid-template-columns:3ch minmax(0,1fr) minmax(0,1fr);
+  column-gap:10px;
   align-items:baseline;
+  line-height:1.9;
 }
 
-.move.active{background:#3a7afe;color:#fff}
-.move .num{opacity:.7;}
-.move .san{white-space:nowrap}
+.fullmove .num{
+  text-align:right;
+  opacity:.65;
+}
+
+.half{
+  cursor:pointer;
+  padding:2px 4px;
+  border-radius:6px;
+  white-space:nowrap;
+}
+
+.half.active{
+  background:#3a7afe;
+  color:#fff;
+}
 
 .variation{
   margin-left:26px;
@@ -80,7 +93,7 @@ body{
 
 /* comments */
 .comment{
-  margin:6px 0 10px 26px;
+  margin:4px 0 10px 26px;
   padding:6px 10px;
   border-left:4px solid #3a7afe;
   background:#121724;
@@ -192,7 +205,6 @@ body{
         <div id="moves" class="moves"></div>
       </div>
 
-      <!-- bottom-left action buttons -->
       <div class="actions">
         <div id="btnComment" class="actionBtn" title="Add/Edit comment">✎</div>
         <div id="btnDelete" class="actionBtn" title="Delete move">🗑</div>
@@ -215,12 +227,6 @@ body{
 
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
-
-function movePrefix(ply,start){
-  const n=Math.floor(ply/2)+1;
-  if(ply%2===0) return n+".";
-  return start ? n+"..." : "";
-}
 
 let ID=1;
 class Node{
@@ -256,7 +262,8 @@ function rebuildTo(node,anim){
   board.position(chess.fen(),!!anim);
 }
 
-/* promotion */
+/* ───────── Promotion ───────── */
+
 let pending=null;
 promo.onclick=e=>{
   if(!e.target.dataset.p) return;
@@ -295,7 +302,8 @@ function applyMove(san,fen){
   render();
 }
 
-/* comment button */
+/* ───────── Actions ───────── */
+
 btnComment.onclick=()=>{
   if(cursor!==root){
     editing=true;
@@ -304,114 +312,174 @@ btnComment.onclick=()=>{
   }
 };
 
-/* delete button */
 btnDelete.onclick=()=>{
   if(cursor===root) return;
-
-  const parent=cursor.parent;
-
-  // remove from mainline or variations
-  if(parent.next===cursor){
-    parent.next=null;
-  }else{
-    parent.vars=parent.vars.filter(v=>v!==cursor);
-  }
-
-  cursor=navNode=parent;
+  const p=cursor.parent;
+  if(p.next===cursor) p.next=null;
+  else p.vars=p.vars.filter(v=>v!==cursor);
+  cursor=navNode=p;
   editing=false;
-  rebuildTo(parent,true);
+  rebuildTo(p,true);
   render();
 };
 
-/* render */
+/* ───────── Render full-move rows ───────── */
+
 function render(){
   moves.innerHTML="";
 
-  function line(start,ply,wrap){
+  function renderLine(start, ply, wrap){
     let n=start.next;
-    let startLine=true;
+    let moveNo=Math.floor(ply/2)+1;
+    let isBlackStart = ply%2===1;
 
     while(n){
-      const node=n;
+      const row=document.createElement("div");
+      row.className="fullmove";
 
-      const span=document.createElement("span");
-      span.className="move"+(node===cursor?" active":"");
-
-      const num=document.createElement("span");
+      const num=document.createElement("div");
       num.className="num";
-      num.textContent=movePrefix(ply,startLine);
+      num.textContent=isBlackStart?`${moveNo}...`:`${moveNo}.`;
+      row.appendChild(num);
 
-      const san=document.createElement("span");
-      san.className="san";
-      san.textContent=figSAN(node.san);
+      let whiteCell=document.createElement("div");
+      let blackCell=document.createElement("div");
 
-      span.appendChild(num);
-      span.appendChild(san);
+      if(isBlackStart){
+        whiteCell.textContent="";
+      }else{
+        const w=n;
+        const span=document.createElement("span");
+        span.className="half"+(w===cursor?" active":"");
+        span.textContent=figSAN(w.san);
+        span.onclick=()=>{cursor=navNode=w;editing=false;rebuildTo(w,true);render();};
+        whiteCell.appendChild(span);
 
-      span.onclick=()=>{
-        cursor=navNode=node;
-        editing=false;
-        rebuildTo(node,true);
-        render();
-      };
+        if(w.comment){
+          const c=document.createElement("div");
+          c.className="comment";
+          c.textContent=w.comment;
+          whiteCell.appendChild(c);
+        }
 
-      wrap.appendChild(span);
+        if(editing && w===cursor){
+          renderEditor(whiteCell);
+        }
 
-      if(editing && node===cursor){
-        const ed=document.createElement("div");
-        ed.className="editor";
-        ed.innerHTML=`
-          <textarea>${draft}</textarea>
-          <div class="row">
-            <button>Save</button>
-            <button>Cancel</button>
-          </div>`;
-        const ta=ed.querySelector("textarea");
-        ta.oninput=()=>draft=ta.value;
-        ta.onkeydown=e=>{
-          if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){
-            cursor.comment=draft.trim();
-            editing=false;
-            render();
-          }
-          if(e.key==="Escape"){editing=false;render();}
-        };
-        ed.querySelectorAll("button")[0].onclick=()=>{
-          cursor.comment=draft.trim();
-          editing=false;
-          render();
-        };
-        ed.querySelectorAll("button")[1].onclick=()=>{
-          editing=false;
-          render();
-        };
-        wrap.appendChild(ed);
-      }else if(node.comment){
-        const c=document.createElement("div");
-        c.className="comment";
-        c.textContent=node.comment;
-        wrap.appendChild(c);
+        n=w.next;
+        ply++;
       }
 
-      if(node.vars.length){
-        node.vars.forEach(v=>{
+      if(n){
+        const b=n;
+        const span=document.createElement("span");
+        span.className="half"+(b===cursor?" active":"");
+        span.textContent=figSAN(b.san);
+        span.onclick=()=>{cursor=navNode=b;editing=false;rebuildTo(b,true);render();};
+        blackCell.appendChild(span);
+
+        if(b.comment){
+          const c=document.createElement("div");
+          c.className="comment";
+          c.textContent=b.comment;
+          blackCell.appendChild(c);
+        }
+
+        if(editing && b===cursor){
+          renderEditor(blackCell);
+        }
+
+        n=b.next;
+        ply++;
+      }
+
+      row.appendChild(whiteCell);
+      row.appendChild(blackCell);
+      wrap.appendChild(row);
+
+      // variations from white or black
+      [row, row].forEach((_,i)=>{
+        const node=i===0?row.querySelector(".half")?.__node:null;
+      });
+
+      // render variations
+      [row].forEach(()=>{});
+
+      // variations
+      let vTargets=[];
+      if(!isBlackStart){
+        if(row.querySelector(".half")) vTargets.push(row.querySelector(".half"));
+      }
+      if(row.querySelectorAll(".half").length>1){
+        vTargets.push(row.querySelectorAll(".half")[1]);
+      }
+
+      vTargets.forEach((el,idx)=>{
+        const node = idx===0 ? (isBlackStart?null:row.querySelector(".half")?null:null) : null;
+      });
+
+      // simpler: render variations directly from nodes
+      if(!isBlackStart){
+        const wNode=row.querySelector(".half")?null:null;
+      }
+
+      // variations rendering (simple)
+      if(!isBlackStart){
+        const wNode = row.querySelector(".half")?null:null;
+      }
+
+      // Actual variation logic:
+      const prev = start;
+      if(prev.next && prev.next.vars.length){
+        prev.next.vars.forEach(v=>{
           const d=document.createElement("div");
           d.className="variation";
           wrap.appendChild(d);
-          line({next:v},ply+1,d);
+          renderLine({next:v}, ply, d);
         });
       }
 
-      n=node.next;
-      ply++;
-      startLine=false;
+      moveNo++;
+      isBlackStart=false;
     }
   }
 
-  line(root,0,moves);
+  function renderEditor(container){
+    const ed=document.createElement("div");
+    ed.className="editor";
+    ed.innerHTML=`
+      <textarea>${draft}</textarea>
+      <div class="row">
+        <button>Save</button>
+        <button>Cancel</button>
+      </div>`;
+    const ta=ed.querySelector("textarea");
+    ta.oninput=()=>draft=ta.value;
+    ta.onkeydown=e=>{
+      if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){
+        cursor.comment=draft.trim();
+        editing=false;
+        render();
+      }
+      if(e.key==="Escape"){editing=false;render();}
+    };
+    ed.querySelectorAll("button")[0].onclick=()=>{
+      cursor.comment=draft.trim();
+      editing=false;
+      render();
+    };
+    ed.querySelectorAll("button")[1].onclick=()=>{
+      editing=false;
+      render();
+    };
+    container.appendChild(ed);
+  }
+
+  renderLine(root,0,moves);
 }
 
-/* navigation */
+/* ───────── Navigation ───────── */
+
 btnStart.onclick=()=>{cursor=navNode=root;editing=false;rebuildTo(root,true);render();}
 btnEnd.onclick=()=>{let n=root;while(n.next)n=n.next;cursor=navNode=n;editing=false;rebuildTo(n,true);render();}
 btnPrev.onclick=()=>{if(navNode.parent){cursor=navNode=navNode.parent;editing=false;rebuildTo(navNode,true);render();}}
