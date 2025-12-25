@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEnd   = document.getElementById("btnEnd");
   const btnPrev  = document.getElementById("btnPrev");
   const btnNext  = document.getElementById("btnNext");
+  const btnFlip  = document.getElementById("btnFlip");
 
   const btnCommentAdd  = document.getElementById("btnCommentAdd");
   const btnCommentSave = document.getElementById("btnCommentSave");
@@ -41,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
       this.fen = fen;
       this.next = null;
       this.vars = [];
-      this.comment = ""; // ← comments live here
+      this.comment = "";
     }
   }
 
@@ -58,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let pendingPromotion = null;
 
+  let boardOrientation =
+    localStorage.getItem("boardOrientation") || "white";
+
 
   /* ======================================================
    *  BOARD SETUP
@@ -66,14 +70,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const board = Chessboard("board", {
     position: "start",
     draggable: true,
-    pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+    pieceTheme:
+      "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
     onDrop
   });
+
+  board.orientation(boardOrientation);
 
   function rebuildTo(node, animate) {
     chess.load(node?.fen || START_FEN);
     board.position(chess.fen(), !!animate);
   }
+
+
+  /* ======================================================
+   *  RESIZE OBSERVER (RESPONSIVE BOARD)
+   * ====================================================== */
+
+  const boardEl = document.getElementById("board");
+
+  const boardResizeObserver = new ResizeObserver(() => {
+    board.resize();
+  });
+
+  boardResizeObserver.observe(boardEl);
 
 
   /* ======================================================
@@ -98,10 +118,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   promo.onclick = e => {
     if (!e.target.dataset.p) return;
+
     promo.style.display = "none";
 
     const t = new Chess(chess.fen());
-    const m = t.move({ ...pendingPromotion, promotion: e.target.dataset.p });
+    const m = t.move({
+      ...pendingPromotion,
+      promotion: e.target.dataset.p
+    });
+
     pendingPromotion = null;
 
     if (m) applyMove(m.san, t.fen(), t.turn());
@@ -134,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     n.fen = fen;
     cursor = n;
+
     rebuildTo(n, false);
     render();
     syncCommentEditor();
@@ -141,13 +167,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  MOVE LIST RENDERING (with comments)
+   *  MOVE LIST RENDERING (WITH COMMENTS)
    * ====================================================== */
 
   function render() {
     movesDiv.innerHTML = "";
+
     const main = document.createElement("div");
     main.className = "mainline";
+
     renderSeq(root.next, main, 1, "w");
     movesDiv.appendChild(main);
   }
@@ -190,7 +218,9 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const v of parent.vars) {
       const span = document.createElement("span");
       span.className = "variation";
-      const prefix = (side === "b") ? moveNo + "... " : moveNo + ". ";
+
+      const prefix =
+        (side === "b") ? moveNo + "... " : moveNo + ". ";
 
       span.appendChild(text("(" + prefix));
       renderSeq(v, span, moveNo, side);
@@ -202,7 +232,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function appendMove(container, node) {
     const span = document.createElement("span");
-    span.className = "move" + (node === cursor ? " active" : "");
+    span.className =
+      "move" + (node === cursor ? " active" : "");
+
     span.textContent = figSAN(node.san);
 
     span.onclick = () => {
@@ -232,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
    *  COMMENT UI LOGIC
    * ====================================================== */
 
-  function syncCommentEditor(){
+  function syncCommentEditor() {
     if (cursor === root) {
       commentEditor.style.display = "none";
       return;
@@ -258,17 +290,46 @@ document.addEventListener("DOMContentLoaded", () => {
    *  NAVIGATION CONTROLS
    * ====================================================== */
 
-  btnStart && (btnStart.onclick = () => { cursor = root; rebuildTo(root, true); render(); });
-  btnEnd   && (btnEnd.onclick   = () => { let n=root; while(n.next) n=n.next; cursor=n; rebuildTo(n,true); render(); });
-  btnPrev  && (btnPrev.onclick  = () => { if(cursor.parent){ cursor=cursor.parent; rebuildTo(cursor,true); render(); }});
-  btnNext  && (btnNext.onclick  = () => { if(cursor.next){ cursor=cursor.next; rebuildTo(cursor,true); render(); }});
+  btnStart.onclick = () => {
+    cursor = root;
+    rebuildTo(root, true);
+    render();
+  };
+
+  btnEnd.onclick = () => {
+    let n = root;
+    while (n.next) n = n.next;
+    cursor = n;
+    rebuildTo(n, true);
+    render();
+  };
+
+  btnPrev.onclick = () => {
+    if (!cursor.parent) return;
+    cursor = cursor.parent;
+    rebuildTo(cursor, true);
+    render();
+  };
+
+  btnNext.onclick = () => {
+    if (!cursor.next) return;
+    cursor = cursor.next;
+    rebuildTo(cursor, true);
+    render();
+  };
 
 
   /* ======================================================
-   *  RESPONSIVE FIX
+   *  BOARD ORIENTATION TOGGLE (PERSISTED)
    * ====================================================== */
 
-  window.addEventListener("resize", () => board.resize());
+  btnFlip.onclick = () => {
+    boardOrientation =
+      boardOrientation === "white" ? "black" : "white";
+
+    board.orientation(boardOrientation);
+    localStorage.setItem("boardOrientation", boardOrientation);
+  };
 
 
   /* ======================================================
@@ -277,5 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   render();
   rebuildTo(root, false);
+
+  // allow layout to settle before first resize
+  setTimeout(() => board.resize(), 0);
 
 });

@@ -1,62 +1,87 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>JekyllChess PGN App</title>
+  <title>JekyllChess PGN App</title>
 
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-<script src="https://jekyllchess.github.io/assets/js/app.js"></script>
-<link rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
-<link rel="stylesheet" href="https://jekyllchess.github.io/assets/css/app.css">
+  <!-- Libraries -->
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+  <!-- Chessboard styles -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="https://jekyllchess.github.io/assets/css/app.css">
+
+  <!-- App logic (must come AFTER libraries) -->
+  <script src="https://jekyllchess.github.io/assets/js/app.js" defer></script>
 </head>
 
 <body>
 
-<div class="top">
-  <img src="https://jekyllchess.github.io/assets/favicon.png">
-  <div>JekyllChess PGN App</div>
-</div>
+  <!-- =====================================================
+       Top App Bar
+       ===================================================== -->
+  <div class="top">
+    <img src="https://jekyllchess.github.io/assets/favicon.png" alt="JekyllChess">
+    <div class="title">JekyllChess PGN App</div>
+  </div>
 
-<div class="wrap">
-  <div class="main">
-    <div>
-      <div id="board"></div>
-      <div class="controls">
-        <button id="btnStart">⏮</button>
-        <button id="btnPrev">◀</button>
-        <button id="btnNext">▶</button>
-        <button id="btnEnd">⏭</button>
+  <!-- =====================================================
+       Main Layout
+       ===================================================== -->
+  <div class="wrap">
+    <div class="main">
+
+      <!-- ===== Left column: Board ===== -->
+      <div>
+        <div id="board"></div>
+
+        <div class="controls">
+          <button id="btnStart" title="Start">⏮</button>
+          <button id="btnPrev"  title="Previous">◀</button>
+          <button id="btnNext"  title="Next">▶</button>
+          <button id="btnEnd"   title="End">⏭</button>
+          <button id="btnFlip"  title="Flip board">⇄</button>
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="cardHead">Moves</div>
-      <div class="cardBody">
-        <div id="moves" class="moves"></div>
-        <div class="comment-ui">
-  <button id="btnCommentAdd" title="Add comment">+</button>
-  <button id="btnCommentSave" title="Save comment">✓</button>
-  <textarea id="commentEditor" placeholder="Add comment..."></textarea>
-</div>
+
+      <!-- ===== Right column: Moves + comments ===== -->
+      <div class="card">
+        <div class="cardHead">Moves</div>
+
+        <div class="cardBody">
+          <div id="moves" class="moves"></div>
+
+          <!-- Comment UI -->
+          <div class="comment-ui">
+            <button id="btnCommentAdd"  title="Add comment">+</button>
+            <button id="btnCommentSave" title="Save comment">✓</button>
+            <textarea id="commentEditor"
+                      placeholder="Add comment..."></textarea>
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
-</div>
 
-<div id="promo">
-  <div class="box">
-    <button data-p="q">♕</button>
-    <button data-p="r">♖</button>
-    <button data-p="b">♗</button>
-    <button data-p="n">♘</button>
+  <!-- =====================================================
+       Promotion Modal
+       ===================================================== -->
+  <div id="promo">
+    <div class="box">
+      <button data-p="q" title="Queen">♕</button>
+      <button data-p="r" title="Rook">♖</button>
+      <button data-p="b" title="Bishop">♗</button>
+      <button data-p="n" title="Knight">♘</button>
+    </div>
   </div>
-</div>
-
-
 
 </body>
 </html>
