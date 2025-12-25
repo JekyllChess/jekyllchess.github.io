@@ -146,7 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
       n = new Node(san, cursor, fen);
 
       if (cursor.next) {
+        // mainline already exists
         if (turnAfterMove === "w") {
+          // black just moved → promote to mainline
           cursor.vars.push(cursor.next);
           cursor.next = n;
         } else {
@@ -167,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  MOVE LIST RENDERING (WITH COMMENTS)
+   *  MOVE LIST RENDERING (FIXED VARIATIONS)
    * ====================================================== */
 
   function render() {
@@ -176,18 +178,36 @@ document.addEventListener("DOMContentLoaded", () => {
     const main = document.createElement("div");
     main.className = "mainline";
 
-    renderSeq(root.next, main, 1, "w");
+    renderSeq(root.next, main, 1, "w", false);
     movesDiv.appendChild(main);
   }
 
-  function renderSeq(n, container, moveNo, side) {
-    let cur = n, m = moveNo, s = side;
+  /**
+   * renderSeq renders a single mainline starting at node n.
+   *
+   * moveNo = current full-move number (1,2,3...)
+   * side   = "w" or "b" (whose move is represented by n)
+   * suppressFirstMoveNumber:
+   *    - used by variations to avoid "2. 2." duplication
+   */
+  function renderSeq(n, container, moveNo, side, suppressFirstMoveNumber) {
+    let cur = n;
+    let m = moveNo;
+    let s = side;
+    let suppress = !!suppressFirstMoveNumber;
 
     while (cur) {
-      if (s === "w") container.appendChild(text(m + ". "));
+
+      // Print move number only for White moves, unless suppressed for first ply
+      if (s === "w") {
+        if (!suppress) container.appendChild(text(m + ". "));
+        suppress = false;
+      }
+
       appendMove(container, cur);
       container.appendChild(text(" "));
 
+      // Inline comment
       if (cur.comment) {
         const c = document.createElement("span");
         c.className = "comment";
@@ -196,45 +216,64 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (s === "w") {
-        if (cur.next) {
-          cur = cur.next;
-          s = "b";
-          continue;
-        }
-        renderVars(container, cur, m, "b");
-        break;
-      } else {
-        renderVars(container, cur, m + 1, "w");
+        // After printing the mainline White move, show White alternatives
+        // from the position BEFORE this move (i.e., parent node vars).
+        renderVars(container, cur.parent, m, "w");
+
+        // Continue to Black reply
         cur = cur.next;
-        m++;
-        s = "w";
+        s = "b";
+        continue;
       }
+
+      // s === "b"
+      // After printing mainline Black move, show Black alternatives
+      // from the position BEFORE this move (i.e., parent node vars).
+      renderVars(container, cur.parent, m, "b");
+
+      // Next full move
+      cur = cur.next;
+      m++;
+      s = "w";
     }
   }
 
+  /**
+   * Renders variations stored in parent.vars, starting at moveNo/side.
+   * parent.vars are alternatives from the position represented by parent.
+   *
+   * side:
+   *  - "w": variations start with a White move -> print "(2." then the move
+   *  - "b": variations start with a Black move -> print "(2... " then the move
+   */
   function renderVars(container, parent, moveNo, side) {
-    if (!parent || !parent.vars.length) return;
+    if (!parent || !parent.vars || parent.vars.length === 0) return;
 
     for (const v of parent.vars) {
       const span = document.createElement("span");
       span.className = "variation";
 
-      const prefix =
-        (side === "b") ? moveNo + "... " : moveNo + ". ";
+      if (side === "w") {
+        // Desired style: (2.♘c3 ♘f6)
+        span.appendChild(text("(" + moveNo + "."));
+        renderSeq(v, span, moveNo, "w", true); // suppress first "2. "
+        trim(span);
+        span.appendChild(text(") "));
+      } else {
+        // Desired style: (2... ♘c6 ...)
+        span.appendChild(text("(" + moveNo + "... "));
+        renderSeq(v, span, moveNo, "b", false);
+        trim(span);
+        span.appendChild(text(") "));
+      }
 
-      span.appendChild(text("(" + prefix));
-      renderSeq(v, span, moveNo, side);
-      trim(span);
-      span.appendChild(text(") "));
       container.appendChild(span);
     }
   }
 
   function appendMove(container, node) {
     const span = document.createElement("span");
-    span.className =
-      "move" + (node === cursor ? " active" : "");
-
+    span.className = "move" + (node === cursor ? " active" : "");
     span.textContent = figSAN(node.san);
 
     span.onclick = () => {
@@ -294,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor = root;
     rebuildTo(root, true);
     render();
+    syncCommentEditor();
   };
 
   btnEnd.onclick = () => {
@@ -302,6 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor = n;
     rebuildTo(n, true);
     render();
+    syncCommentEditor();
   };
 
   btnPrev.onclick = () => {
@@ -309,6 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor = cursor.parent;
     rebuildTo(cursor, true);
     render();
+    syncCommentEditor();
   };
 
   btnNext.onclick = () => {
@@ -316,6 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor = cursor.next;
     rebuildTo(cursor, true);
     render();
+    syncCommentEditor();
   };
 
 
@@ -324,9 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
    * ====================================================== */
 
   btnFlip.onclick = () => {
-    boardOrientation =
-      boardOrientation === "white" ? "black" : "white";
-
+    boardOrientation = boardOrientation === "white" ? "black" : "white";
     board.orientation(boardOrientation);
     localStorage.setItem("boardOrientation", boardOrientation);
   };
