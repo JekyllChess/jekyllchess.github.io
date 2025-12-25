@@ -317,3 +317,53 @@ a:hover{ text-decoration: underline; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ======================================================
+   Comment UI (Material-style)
+   ====================================================== */
+
+.comment-ui{
+  position: relative;
+  margin-top: 12px;
+}
+
+#commentEditor{
+  width: 100%;
+  min-height: 80px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  resize: vertical;
+
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+
+  font: var(--body-md);
+  display: none;
+}
+
+.comment-ui button{
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--elev-2);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.comment-ui button:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--elev-3);
+}
+
+#btnCommentSave{
+  margin-left: 8px;
+}

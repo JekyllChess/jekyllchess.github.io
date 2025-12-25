@@ -12,6 +12,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPrev  = document.getElementById("btnPrev");
   const btnNext  = document.getElementById("btnNext");
 
+  const btnCommentAdd  = document.getElementById("btnCommentAdd");
+  const btnCommentSave = document.getElementById("btnCommentSave");
+  const commentEditor  = document.getElementById("commentEditor");
+
 
   /* ======================================================
    *  SAN / FIGURINE HELPERS
@@ -37,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       this.fen = fen;
       this.next = null;
       this.vars = [];
+      this.comment = ""; // ← comments live here
     }
   }
 
@@ -116,9 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
       n = new Node(san, cursor, fen);
 
       if (cursor.next) {
-        // mainline already exists
         if (turnAfterMove === "w") {
-          // black just moved → promote to mainline
           cursor.vars.push(cursor.next);
           cursor.next = n;
         } else {
@@ -133,11 +136,12 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor = n;
     rebuildTo(n, false);
     render();
+    syncCommentEditor();
   }
 
 
   /* ======================================================
-   *  MOVE LIST RENDERING
+   *  MOVE LIST RENDERING (with comments)
    * ====================================================== */
 
   function render() {
@@ -155,6 +159,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (s === "w") container.appendChild(text(m + ". "));
       appendMove(container, cur);
       container.appendChild(text(" "));
+
+      if (cur.comment) {
+        const c = document.createElement("span");
+        c.className = "comment";
+        c.textContent = "{" + cur.comment + "} ";
+        container.appendChild(c);
+      }
 
       if (s === "w") {
         if (cur.next) {
@@ -184,9 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
       span.appendChild(text("(" + prefix));
       renderSeq(v, span, moveNo, side);
       trim(span);
-      span.appendChild(text(")"));
+      span.appendChild(text(") "));
       container.appendChild(span);
-      container.appendChild(text(" "));
     }
   }
 
@@ -199,6 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       cursor = node;
       rebuildTo(node, true);
       render();
+      syncCommentEditor();
     };
 
     container.appendChild(span);
@@ -218,51 +229,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
+   *  COMMENT UI LOGIC
+   * ====================================================== */
+
+  function syncCommentEditor(){
+    if (cursor === root) {
+      commentEditor.style.display = "none";
+      return;
+    }
+    commentEditor.value = cursor.comment || "";
+  }
+
+  btnCommentAdd.onclick = () => {
+    if (cursor === root) return;
+    commentEditor.style.display = "block";
+    commentEditor.focus();
+  };
+
+  btnCommentSave.onclick = () => {
+    if (cursor === root) return;
+    cursor.comment = commentEditor.value.trim();
+    commentEditor.style.display = "none";
+    render();
+  };
+
+
+  /* ======================================================
    *  NAVIGATION CONTROLS
    * ====================================================== */
 
-  btnStart && (btnStart.onclick = () => {
-    cursor = root;
-    rebuildTo(root, true);
-    render();
-  });
-
-  btnEnd && (btnEnd.onclick = () => {
-    let n = root;
-    while (n.next) n = n.next;
-    cursor = n;
-    rebuildTo(n, true);
-    render();
-  });
-
-  btnPrev && (btnPrev.onclick = () => {
-    if (cursor.parent) {
-      cursor = cursor.parent;
-      rebuildTo(cursor, true);
-      render();
-    }
-  });
-
-  btnNext && (btnNext.onclick = () => {
-    if (cursor.next) {
-      cursor = cursor.next;
-      rebuildTo(cursor, true);
-      render();
-    }
-  });
+  btnStart && (btnStart.onclick = () => { cursor = root; rebuildTo(root, true); render(); });
+  btnEnd   && (btnEnd.onclick   = () => { let n=root; while(n.next) n=n.next; cursor=n; rebuildTo(n,true); render(); });
+  btnPrev  && (btnPrev.onclick  = () => { if(cursor.parent){ cursor=cursor.parent; rebuildTo(cursor,true); render(); }});
+  btnNext  && (btnNext.onclick  = () => { if(cursor.next){ cursor=cursor.next; rebuildTo(cursor,true); render(); }});
 
 
   /* ======================================================
    *  RESPONSIVE FIX
    * ====================================================== */
 
-  window.addEventListener("resize", () => {
-    board.resize();
-  });
+  window.addEventListener("resize", () => board.resize());
 
 
   /* ======================================================
-   *  INITIALIZATION
+   *  INIT
    * ====================================================== */
 
   render();
