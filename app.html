@@ -18,10 +18,8 @@ body{
   margin:0;
   background:#0f1115;
   color:#e6e6e6;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; /* ✅ UI font */
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
-
-/* header */
 .top{
   padding:10px 14px;
   background:#171a21;
@@ -31,14 +29,10 @@ body{
   align-items:center;
 }
 .top img{width:22px;filter:invert(1)}
-
-/* layout */
 .wrap{padding:12px}
 .main{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:900px){.main{grid-template-columns:560px 1fr}}
 #board{width:min(92vw,560px);margin:0 auto}
-
-/* controls */
 .controls{display:flex;gap:6px;margin-top:8px}
 .controls button{
   flex:1;
@@ -50,13 +44,7 @@ body{
   cursor:pointer;
   font-size:15px;
 }
-
-/* card */
-.card{
-  border:1px solid #222;
-  border-radius:12px;
-  overflow:hidden;
-}
+.card{border:1px solid #222;border-radius:12px;overflow:hidden}
 .cardHead{
   padding:10px 12px;
   background:#141820;
@@ -64,24 +52,12 @@ body{
   font-weight:700;
 }
 .cardBody{padding:12px}
-
-/* inline move list */
-.moves{
-  font-size:18px;
-  line-height:1.8;
-}
-.mainline{font-weight:700}          /* ✅ only mainline bold */
+.moves{font-size:18px;line-height:1.8}
+.mainline{font-weight:700}
 .variation{font-weight:400;opacity:.95}
-
-.move{
-  cursor:pointer;
-  padding:1px 3px;
-  border-radius:5px;
-}
+.move{cursor:pointer;padding:1px 3px;border-radius:5px}
 .move:hover{background:#20263a}
 .move.active{background:#3a7afe;color:#fff}
-
-/* promotion chooser */
 #promo{
   position:fixed;
   inset:0;
@@ -149,8 +125,7 @@ body{
 <script>
 (() => {
 
-const movesDiv = document.getElementById("moves");
-
+const movesDiv=document.getElementById("moves");
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
 
@@ -166,15 +141,14 @@ class Node{
   }
 }
 
-const chess = new Chess();
-const START_FEN = chess.fen();
-const root = new Node(null,null,START_FEN);
-let cursor = root;
+const chess=new Chess();
+const START_FEN=chess.fen();
+const root=new Node(null,null,START_FEN);
+let cursor=root;
 
-/* ───────── Board ───────── */
+/* board */
 let pendingPromotion=null;
-
-const board = Chessboard("board",{
+const board=Chessboard("board",{
   position:"start",
   draggable:true,
   pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
@@ -182,20 +156,19 @@ const board = Chessboard("board",{
 });
 
 function rebuildTo(node,animate){
-  chess.load(node?.fen || START_FEN);
-  board.position(chess.fen(), !!animate);
+  chess.load(node?.fen||START_FEN);
+  board.position(chess.fen(),!!animate);
 }
 
+/* input */
 function onDrop(from,to){
   const t=new Chess(chess.fen());
   const p=t.get(from);
-
-  if(p?.type==="p" && (to[1]==="8" || to[1]==="1")){
+  if(p?.type==="p"&&(to[1]==="8"||to[1]==="1")){
     pendingPromotion={from,to};
     promo.style.display="flex";
     return;
   }
-
   const m=t.move({from,to,promotion:"q"});
   if(!m) return "snapback";
   applyMove(m.san,t.fen());
@@ -210,201 +183,131 @@ promo.onclick=e=>{
   if(m) applyMove(m.san,t.fen());
 };
 
+/* 🔥 FIXED MOVE INSERTION */
 function applyMove(san,fen){
+  const isWhiteToMove = chess.turn()==="w";
   let n;
+
   if(cursor.next && cursor.next.san===san){
     n=cursor.next;
   }else{
     n=new Node(san,cursor,fen);
-    cursor.next ? cursor.vars.push(n) : cursor.next=n;
+
+    if(cursor.next){
+      if(!isWhiteToMove){
+        cursor.vars.push(cursor.next);
+        cursor.next=n;
+      }else{
+        cursor.vars.push(n);
+      }
+    }else{
+      cursor.next=n;
+    }
   }
+
   n.fen=fen;
   cursor=n;
   rebuildTo(n,false);
   render();
 }
 
-/* ───────── Inline renderer (mainline first, variations after) ───────── */
-
+/* INLINE RENDERING */
 function render(){
   movesDiv.innerHTML="";
   const main=document.createElement("div");
   main.className="mainline";
-  renderSequence(root.next, main, 1, "w");
+  renderSequence(root.next,main,1,"w");
   movesDiv.appendChild(main);
 }
 
-/**
- * Render a mainline SEQUENCE starting at node `n`, with moveNo and sideToMove.
- * This function always prints the mainline first; variations are appended AFTER
- * the relevant mainline move (fixes your III & IV).
- */
-function renderSequence(n, container, moveNo, side){
-  let cur=n;
-  let m=moveNo;
-  let s=side; // "w" or "b"
+function renderSequence(n,container,moveNo,side){
+  let cur=n,m=moveNo,s=side;
 
   while(cur){
-    const thisNode = cur;
-
-    // print move number for white moves in the mainline/variation sequence
-    if(s==="w"){
-      container.appendChild(text(m + ". "));
-    }
-
-    appendMoveSpan(container, thisNode);
+    if(s==="w") container.appendChild(text(m+". "));
+    appendMove(container,cur);
     container.appendChild(text(" "));
 
     if(s==="w"){
-      // White move variations represent BLACK alternatives for the same move number.
-      // Important: print them AFTER the mainline black reply (if any), not immediately.
-      const whiteNode=thisNode;
-      const blackMain=whiteNode.next;
-
-      if(blackMain){
-        // print mainline black move first
-        cur = blackMain;
-        s="b";
-        continue; // next loop iteration prints blackMain as mainline
-      }else{
-        // no mainline black reply, so we can print black-alternative variations now
-        appendVariationsAfter(container, whiteNode, m, "b");
-        break;
-      }
+      if(cur.next){cur=cur.next;s="b";continue;}
+      appendVariations(container,cur,m,"b");
+      break;
     }else{
-      // s === "b" (we just printed a black move)
-      const blackNode=thisNode;
-
-      // AFTER printing black move, we can print:
-      // - variations attached to the previous white move (black alternatives) now
-      // - variations attached to this black move (white alternatives) now
-      const whiteNode = blackNode.parent; // parent is the white move in the pair (or some node in variation)
-      if(whiteNode && whiteNode.san){
-        appendVariationsAfter(container, whiteNode, m, "b"); // (m... ...)
-      }
-      appendVariationsAfter(container, blackNode, m+1, "w"); // ((m+1). ...)
-
-      // advance to next full move
-      cur = blackNode.next;
-      m++;
-      s="w";
+      appendVariations(container,cur.parent,m,"b");
+      appendVariations(container,cur,m+1,"w");
+      cur=cur.next;m++;s="w";
     }
   }
 }
 
-/**
- * Append variations for `parentNode` AFTER the relevant mainline position.
- * startSide:
- *  - "b" → prefix "m... "
- *  - "w" → prefix "m. "
- *
- * Also ensures:
- * - no duplicated numbers (II)
- * - no trailing space before ')' (V)
- */
-function appendVariationsAfter(container, parentNode, moveNo, startSide){
-  if(!parentNode?.vars?.length) return;
-
+function appendVariations(container,parent,moveNo,side){
+  if(!parent||!parent.vars.length) return;
   const seen=new Set();
-  for(const v of parentNode.vars){
+
+  for(const v of parent.vars){
     if(seen.has(v.san)) continue;
     seen.add(v.san);
 
     const span=document.createElement("span");
     span.className="variation";
-
-    const prefix = (startSide==="b") ? (moveNo + "... ") : (moveNo + ". ");
-    span.appendChild(text("(" + prefix));
-
-    // render the variation line WITHOUT printing the prefix number again (fixes II)
-    renderSequenceNoLeadingNumber(v, span, moveNo, startSide);
-
-    trimTrailingSpace(span);              // remove any trailing space before ')'
+    const prefix=(side==="b")?moveNo+"... ":moveNo+". ";
+    span.appendChild(text("("+prefix));
+    renderSequenceNoNum(v,span,moveNo,side);
+    trim(span);
     span.appendChild(text(")"));
-
     container.appendChild(span);
     container.appendChild(text(" "));
   }
 }
 
-/**
- * Render a sequence but DO NOT print the starting move number,
- * because the caller already printed "(N... " or "(N. ".
- */
-function renderSequenceNoLeadingNumber(n, container, moveNo, side){
-  let cur=n;
-  let m=moveNo;
-  let s=side;
+function renderSequenceNoNum(n,container,moveNo,side){
+  let cur=n,m=moveNo,s=side;
 
   while(cur){
-    const thisNode = cur;
-
-    // Only print numbers when it's white to move AND not the very first token in this variation.
-    if(s==="w"){
-      container.appendChild(text(m + ". "));
-    }
-
-    appendMoveSpan(container, thisNode);
+    if(s==="w") container.appendChild(text(m+". "));
+    appendMove(container,cur);
     container.appendChild(text(" "));
-
     if(s==="w"){
-      const whiteNode=thisNode;
-      const blackMain=whiteNode.next;
-      if(blackMain){
-        cur=blackMain; s="b"; continue;
-      }else{
-        appendVariationsAfter(container, whiteNode, m, "b");
-        break;
-      }
+      if(cur.next){cur=cur.next;s="b";continue;}
+      appendVariations(container,cur,m,"b");
+      break;
     }else{
-      const blackNode=thisNode;
-      const whiteNode = blackNode.parent;
-      if(whiteNode && whiteNode.san){
-        appendVariationsAfter(container, whiteNode, m, "b");
-      }
-      appendVariationsAfter(container, blackNode, m+1, "w");
-
-      cur=blackNode.next;
-      m++; s="w";
+      appendVariations(container,cur.parent,m,"b");
+      appendVariations(container,cur,m+1,"w");
+      cur=cur.next;m++;s="w";
     }
   }
 }
 
-/* helpers */
-
-function appendMoveSpan(container, node){
-  const nodeRef = node; // ✅ capture (fixes "click jumps to start")
+function appendMove(container,node){
+  const ref=node;
   const span=document.createElement("span");
-  span.className="move" + (nodeRef===cursor ? " active":"");
-  span.textContent=figSAN(nodeRef.san);
+  span.className="move"+(ref===cursor?" active":"");
+  span.textContent=figSAN(ref.san);
   span.onclick=()=>{
-    cursor=nodeRef;
-    rebuildTo(nodeRef,true);
+    cursor=ref;
+    rebuildTo(ref,true);
     render();
   };
   container.appendChild(span);
 }
 
-function trimTrailingSpace(el){
-  const last=el.lastChild;
-  if(last && last.nodeType===3){ // Text node
-    last.nodeValue = last.nodeValue.replace(/\s+$/,"");
-    if(last.nodeValue.length===0) el.removeChild(last);
+function trim(el){
+  const t=el.lastChild;
+  if(t?.nodeType===3){
+    t.nodeValue=t.nodeValue.replace(/\s+$/,"");
+    if(!t.nodeValue) el.removeChild(t);
   }
 }
 
-function text(t){ return document.createTextNode(t); }
+function text(t){return document.createTextNode(t);}
 
-/* navigation buttons */
+/* navigation */
 btnStart.onclick=()=>{cursor=root;rebuildTo(root,true);render();}
-btnEnd.onclick=()=>{
-  let n=root; while(n.next) n=n.next;
-  cursor=n; rebuildTo(n,true); render();
-};
+btnEnd.onclick=()=>{let n=root;while(n.next)n=n.next;cursor=n;rebuildTo(n,true);render();}
 btnPrev.onclick=()=>{if(cursor.parent){cursor=cursor.parent;rebuildTo(cursor,true);render();}}
-btnNext.onclick=()=>{if(cursor.next){cursor=cursor.next;rebuildTo(cursor,true);render();}}
+btnNext.onclick=()=>{if(cursor.next){cursor=cursor.next;rebuildTo(cursor.next,true);render();}}
 
-/* init */
 render();
 rebuildTo(root,false);
 
