@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
       this.parent = parent;
       this.fen = fen;
       this.next = null;   // mainline
-      this.vars = [];     // variations
+      this.vars = [];     // variations branching at this node
     }
   }
 
@@ -139,12 +139,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   * INSERTION — CORRECT, FINAL
+   * INSERTION (MAINLINE + VARIATIONS)
    * ====================================================== */
 
   function applyMove(san, fen) {
-
-    // Follow existing mainline move
+    // Follow existing mainline move if identical
     if (cursor.next && cursor.next.san === san) {
       cursor = cursor.next;
       rebuildTo(cursor, false);
@@ -155,10 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const n = new Node(san, cursor, fen);
 
     if (!cursor.next) {
-      // Always extend mainline if at the tip
+      // Extend mainline if we're at the tip
       cursor.next = n;
     } else {
-      // Otherwise, this is a true variation
+      // Otherwise, this is a true variation at this position
       cursor.vars.push(n);
     }
 
@@ -169,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   * RENDERING (MAINLINE + VARIATIONS)
+   * RENDERING (MAINLINE + WHITE & BLACK VARIATIONS)
    * ====================================================== */
 
   function render() {
@@ -177,45 +176,63 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMainline(root.next, movesDiv, 1);
   }
 
-  function renderMainline(node, container, moveNo) {
-    let cur = node;
+  // Mainline is assumed to start with White at moveNo
+  function renderMainline(whiteNode, container, moveNo) {
+    let w = whiteNode;
     let m = moveNo;
 
-    while (cur) {
-      // White
+    while (w) {
+      // ---- White mainline move ----
       container.appendChild(text(m + ".\u00A0"));
-      appendMove(container, cur);
+      appendMove(container, w);
       container.appendChild(text(" "));
 
-      const black = cur.next;
-      if (!black) return;
-
-      // Black
-      appendMove(container, black);
-      container.appendChild(text(" "));
-
-      // Variations branching here
-      if (cur.vars.length) {
-        cur.vars.forEach(v => {
+      // ✅ WHITE variations live on the parent black node
+      // Example: 1... e5, then (2. Qh5) is stored in that black node's vars.
+      const parentBlack = w.parent; // may be null for the very first white move
+      if (parentBlack && parentBlack.vars && parentBlack.vars.length) {
+        for (const v of parentBlack.vars) {
           const span = document.createElement("span");
           span.className = "variation";
-          span.appendChild(text("(" + m + "...\u00A0"));
-          renderVariation(v, span, m);
+          span.appendChild(text("(" + m + ".\u00A0"));
+          renderVariation(v, span, m, "w"); // variation starts with White here
           trim(span);
           span.appendChild(text(") "));
           container.appendChild(span);
-        });
+        }
       }
 
-      cur = black.next;
+      // ---- Black mainline move ----
+      const b = w.next;
+      if (!b) return;
+
+      appendMove(container, b);
+      container.appendChild(text(" "));
+
+      // ✅ BLACK variations live on the white node
+      if (w.vars && w.vars.length) {
+        for (const v of w.vars) {
+          const span = document.createElement("span");
+          span.className = "variation";
+          span.appendChild(text("(" + m + "...\u00A0"));
+          renderVariation(v, span, m, "b"); // variation starts with Black here
+          trim(span);
+          span.appendChild(text(") "));
+          container.appendChild(span);
+        }
+      }
+
+      // advance to next white move
+      w = b.next;
       m++;
     }
   }
 
-  function renderVariation(node, container, moveNo) {
+  // Renders a side line starting at `node` with known starting side.
+  function renderVariation(node, container, moveNo, sideStart) {
     let cur = node;
     let m = moveNo;
-    let side = "b";
+    let side = sideStart;
 
     while (cur) {
       if (side === "w") {
@@ -225,8 +242,10 @@ document.addEventListener("DOMContentLoaded", () => {
       appendMove(container, cur);
       container.appendChild(text(" "));
 
+      // If we just printed black, next is new move number
+      if (side === "b") m++;
       side = side === "w" ? "b" : "w";
-      if (side === "w") m++;
+
       cur = cur.next;
     }
   }
@@ -297,10 +316,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", e => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-    if (e.key === "ArrowLeft")  goPrev();
-    if (e.key === "ArrowRight") goNext();
-    if (e.key === "ArrowUp")    goStart();
-    if (e.key === "ArrowDown")  goEnd();
+
+    switch (e.key) {
+      case "ArrowLeft":  e.preventDefault(); goPrev();  break;
+      case "ArrowRight": e.preventDefault(); goNext();  break;
+      case "ArrowUp":    e.preventDefault(); goStart(); break;
+      case "ArrowDown":  e.preventDefault(); goEnd();   break;
+    }
   });
 
 
