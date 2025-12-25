@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
       this.san = san;
       this.parent = parent;
       this.fen = fen;
-      this.next = null;   // mainline
-      this.vars = [];     // variations branching at this node
+      this.next = null;
+      this.vars = [];
     }
   }
 
@@ -139,11 +139,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   * INSERTION (MAINLINE + VARIATIONS)
+   * INSERTION (CORRECT)
    * ====================================================== */
 
   function applyMove(san, fen) {
-    // Follow existing mainline move if identical
     if (cursor.next && cursor.next.san === san) {
       cursor = cursor.next;
       rebuildTo(cursor, false);
@@ -154,10 +153,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const n = new Node(san, cursor, fen);
 
     if (!cursor.next) {
-      // Extend mainline if we're at the tip
       cursor.next = n;
     } else {
-      // Otherwise, this is a true variation at this position
       cursor.vars.push(n);
     }
 
@@ -168,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   * RENDERING (MAINLINE + WHITE & BLACK VARIATIONS)
+   * RENDERING (PGN-CORRECT)
    * ====================================================== */
 
   function render() {
@@ -176,76 +173,72 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMainline(root.next, movesDiv, 1);
   }
 
-  // Mainline is assumed to start with White at moveNo
-  function renderMainline(whiteNode, container, moveNo) {
-    let w = whiteNode;
+  function renderMainline(w, container, moveNo) {
     let m = moveNo;
 
     while (w) {
-      // ---- White mainline move ----
+      // White move
       container.appendChild(text(m + ".\u00A0"));
       appendMove(container, w);
       container.appendChild(text(" "));
 
-      // ✅ WHITE variations live on the parent black node
-      // Example: 1... e5, then (2. Qh5) is stored in that black node's vars.
-      const parentBlack = w.parent; // may be null for the very first white move
-      if (parentBlack && parentBlack.vars && parentBlack.vars.length) {
+      // White variations (from parent black)
+      const parentBlack = w.parent;
+      if (parentBlack && parentBlack.vars.length) {
         for (const v of parentBlack.vars) {
           const span = document.createElement("span");
           span.className = "variation";
           span.appendChild(text("(" + m + ".\u00A0"));
-          renderVariation(v, span, m, "w"); // variation starts with White here
+          renderVariation(v, span, m, "w", true);
           trim(span);
           span.appendChild(text(") "));
           container.appendChild(span);
         }
       }
 
-      // ---- Black mainline move ----
       const b = w.next;
       if (!b) return;
 
+      // Black move (with N...)
+      container.appendChild(text(m + "...\u00A0"));
       appendMove(container, b);
       container.appendChild(text(" "));
 
-      // ✅ BLACK variations live on the white node
-      if (w.vars && w.vars.length) {
+      // Black variations (from white node)
+      if (w.vars.length) {
         for (const v of w.vars) {
           const span = document.createElement("span");
           span.className = "variation";
           span.appendChild(text("(" + m + "...\u00A0"));
-          renderVariation(v, span, m, "b"); // variation starts with Black here
+          renderVariation(v, span, m, "b", true);
           trim(span);
           span.appendChild(text(") "));
           container.appendChild(span);
         }
       }
 
-      // advance to next white move
       w = b.next;
       m++;
     }
   }
 
-  // Renders a side line starting at `node` with known starting side.
-  function renderVariation(node, container, moveNo, sideStart) {
+  function renderVariation(node, container, moveNo, side, prefixPrinted) {
     let cur = node;
     let m = moveNo;
-    let side = sideStart;
+    let s = side;
 
     while (cur) {
-      if (side === "w") {
+      if (s === "w" && !prefixPrinted) {
         container.appendChild(text(m + ".\u00A0"));
       }
 
       appendMove(container, cur);
       container.appendChild(text(" "));
 
-      // If we just printed black, next is new move number
-      if (side === "b") m++;
-      side = side === "w" ? "b" : "w";
+      prefixPrinted = false;
 
+      if (s === "b") m++;
+      s = s === "w" ? "b" : "w";
       cur = cur.next;
     }
   }
@@ -281,48 +274,17 @@ document.addEventListener("DOMContentLoaded", () => {
    * NAVIGATION
    * ====================================================== */
 
-  function goStart() {
-    cursor = root;
-    rebuildTo(root, true);
-    render();
-  }
-
-  function goEnd() {
-    let n = root;
-    while (n.next) n = n.next;
-    cursor = n;
-    rebuildTo(n, true);
-    render();
-  }
-
-  function goPrev() {
-    if (!cursor.parent) return;
-    cursor = cursor.parent;
-    rebuildTo(cursor, true);
-    render();
-  }
-
-  function goNext() {
-    if (!cursor.next) return;
-    cursor = cursor.next;
-    rebuildTo(cursor, true);
-    render();
-  }
-
-  btnStart.onclick = goStart;
-  btnEnd.onclick   = goEnd;
-  btnPrev.onclick  = goPrev;
-  btnNext.onclick  = goNext;
+  btnStart.onclick = () => { cursor = root; rebuildTo(root, true); render(); };
+  btnEnd.onclick   = () => { let n=root; while(n.next) n=n.next; cursor=n; rebuildTo(n,true); render(); };
+  btnPrev.onclick  = () => { if(cursor.parent){ cursor=cursor.parent; rebuildTo(cursor,true); render(); }};
+  btnNext.onclick  = () => { if(cursor.next){ cursor=cursor.next; rebuildTo(cursor,true); render(); }};
 
   document.addEventListener("keydown", e => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    switch (e.key) {
-      case "ArrowLeft":  e.preventDefault(); goPrev();  break;
-      case "ArrowRight": e.preventDefault(); goNext();  break;
-      case "ArrowUp":    e.preventDefault(); goStart(); break;
-      case "ArrowDown":  e.preventDefault(); goEnd();   break;
-    }
+    if (e.key === "ArrowLeft")  btnPrev.onclick();
+    if (e.key === "ArrowRight") btnNext.onclick();
+    if (e.key === "ArrowUp")    btnStart.onclick();
+    if (e.key === "ArrowDown")  btnEnd.onclick();
   });
 
 
