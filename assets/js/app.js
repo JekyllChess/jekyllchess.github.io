@@ -1,4 +1,4 @@
-(() => {
+document.addEventListener("DOMContentLoaded", () => {
 
 const movesDiv = document.getElementById("moves");
 const promo = document.getElementById("promo");
@@ -72,7 +72,7 @@ promo.onclick = e => {
   if (m) applyMove(m.san, t.fen(), t.turn());
 };
 
-/* ✅ FIXED, TURN-CORRECT INSERTION */
+/* TURN-CORRECT INSERTION */
 function applyMove(san, fen, turnAfterMove) {
   let n;
 
@@ -82,9 +82,7 @@ function applyMove(san, fen, turnAfterMove) {
     n = new Node(san, cursor, fen);
 
     if (cursor.next) {
-      // mainline already exists
       if (turnAfterMove === "w") {
-        // black just moved → promote to mainline
         cursor.vars.push(cursor.next);
         cursor.next = n;
       } else {
@@ -101,7 +99,7 @@ function applyMove(san, fen, turnAfterMove) {
   render();
 }
 
-/* INLINE RENDERING */
+/* RENDERING */
 function render() {
   movesDiv.innerHTML = "";
   const main = document.createElement("div");
@@ -212,4 +210,4 @@ btnNext && (btnNext.onclick = () => {
 render();
 rebuildTo(root, false);
 
-})();
+});
