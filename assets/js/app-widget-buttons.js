@@ -26,6 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDelete  = makeButton("🗑️", "Delete variation");
   const btnUndo    = makeButton("↶", "Undo");
 
+  /* 🔑 HIDE variation-only buttons on load */
+  btnPromote.style.display = "none";
+  btnDelete.style.display  = "none";
+
   container.append(btnFen, btnPgn, btnComment, btnPromote, btnDelete, btnUndo);
 
 
@@ -120,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     copy(serializePGN());
   };
 
-  // ADD COMMENT (modal)
+  // ADD COMMENT
   btnComment.onclick = () => {
     const n = getCursor();
     if (!n || n === window.JC.getRoot()) return;
@@ -210,10 +214,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateStates() {
     const n = getCursor();
-    const varMove = isVariation(n);
+    const isVar = isVariation(n);
 
-    btnPromote.style.display = varMove ? "" : "none";
-    btnDelete.style.display  = varMove ? "" : "none";
+    /* show ONLY when variation is selected */
+    btnPromote.style.display = isVar ? "" : "none";
+    btnDelete.style.display  = isVar ? "" : "none";
 
     btnComment.disabled = !n || n === window.JC.getRoot();
   }
