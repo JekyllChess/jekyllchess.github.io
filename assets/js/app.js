@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const m = t.move({ from, to, promotion: "q" });
     if (!m) return "snapback";
 
-    applyMove(m.san, t.fen(), t.turn());
+    applyMove(m.san, t.fen());
   }
 
   promo.onclick = e => {
@@ -134,16 +134,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const m = t.move({ ...pendingPromotion, promotion: e.target.dataset.p });
     pendingPromotion = null;
 
-    if (m) applyMove(m.san, t.fen(), t.turn());
+    if (m) applyMove(m.san, t.fen());
   };
 
 
   /* ======================================================
-   * INSERTION (MAINLINE + VARS, FIXED)
+   * INSERTION — CORRECT, FINAL
    * ====================================================== */
 
-  function applyMove(san, fen, turnAfterMove) {
-    // Follow existing mainline if identical
+  function applyMove(san, fen) {
+
+    // Follow existing mainline move
     if (cursor.next && cursor.next.san === san) {
       cursor = cursor.next;
       rebuildTo(cursor, false);
@@ -153,18 +154,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const n = new Node(san, cursor, fen);
 
-    // Determine correct attachment point
-    let attachPoint = cursor;
-
-    // If White just moved, variation belongs to previous Black move
-    if (turnAfterMove === "b" && cursor.parent) {
-      attachPoint = cursor.parent;
-    }
-
-    if (!attachPoint.next) {
-      attachPoint.next = n;
+    if (!cursor.next) {
+      // Always extend mainline if at the tip
+      cursor.next = n;
     } else {
-      attachPoint.vars.push(n);
+      // Otherwise, this is a true variation
+      cursor.vars.push(n);
     }
 
     cursor = n;
@@ -174,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   * RENDERING (PGN-CORRECT)
+   * RENDERING (MAINLINE + VARIATIONS)
    * ====================================================== */
 
   function render() {
@@ -199,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
       appendMove(container, black);
       container.appendChild(text(" "));
 
-      // Variations branching from this ply
+      // Variations branching here
       if (cur.vars.length) {
         cur.vars.forEach(v => {
           const span = document.createElement("span");
