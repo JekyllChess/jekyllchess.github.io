@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  Training mode
-FEN: r2qk2r/pb1p1pp1/2p4p/4p3/3bP3/2N5/PPP2PPP/R1BQR1K1 w kq - 0 14
+FEN: rnb2rk1/pp2bppp/4pn2/4N3/3N4/2P5/PP2BPPP/R1B1K2R b KQ - 0 11
 ---
 
 Lorem ipsum dolor sit amet, 7. Nc4 Be7 8. Nce5 O-O 9. Be2 cxd4 10. Qxd4 Qxd4 consectetur adipiscing elit. Donec enim mi, cursus aliquet pharetra sit amet, facilisis vel orci. Duis eget consectetur neque, et vestibulum tortor. Sed a lacus euismod, sagittis mi ut, bibendum turpis.
