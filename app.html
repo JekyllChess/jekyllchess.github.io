@@ -186,6 +186,7 @@ body{
 (() => {
 
 const movesDiv = document.getElementById("moves");
+
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
 
@@ -284,15 +285,18 @@ function renderMain(start,moveNo,wrap){
     num.textContent=moveNo+".";
     row.appendChild(num);
 
+    // White move (always exists in mainline row)
     const wCell=document.createElement("div");
     const w=n;
     wCell.appendChild(makeHalf(w));
     n=w.next;
     row.appendChild(wCell);
 
+    // Black move (may not exist if line ends)
     const bCell=document.createElement("div");
+    let b=null;
     if(n){
-      const b=n;
+      b=n;
       bCell.appendChild(makeHalf(b));
       n=b.next;
     }
@@ -300,14 +304,17 @@ function renderMain(start,moveNo,wrap){
 
     wrap.appendChild(row);
 
-    renderVariations(w,moveNo,true,wrap);
-    if(w.next) renderVariations(w.next,moveNo,false,wrap);
+    // ✅ FIX: variations after WHITE move start with BLACK at same move number (N...)
+    renderVariations(w, moveNo, false, wrap);
+
+    // ✅ FIX: variations after BLACK move start with WHITE at next move number ((N+1).)
+    if(b) renderVariations(b, moveNo+1, true, wrap);
 
     moveNo++;
   }
 }
 
-function renderVariations(node,moveNo,isWhite,wrap){
+function renderVariations(node,moveNo,startsWithWhite,wrap){
   const seen=new Set();
   node.vars.forEach(v=>{
     if(seen.has(v.san)) return;
@@ -316,7 +323,7 @@ function renderVariations(node,moveNo,isWhite,wrap){
     const d=document.createElement("div");
     d.className="variation";
     wrap.appendChild(d);
-    renderVariationLine(v,moveNo,isWhite,d);
+    renderVariationLine(v,moveNo,startsWithWhite,d);
   });
 }
 
@@ -340,9 +347,12 @@ function renderVariationLine(start,moveNo,isWhite,wrap){
       if(n.next){
         bCell.appendChild(makeHalf(n.next));
         n=n.next.next;
-      }else n=null;
+      }else{
+        n=null;
+      }
       row.appendChild(bCell);
     }else{
+      // black-starting: empty white cell + black cell only
       row.appendChild(document.createElement("div"));
       const bCell=document.createElement("div");
       bCell.appendChild(makeHalf(n));
@@ -351,6 +361,9 @@ function renderVariationLine(start,moveNo,isWhite,wrap){
     }
 
     wrap.appendChild(row);
+
+    // after printing a black-starting single move (N...),
+    // next row is (N+1). with white to move
     moveNo++;
     isWhite=true;
   }
@@ -360,13 +373,16 @@ function makeHalf(node){
   const span=document.createElement("span");
   span.className="half"+(node===cursor?" active":"");
   span.textContent=figSAN(node.san);
+
   span.onclick=()=>{
     cursor=node;
     editingNode=null;
     rebuildTo(node,true);
     render();
   };
+
   span.ondblclick=()=>{
+    cursor=node;
     editingNode=node;
     render();
   };
