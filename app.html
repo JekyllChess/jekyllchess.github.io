@@ -18,52 +18,48 @@
   <!-- App styles -->
   <link rel="stylesheet" href="https://jekyllchess.github.io/assets/css/app.css">
 
-  <!-- App logic (must come AFTER libraries) -->
+  <!-- App logic -->
   <script src="https://jekyllchess.github.io/assets/js/app.js" defer></script>
 </head>
 
 <body>
 
-  <!-- =====================================================
-       Top App Bar
-       ===================================================== -->
+  <!-- Top bar -->
   <div class="top">
-    <img src="https://jekyllchess.github.io/assets/favicon.png" alt="JekyllChess">
+    <img src="https://jekyllchess.github.io/assets/favicon.png" alt="">
     <div class="title">JekyllChess PGN App</div>
   </div>
 
-  <!-- =====================================================
-       Main Layout
-       ===================================================== -->
   <div class="wrap">
     <div class="main">
 
-      <!-- ===== Left column: Board ===== -->
+      <!-- LEFT: BOARD -->
       <div>
         <div id="board"></div>
 
         <div class="controls">
-          <button id="btnStart" title="Start">⏮</button>
-          <button id="btnPrev"  title="Previous">◀</button>
-          <button id="btnNext"  title="Next">▶</button>
-          <button id="btnEnd"   title="End">⏭</button>
-          <button id="btnFlip"  title="Flip board">⇄</button>
+          <button id="btnStart">⏮</button>
+          <button id="btnPrev">◀</button>
+          <button id="btnNext">▶</button>
+          <button id="btnEnd">⏭</button>
+          <button id="btnFlip">⇄</button>
         </div>
       </div>
 
-      <!-- ===== Right column: Moves + comments ===== -->
+      <!-- RIGHT: MOVES -->
       <div class="card">
         <div class="cardHead">Moves</div>
 
         <div class="cardBody">
           <div id="moves" class="moves"></div>
 
-          <!-- Comment UI -->
-          <div class="comment-ui">
-            <button id="btnCommentAdd"  title="Add comment">+</button>
-            <button id="btnCommentSave" title="Save comment">✓</button>
-            <textarea id="commentEditor"
-                      placeholder="Add comment..."></textarea>
+          <!-- Placeholder controls (aligned with board controls) -->
+          <div class="controls placeholder-controls">
+            <button disabled></button>
+            <button disabled></button>
+            <button disabled></button>
+            <button disabled></button>
+            <button disabled></button>
           </div>
         </div>
       </div>
@@ -71,15 +67,13 @@
     </div>
   </div>
 
-  <!-- =====================================================
-       Promotion Modal
-       ===================================================== -->
+  <!-- Promotion modal -->
   <div id="promo">
     <div class="box">
-      <button data-p="q" title="Queen">♕</button>
-      <button data-p="r" title="Rook">♖</button>
-      <button data-p="b" title="Bishop">♗</button>
-      <button data-p="n" title="Knight">♘</button>
+      <button data-p="q">♕</button>
+      <button data-p="r">♖</button>
+      <button data-p="b">♗</button>
+      <button data-p="n">♘</button>
     </div>
   </div>
 
