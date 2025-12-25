@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
    * ====================================================== */
 
   const container = document.querySelector(".placeholder-controls");
-  if (!container) return;
+  if (!container || !window.JC) return;
 
   container.innerHTML = "";
 
@@ -30,14 +30,14 @@ document.addEventListener("DOMContentLoaded", () => {
    * ====================================================== */
 
   function getCursor() {
-    return window.JC?.getCursor?.();
+    return window.JC.getCursor();
   }
 
   function isVariation(node) {
     return node && node.parent && node.parent.next !== node;
   }
 
-  function writeClipboard(text) {
+  function copy(text) {
     navigator.clipboard.writeText(text);
   }
 
@@ -47,10 +47,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateButtonStates() {
     const n = getCursor();
-    const v = isVariation(n);
+    const isVar = isVariation(n);
 
-    btnPromote.disabled = !v;
-    btnDelete.disabled  = !v;
+    btnPromote.disabled = !isVar;
+    btnDelete.disabled  = !isVar;
     btnComment.disabled = !n || n === window.JC.getRoot();
   }
 
@@ -59,17 +59,19 @@ document.addEventListener("DOMContentLoaded", () => {
    * BUTTON ACTIONS
    * ====================================================== */
 
-  // 1️⃣ COPY FEN
+  // 1️⃣ COPY FEN — FIXED
   btnFen.onclick = () => {
-    writeClipboard(window.JC.getFEN());
+    const n = getCursor();
+    if (!n || !n.fen) return;
+    copy(n.fen);
   };
 
   // 2️⃣ COPY PGN (visual PGN)
   btnPgn.onclick = () => {
-    writeClipboard(serializePGN());
+    copy(serializePGN());
   };
 
-  // 3️⃣ ADD COMMENT
+  // 3️⃣ ADD COMMENT (stored on node)
   btnComment.onclick = () => {
     const n = getCursor();
     if (!n || n === window.JC.getRoot()) return;
@@ -77,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = prompt("Comment for this move:");
     if (!text) return;
 
-    // Insert as PGN-style comment node
     n.comment = `{ ${text} }`;
     window.JC.render();
   };
@@ -89,13 +90,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const p = n.parent;
 
-    // Remove from vars
+    // remove from variations
     p.vars = p.vars.filter(v => v !== n);
 
-    // Demote old mainline
+    // demote current mainline
     if (p.next) p.vars.unshift(p.next);
 
-    // Promote
+    // promote selected variation
     p.next = n;
 
     window.JC.setCursor(n);
@@ -103,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.JC.render();
   };
 
-  // 5️⃣ DELETE VARIATION BRANCH
+  // 5️⃣ DELETE VARIATION SUBTREE
   btnDelete.onclick = () => {
     const n = getCursor();
     if (!isVariation(n)) return;
