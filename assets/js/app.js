@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   /* ======================================================
-   *  DOM REFERENCES
+   * DOM REFERENCES
    * ====================================================== */
 
   const movesDiv = document.getElementById("moves");
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  SAN / FIGURINE HELPERS
+   * SAN / FIGURINES
    * ====================================================== */
 
   const FIG = { K:"♔", Q:"♕", R:"♖", B:"♗", N:"♘" };
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  TREE DATA MODEL (WITH VARIATIONS)
+   * TREE MODEL
    * ====================================================== */
 
   let ID = 1;
@@ -41,14 +41,14 @@ document.addEventListener("DOMContentLoaded", () => {
       this.san = san;
       this.parent = parent;
       this.fen = fen;
-      this.next = null;   // mainline
-      this.vars = [];     // variations
+      this.next = null;
+      this.vars = [];
     }
   }
 
 
   /* ======================================================
-   *  CHESS STATE
+   * CHESS STATE
    * ====================================================== */
 
   const chess = new Chess();
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  BOARD SETUP
+   * BOARD
    * ====================================================== */
 
   const board = Chessboard("board", {
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  RESIZE OBSERVER (BOARD == MOVES)
+   * HEIGHT SYNC
    * ====================================================== */
 
   function syncMovesPaneHeight() {
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  MOVE INPUT & PROMOTION
+   * MOVE INPUT
    * ====================================================== */
 
   function onDrop(from, to) {
@@ -128,15 +128,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   promo.onclick = e => {
     if (!e.target.dataset.p) return;
-
     promo.style.display = "none";
 
     const t = new Chess(chess.fen());
-    const m = t.move({
-      ...pendingPromotion,
-      promotion: e.target.dataset.p
-    });
-
+    const m = t.move({ ...pendingPromotion, promotion: e.target.dataset.p });
     pendingPromotion = null;
 
     if (m) applyMove(m.san, t.fen(), t.turn());
@@ -144,11 +139,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  INSERTION LOGIC (MAINLINE + VARIATIONS)
+   * INSERTION (MAINLINE + VARS)
    * ====================================================== */
 
-  function applyMove(san, fen, turnAfterMove) {
-    // If identical mainline move exists, follow it
+  function applyMove(san, fen, turnAfter) {
     if (cursor.next && cursor.next.san === san) {
       cursor = cursor.next;
       rebuildTo(cursor, false);
@@ -159,10 +153,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const n = new Node(san, cursor, fen);
 
     if (!cursor.next) {
-      // No mainline yet
       cursor.next = n;
     } else {
-      // Branch → variation
       cursor.vars.push(n);
     }
 
@@ -173,20 +165,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  MOVE LIST RENDERING (PGN STYLE)
+   * RENDERING (CORRECT PGN)
    * ====================================================== */
 
   function render() {
     movesDiv.innerHTML = "";
-    renderSequence(root.next, movesDiv, 1, "w");
+    renderLine(root.next, movesDiv, 1, "w");
   }
 
-  function renderSequence(node, container, moveNo, side) {
+  function renderLine(node, container, moveNo, side) {
     let cur = node;
     let m = moveNo;
     let s = side;
 
     while (cur) {
+
+      // Print move number if white
       if (s === "w") {
         container.appendChild(text(m + ".\u00A0"));
       }
@@ -194,7 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
       appendMove(container, cur);
       container.appendChild(text(" "));
 
-      // Render variations (after the move they branch from)
+      // After mainline reply, print variations
       if (cur.vars.length) {
         cur.vars.forEach(v => {
           const span = document.createElement("span");
@@ -202,18 +196,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const prefix =
             s === "w"
-              ? m + ".\u00A0"
-              : m + "...\u00A0";
+              ? m + "...\u00A0"
+              : (m + 1) + ".\u00A0";
 
           span.appendChild(text("(" + prefix));
-          renderSequence(v, span, m, s);
+          renderLine(v, span, s === "w" ? m : m + 1, s === "w" ? "b" : "w");
           trim(span);
           span.appendChild(text(") "));
           container.appendChild(span);
         });
       }
 
-      // Advance mainline
+      // Advance
       if (s === "b") m++;
       s = s === "w" ? "b" : "w";
       cur = cur.next;
@@ -248,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  NAVIGATION (BUTTONS + KEYBOARD)
+   * NAVIGATION
    * ====================================================== */
 
   function goStart() {
@@ -286,31 +280,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("keydown", e => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    switch (e.key) {
-      case "ArrowLeft":  e.preventDefault(); goPrev();  break;
-      case "ArrowRight": e.preventDefault(); goNext();  break;
-      case "ArrowUp":    e.preventDefault(); goStart(); break;
-      case "ArrowDown":  e.preventDefault(); goEnd();   break;
-    }
+    if (e.key === "ArrowLeft")  goPrev();
+    if (e.key === "ArrowRight") goNext();
+    if (e.key === "ArrowUp")    goStart();
+    if (e.key === "ArrowDown")  goEnd();
   });
 
 
   /* ======================================================
-   *  BOARD ORIENTATION TOGGLE
+   * ORIENTATION
    * ====================================================== */
 
   btnFlip.onclick = () => {
-    boardOrientation =
-      boardOrientation === "white" ? "black" : "white";
-
+    boardOrientation = boardOrientation === "white" ? "black" : "white";
     board.orientation(boardOrientation);
     localStorage.setItem("boardOrientation", boardOrientation);
   };
 
 
   /* ======================================================
-   *  INIT
+   * INIT
    * ====================================================== */
 
   render();
