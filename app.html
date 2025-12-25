@@ -3,110 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>JekyllChess PGN App</title>
 
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 <link rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+ href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
 
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:#0f1115;
-  color:#e6e6e6;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-}
-
-/* header */
-.top{
-  padding:10px 14px;
-  background:#171a21;
-  border-bottom:1px solid #222;
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
+body{margin:0;background:#0f1115;color:#e6e6e6;font-family:system-ui}
+.top{padding:10px 14px;background:#171a21;border-bottom:1px solid #222;display:flex;gap:10px;align-items:center}
 .top img{width:22px;filter:invert(1)}
-
-/* layout */
 .wrap{padding:12px}
 .main{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:900px){.main{grid-template-columns:560px 1fr}}
 #board{width:min(92vw,560px);margin:0 auto}
-
-/* controls */
 .controls{display:flex;gap:6px;margin-top:8px}
-.controls button{
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#1f2430;
-  color:#ddd;
-  cursor:pointer;
-  font-size:15px;
-}
-
-/* card */
-.card{
-  border:1px solid #222;
-  border-radius:12px;
-  overflow:hidden;
-}
-.cardHead{
-  padding:10px 12px;
-  background:#141820;
-  border-bottom:1px solid #222;
-  font-weight:700;
-}
+.controls button{flex:1;padding:10px;border:none;border-radius:10px;background:#1f2430;color:#ddd}
+.card{border:1px solid #222;border-radius:12px;overflow:hidden}
+.cardHead{padding:10px 12px;background:#141820;border-bottom:1px solid #222;font-weight:700}
 .cardBody{padding:12px}
-
-/* inline move list */
-.moves{
-  font-size:18px;
-  line-height:1.8;
-}
-
+.moves{font-size:18px;line-height:1.8}
 .mainline{font-weight:700}
-.variation{font-weight:400; opacity:.95}
-
-.move{
-  cursor:pointer;
-  padding:1px 3px;
-  border-radius:5px;
-}
-.move:hover{background:#20263a}
+.variation{font-weight:400;opacity:.95}
+.move{cursor:pointer;padding:1px 3px;border-radius:5px}
 .move.active{background:#3a7afe;color:#fff}
-
-/* promotion chooser */
-#promo{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-#promo .box{
-  background:#161a24;
-  padding:16px;
-  border-radius:12px;
-  display:flex;
-  gap:10px;
-}
-#promo button{
-  font-size:28px;
-  padding:10px 14px;
-  background:#1f2430;
-  border:none;
-  border-radius:10px;
-  color:#fff;
-  cursor:pointer;
-}
+#promo{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center}
+#promo .box{background:#161a24;padding:16px;border-radius:12px;display:flex;gap:10px}
+#promo button{font-size:28px;padding:10px 14px;background:#1f2430;border:none;border-radius:10px;color:#fff}
 </style>
 </head>
 
@@ -128,7 +54,6 @@ body{
         <button id="btnEnd">⏭</button>
       </div>
     </div>
-
     <div class="card">
       <div class="cardHead">Moves</div>
       <div class="cardBody">
@@ -151,7 +76,6 @@ body{
 (() => {
 
 const movesDiv = document.getElementById("moves");
-
 const FIG={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘"};
 const figSAN=s=>s.replace(/^[KQRBN]/,p=>FIG[p]||p);
 
@@ -168,21 +92,15 @@ class Node{
 }
 
 const chess=new Chess();
-const START_FEN=chess.fen();
-const root=new Node(null,null,START_FEN);
+const root=new Node(null,null,chess.fen());
 let cursor=root;
 
 /* board */
 let pendingPromotion=null;
-const board=Chessboard("board",{
-  position:"start",
-  draggable:true,
-  pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
-  onDrop
-});
+const board=Chessboard("board",{position:"start",draggable:true,pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",onDrop});
 
 function rebuildTo(node,animate){
-  chess.load(node?.fen||START_FEN);
+  chess.load(node?.fen||root.fen);
   board.position(chess.fen(),!!animate);
 }
 
@@ -192,21 +110,19 @@ function onDrop(from,to){
   const p=t.get(from);
   if(p?.type==="p"&&(to[1]==="8"||to[1]==="1")){
     pendingPromotion={from,to};
-    promo.style.display="flex";
-    return;
+    promo.style.display="flex";return;
   }
   const m=t.move({from,to,promotion:"q"});
-  if(!m) return "snapback";
+  if(!m)return"snapback";
   applyMove(m.san,t.fen());
 }
-
 promo.onclick=e=>{
-  if(!e.target.dataset.p) return;
+  if(!e.target.dataset.p)return;
   promo.style.display="none";
   const t=new Chess(chess.fen());
   const m=t.move({...pendingPromotion,promotion:e.target.dataset.p});
   pendingPromotion=null;
-  if(m) applyMove(m.san,t.fen());
+  if(m)applyMove(m.san,t.fen());
 };
 
 function applyMove(san,fen){
@@ -223,41 +139,36 @@ function applyMove(san,fen){
   render();
 }
 
-/* ───────── INLINE RENDERING ───────── */
-
+/* INLINE PGN RENDERING — FIXED */
 function render(){
   movesDiv.innerHTML="";
   const main=document.createElement("div");
   main.className="mainline";
-  renderLine(root.next, main, 1, true);
+  renderLine(root.next,main,1,true);
   movesDiv.appendChild(main);
 }
 
-function renderLine(node, container, moveNo, isWhite){
+function renderLine(node,container,moveNo,isWhite){
   let n=node;
   let m=moveNo;
   let white=isWhite;
 
   while(n){
-    if(white){
-      container.appendChild(text(m + ". "));
-    }
+    if(white) container.appendChild(text(m+". "));
 
     const span=document.createElement("span");
     span.className="move"+(n===cursor?" active":"");
     span.textContent=figSAN(n.san)+" ";
-    span.onclick=()=>{
-      cursor=n;
-      rebuildTo(n,true);
-      render();
-    };
+    span.onclick=()=>{cursor=n;rebuildTo(n,true);render();};
     container.appendChild(span);
 
+    /* VARIATIONS AFTER THIS MOVE */
     n.vars.forEach(v=>{
       const d=document.createElement("span");
       d.className="variation";
-      d.appendChild(text("(" + (white ? m + "." : m + "...") + " "));
-      renderLine(v, d, m, white);
+      const prefix = white ? m+"... " : (m+1)+". ";
+      d.appendChild(text("(" + prefix));
+      renderLine(v,d,white?m:m+1,white?false:true);
       d.appendChild(text(") "));
       container.appendChild(d);
     });
@@ -268,20 +179,14 @@ function renderLine(node, container, moveNo, isWhite){
   }
 }
 
-function text(t){
-  return document.createTextNode(t);
-}
+function text(t){return document.createTextNode(t);}
 
 /* navigation */
 btnStart.onclick=()=>{cursor=root;rebuildTo(root,true);render();}
-btnEnd.onclick=()=>{
-  let n=root;while(n.next)n=n.next;
-  cursor=n;rebuildTo(n,true);render();
-};
+btnEnd.onclick=()=>{let n=root;while(n.next)n=n.next;cursor=n;rebuildTo(n,true);render();}
 btnPrev.onclick=()=>{if(cursor.parent){cursor=cursor.parent;rebuildTo(cursor,true);render();}}
-btnNext.onclick=()=>{if(cursor.next){cursor=cursor.next;rebuildTo(cursor.next,true);render();}}
+btnNext.onclick=()=>{if(cursor.next){cursor=cursor.next;rebuildTo(cursor,true);render();}}
 
-/* init */
 render();
 rebuildTo(root,false);
 
