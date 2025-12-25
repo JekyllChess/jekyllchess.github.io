@@ -1,67 +1,318 @@
-*{box-sizing:border-box}
+/* =========================================================
+   Material 3-inspired (dark) theme for your chess app
+   Uses M3-like color roles + type scale approach.
+   ========================================================= */
+
+:root{
+  /* ---- Color roles (M3-inspired) ---- */
+  --md-sys-color-background: #0f1115;
+  --md-sys-color-surface: #12141a;
+  --md-sys-color-surface-container: #171a21;
+  --md-sys-color-surface-container-high: #1b1f29;
+  --md-sys-color-outline: rgba(255,255,255,.12);
+  --md-sys-color-outline-variant: rgba(255,255,255,.08);
+
+  --md-sys-color-on-background: rgba(255,255,255,.92);
+  --md-sys-color-on-surface: rgba(255,255,255,.92);
+  --md-sys-color-on-surface-variant: rgba(255,255,255,.72);
+
+  --md-sys-color-primary: #9ec2ff;
+  --md-sys-color-on-primary: #0b1b33;
+  --md-sys-color-primary-container: #243a5c;
+  --md-sys-color-on-primary-container: rgba(255,255,255,.92);
+
+  --md-sys-color-secondary: #c7cbd8;
+  --md-sys-color-on-secondary: #10131a;
+
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #3a0b0b;
+
+  /* ---- Elevation (subtle in dark) ---- */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(0,0,0,.40), 0 1px 3px rgba(0,0,0,.25);
+  --elev-2: 0 2px 6px rgba(0,0,0,.45), 0 2px 10px rgba(0,0,0,.25);
+  --elev-3: 0 6px 18px rgba(0,0,0,.50), 0 2px 10px rgba(0,0,0,.28);
+
+  /* ---- Shape ---- */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  /* ---- Motion-ish ---- */
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --ease: cubic-bezier(.2, .0, 0, 1);
+
+  /* ---- Type scale (simple mapping of M3 roles) ---- */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --label-lg: 600 14px/1.1 var(--font);
+  --title-md: 650 16px/1.2 var(--font);
+  --body-md:  450 16px/1.5 var(--font);
+  --body-lg:  450 18px/1.6 var(--font);
+}
+
+/* =========================================================
+   Base
+   ========================================================= */
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
 body{
   margin:0;
-  background:#0f1115;
-  color:#e6e6e6;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  font: var(--body-md);
 }
+
+/* Text selection */
+::selection{
+  background: rgba(158,194,255,.25);
+}
+
+/* Focus ring (Material-ish) */
+:focus-visible{
+  outline: 3px solid rgba(158,194,255,.65);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   Top App Bar (".top")
+   ========================================================= */
 .top{
-  padding:10px 14px;
-  background:#171a21;
-  border-bottom:1px solid #222;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
+  padding: 12px 16px;
   display:flex;
-  gap:10px;
+  gap:12px;
   align-items:center;
+
+  background: color-mix(in srgb, var(--md-sys-color-surface-container) 88%, black 12%);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--elev-1);
 }
-.top img{width:22px;filter:invert(1)}
-.wrap{padding:12px}
-.main{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:900px){.main{grid-template-columns:560px 1fr}}
-#board{width:min(92vw,560px);margin:0 auto}
-.controls{display:flex;gap:6px;margin-top:8px}
-.controls button{
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#1f2430;
-  color:#ddd;
-  cursor:pointer;
-  font-size:15px;
+
+.top img{
+  width: 22px;
+  height: 22px;
+  filter: invert(1);
+  opacity: .92;
 }
-.card{border:1px solid #222;border-radius:12px;overflow:hidden}
+
+/* If you have a title in the top bar, it will look good */
+.top .title,
+.top h1{
+  margin:0;
+  font: var(--title-md);
+  letter-spacing: .2px;
+}
+
+/* =========================================================
+   Layout
+   ========================================================= */
+.wrap{ padding: 16px; }
+
+.main{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 900px){
+  .main{ grid-template-columns: 560px 1fr; align-items:start; }
+}
+
+/* Chessboard container */
+#board{
+  width: min(92vw, 560px);
+  margin: 0 auto;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--elev-2);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface);
+}
+
+/* =========================================================
+   Cards
+   ========================================================= */
+.card{
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--elev-1);
+}
+
 .cardHead{
-  padding:10px 12px;
-  background:#141820;
-  border-bottom:1px solid #222;
-  font-weight:700;
+  padding: 12px 14px;
+  background: var(--md-sys-color-surface-container-high);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  font: var(--title-md);
+  letter-spacing: .2px;
 }
-.cardBody{padding:12px}
-.moves{font-size:18px;line-height:1.8}
-.mainline{font-weight:700}
-.variation{font-weight:400;opacity:.95}
-.move{cursor:pointer;padding:1px 3px;border-radius:5px}
-.move.active{background:#3a7afe;color:#fff}
-#promo{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
+
+.cardBody{
+  padding: 14px;
+  color: var(--md-sys-color-on-surface);
 }
-#promo .box{
-  background:#161a24;
-  padding:16px;
-  border-radius:12px;
+
+/* =========================================================
+   Controls (Material 3-ish buttons)
+   ========================================================= */
+.controls{
   display:flex;
-  gap:10px;
+  gap: 10px;
+  margin-top: 12px;
 }
+
+/* A “tonal” button look */
+.controls button{
+  flex: 1;
+  appearance: none;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px; /* Material pill-ish */
+  padding: 10px 14px;
+
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 60%, var(--md-sys-color-surface-container) 40%);
+  color: var(--md-sys-color-on-primary-container);
+
+  font: var(--label-lg);
+  letter-spacing: .3px;
+
+  cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--ease),
+    background var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease),
+    box-shadow var(--dur-2) var(--ease);
+}
+
+.controls button:hover{
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 72%, var(--md-sys-color-surface-container) 28%);
+  box-shadow: var(--elev-2);
+}
+
+.controls button:active{
+  transform: translateY(1px);
+  box-shadow: var(--elev-1);
+}
+
+/* Disabled state */
+.controls button:disabled{
+  opacity: .45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* =========================================================
+   Moves display
+   ========================================================= */
+.moves{
+  font: var(--body-lg);
+  line-height: 1.8;
+  color: var(--md-sys-color-on-surface);
+}
+
+.mainline{ font-weight: 700; }
+.variation{ font-weight: 450; color: var(--md-sys-color-on-surface-variant); }
+
+.move{
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 999px;
+  transition:
+    background var(--dur-2) var(--ease),
+    color var(--dur-2) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+
+/* Hover state layer */
+.move:hover{
+  background: rgba(158,194,255,.12);
+}
+
+/* Active move = primary container */
+.move.active{
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: inset 0 0 0 1px rgba(158,194,255,.25);
+}
+
+/* =========================================================
+   Promotion modal
+   ========================================================= */
+#promo{
+  position: fixed;
+  inset: 0;
+  display: none; /* shown by JS */
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#promo .box{
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  gap: 10px;
+
+  box-shadow: var(--elev-3);
+}
+
+/* Promotion buttons: look like M3 filled-tonal */
 #promo button{
-  font-size:28px;
-  padding:10px 14px;
-  background:#1f2430;
-  border:none;
-  border-radius:10px;
-  color:#fff;
+  appearance: none;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+
+  font-size: 28px;
+  padding: 10px 14px;
+
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 68%, var(--md-sys-color-surface-container) 32%);
+  color: var(--md-sys-color-on-primary-container);
+
+  cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--ease),
+    background var(--dur-2) var(--ease),
+    box-shadow var(--dur-2) var(--ease);
+}
+
+#promo button:hover{
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 80%, var(--md-sys-color-surface-container) 20%);
+  box-shadow: var(--elev-2);
+}
+
+#promo button:active{
+  transform: translateY(1px);
+  box-shadow: var(--elev-1);
+}
+
+/* =========================================================
+   Small polish
+   ========================================================= */
+a{
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+}
+a:hover{ text-decoration: underline; }
+
+/* Make chessboard.js piece dragging feel a bit nicer */
+.chessboard-63f37, /* some chessboard.js wrappers use this class */
+.board-b72b1{
+  border-radius: var(--radius-md);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
