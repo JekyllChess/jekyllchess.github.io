@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  TREE DATA MODEL (MAINLINE ONLY)
+   *  DATA MODEL (MAINLINE ONLY)
    * ====================================================== */
 
   let ID = 1;
@@ -78,13 +78,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  RESIZE OBSERVER
+   *  RESIZE OBSERVER + HEIGHT SYNC
    * ====================================================== */
 
   const boardEl = document.getElementById("board");
 
+  function syncMovesHeightToBoard() {
+    const h = boardEl.getBoundingClientRect().height;
+    if (h > 0) {
+      movesDiv.style.minHeight = h + "px";
+    }
+  }
+
   const boardResizeObserver = new ResizeObserver(() => {
     board.resize();
+    syncMovesHeightToBoard();
   });
 
   boardResizeObserver.observe(boardEl);
@@ -143,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   /* ======================================================
-   *  MOVE LIST RENDERING (LINEAR ONLY)
+   *  MOVE LIST RENDERING (LINEAR)
    * ====================================================== */
 
   function render() {
@@ -224,7 +232,9 @@ document.addEventListener("DOMContentLoaded", () => {
    * ====================================================== */
 
   btnFlip.onclick = () => {
-    boardOrientation = boardOrientation === "white" ? "black" : "white";
+    boardOrientation =
+      boardOrientation === "white" ? "black" : "white";
+
     board.orientation(boardOrientation);
     localStorage.setItem("boardOrientation", boardOrientation);
   };
@@ -236,6 +246,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   render();
   rebuildTo(root, false);
-  setTimeout(() => board.resize(), 0);
+
+  setTimeout(() => {
+    board.resize();
+    syncMovesHeightToBoard();
+  }, 0);
 
 });
