@@ -377,27 +377,29 @@
   const m = this.moves[this.index];
   if (!m) return;
 
-  // ensure mainline paragraph exists
+  // ensure a current mainline container
   if (!this.mainlineP) {
     this.mainlineP = document.createElement("p");
     this.mainlineP.className = "pgn-mainline";
     this.rightPane.appendChild(this.mainlineP);
   }
 
-  // print move number
+  // move number
   if (m.isWhite) {
     this.mainlineP.appendChild(
       document.createTextNode(m.moveNo + ". ")
     );
   }
 
-  // move span (clickable styling optional)
+  // move span
   const span = document.createElement("span");
   span.className = "pgn-move";
   span.textContent = m.san + " ";
   this.mainlineP.appendChild(span);
 
-  // comments → new paragraph (like reader)
+  let interrupted = false;
+
+  // comments → separate paragraph
   m.comments.forEach(txt => {
     if (/^White resigns\.$/i.test(txt)) return;
 
@@ -405,17 +407,24 @@
     p.className = "pgn-comment";
     p.textContent = txt;
     this.rightPane.appendChild(p);
+    interrupted = true;
   });
 
-  // variations → inline paragraph
+  // variations → separate paragraph
   m.variations.forEach(txt => {
     const p = document.createElement("p");
     p.className = "pgn-variation";
     p.textContent = txt;
     this.rightPane.appendChild(p);
+    interrupted = true;
   });
 
-  // final result line
+  // if anything interrupted flow, next move must start a new line
+  if (interrupted) {
+    this.mainlineP = null;
+  }
+
+  // final result
   if (this.index === this.moves.length - 1) {
     const tail = this.result || "";
     if (tail) {
