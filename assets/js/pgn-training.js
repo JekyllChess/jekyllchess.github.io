@@ -179,6 +179,10 @@
       this.boardDiv = cols.querySelector(".pgn-training-board");
       this.rightPane = cols.querySelector(".pgn-training-right");
 
+      this.commentBox = document.createElement("div");
+      this.commentBox.className = "pgn-training-commentbox";
+      this.rightPane.appendChild(this.commentBox);
+
       this.turnEl = cols.querySelector(".turn");
       this.feedbackEl = cols.querySelector(".feedback");
       this.solvedEl = cols.querySelector(".solved");
@@ -377,11 +381,11 @@
   const m = this.moves[this.index];
   if (!m) return;
 
-  // ensure a current mainline container
+  // ensure mainline paragraph
   if (!this.mainlineP) {
     this.mainlineP = document.createElement("p");
     this.mainlineP.className = "pgn-mainline";
-    this.rightPane.appendChild(this.mainlineP);
+    this.rightPane.insertBefore(this.mainlineP, this.commentBox);
   }
 
   // move number
@@ -391,52 +395,40 @@
     );
   }
 
-  // move span
+  // move
   const span = document.createElement("span");
   span.className = "pgn-move";
   span.textContent = m.san + " ";
   this.mainlineP.appendChild(span);
 
-  let interrupted = false;
+  // if this move has analysis → next move starts new line
+  if (m.comments.length || m.variations.length) {
+    this.mainlineP = null;
+  }
 
-  // comments → separate paragraph
-  m.comments.forEach(txt => {
+  this.showActiveComment();
+  this.rightPane.scrollTop = this.rightPane.scrollHeight;
+}
+  }
+
+      showActiveComment() {
+  this.commentBox.textContent = "";
+
+  const m = this.moves[this.index];
+  if (!m) return;
+
+  const items = [...m.comments, ...m.variations];
+  if (!items.length) return;
+
+  items.forEach(txt => {
     if (/^White resigns\.$/i.test(txt)) return;
 
     const p = document.createElement("p");
     p.className = "pgn-comment";
     p.textContent = txt;
-    this.rightPane.appendChild(p);
-    interrupted = true;
+    this.commentBox.appendChild(p);
   });
-
-  // variations → separate paragraph
-  m.variations.forEach(txt => {
-    const p = document.createElement("p");
-    p.className = "pgn-variation";
-    p.textContent = txt;
-    this.rightPane.appendChild(p);
-    interrupted = true;
-  });
-
-  // if anything interrupted flow, next move must start a new line
-  if (interrupted) {
-    this.mainlineP = null;
-  }
-
-  // final result
-  if (this.index === this.moves.length - 1) {
-    const tail = this.result || "";
-    if (tail) {
-      const p = document.createElement("p");
-      p.className = "pgn-result-line";
-      p.textContent = tail;
-      this.rightPane.appendChild(p);
-    }
-  }
-
-  this.rightPane.scrollTop = this.rightPane.scrollHeight;
 }
-  }
+
 
 })();
