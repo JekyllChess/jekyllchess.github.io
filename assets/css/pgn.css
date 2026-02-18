@@ -192,7 +192,9 @@
 
       .pgn-training-cols { display:flex; gap:1rem; align-items:flex-start; }
       .pgn-training-board { width:360px; max-width:100%; }
-
+   @media (max-width: 768px) {
+      .pgn-training-board {touch-action: none;}
+   }
       .pgn-training-right {
         flex:1;
         max-height:360px;
