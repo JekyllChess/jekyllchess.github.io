@@ -404,7 +404,7 @@
   // move span
   const span = document.createElement("span");
   span.className = "pgn-move";
-  span.textContent = m.san + " ";
+  span.textContent = m.san + "\u00A0";
   this.mainlineP.appendChild(span);
 
   // reset flowBroken once a move prints
