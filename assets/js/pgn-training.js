@@ -1,6 +1,5 @@
 // ============================================================================
 // pgn-training.js — strict mutual exclusivity for ❌ / ✅ / 🏆
-// Inline move layout (matches simple-pgn-reader)
 // ============================================================================
 
 (function () {
@@ -24,20 +23,11 @@
       .forEach(el => new TrainingView(el));
   }
 
+  const C = window.PGNCore;
+
   // --------------------------------------------------------------------------
   // Helpers
   // --------------------------------------------------------------------------
-
-  function normalizeSAN(tok) {
-    return String(tok || "")
-      .replace(/\[%.*?]/g, "")
-      .replace(/\[D\]/g, "")
-      .replace(/[{}]/g, "")
-      .replace(/[!?]+/g, "")
-      .replace(/[+#]$/, "")
-      .replace(/0/g, "O")
-      .trim();
-  }
 
   function sanitizeComment(t) {
     const c = String(t || "")
@@ -93,19 +83,6 @@
     return m ? m[1] : "";
   }
 
-  function swapCommaName(name) {
-    const s = String(name || "").trim();
-    const p = s.split(",").map(x => x.trim());
-    return p.length === 2 ? `${p[1]} ${p[0]}` : s;
-  }
-
-  function formatPlayer(name, elo, title) {
-    const n = swapCommaName(name);
-    const t = String(title || "").trim();
-    const e = String(elo || "").trim();
-    return `${t ? t + " " : ""}${n}${e ? " (" + e + ")" : ""}`.trim();
-  }
-
   // --------------------------------------------------------------------------
   // Main class
   // --------------------------------------------------------------------------
@@ -140,13 +117,9 @@
       this.feedbackEl.textContent = "";
       this.solvedEl.hidden = true;
 
-      if (type === "wrong") {
-        this.feedbackEl.textContent = "❌";
-      } else if (type === "correct") {
-        this.feedbackEl.textContent = "✅";
-      } else if (type === "solved") {
-        this.solvedEl.hidden = false;
-      }
+      if (type === "wrong") this.feedbackEl.textContent = "❌";
+      else if (type === "correct") this.feedbackEl.textContent = "✅";
+      else if (type === "solved") this.solvedEl.hidden = false;
     }
 
     // -----------------------------------------------------------
@@ -194,35 +167,35 @@
       this.btnNext.onclick = () => this.step(1);
     }
 
-    buildHeader(){
+    buildHeader() {
+      if (!this.headers.White || !this.headers.Black) return null;
 
-  if (!this.headers.White || !this.headers.Black) return null;
+      const white = C.formatPlayer(
+        this.headers.White,
+        this.headers.WhiteElo,
+        this.headers.WhiteTitle
+      );
 
-  const white = PGNCore.formatPlayer(
-    this.headers.White,
-    this.headers.WhiteElo,
-    this.headers.WhiteTitle
-  );
+      const black = C.formatPlayer(
+        this.headers.Black,
+        this.headers.BlackElo,
+        this.headers.BlackTitle
+      );
 
-  const black = PGNCore.formatPlayer(
-    this.headers.Black,
-    this.headers.BlackElo,
-    this.headers.BlackTitle
-  );
+      const meta = [this.headers.Event, this.headers.Opening]
+        .filter(Boolean)
+        .join(", ");
 
-  const meta = [this.headers.Event, this.headers.Opening]
-    .filter(Boolean)
-    .join(", ");
+      return C.buildGameHeader({ white, black, meta });
+    }
 
-  return PGNCore.buildGameHeader({ white, black, meta });
-}
     initBoard() {
       requestAnimationFrame(() => {
         this.board = Chessboard(this.boardDiv, {
           position: "start",
           orientation: this.flip ? "black" : "white",
           draggable: true,
-          pieceTheme: PGNCore.PIECE_THEME_URL,
+          pieceTheme: C.PIECE_THEME_URL,
           onDragStart: () => this.isGuessTurn(),
           onDrop: (s, t) => this.onUserDrop(s, t),
           onSnapEnd: () => this.board.position(this.currentFen, false)
@@ -231,7 +204,7 @@
     }
 
     parsePGNAsync() {
-      const rawAll = PGNCore.normalizeFigurines(this.rawText);
+      const rawAll = C.normalizeFigurines(this.rawText);
       const raw = stripHeaders(rawAll);
       this.result = resultFromRaw(rawAll);
 
@@ -253,7 +226,8 @@
             let j = i + 1;
             while (j < raw.length && raw[j] !== "}") j++;
             const c = sanitizeComment(raw.slice(i + 1, j));
-            if (c && this.moves.length) this.moves[this.moves.length - 1].comments.push(c);
+            if (c && this.moves.length)
+              this.moves[this.moves.length - 1].comments.push(c);
             i = j + 1;
             continue;
           }
@@ -261,7 +235,8 @@
           if (ch === "(") {
             const cap = captureVariation(raw, i);
             const v = sanitizeVariationText(cap.text);
-            if (v && this.moves.length) this.moves[this.moves.length - 1].variations.push(v);
+            if (v && this.moves.length)
+              this.moves[this.moves.length - 1].variations.push(v);
             i = cap.next;
             continue;
           }
@@ -274,7 +249,7 @@
 
           if (/^\d+\.{1,3}$/.test(tok)) continue;
 
-          const san = normalizeSAN(tok);
+          const san = C.normalizeSAN(tok);
           if (!san) continue;
 
           let moved = false;
@@ -314,7 +289,7 @@
         if (n.isWhite === this.userIsWhite) break;
 
         this.index++;
-        this.game.move(normalizeSAN(n.san), { sloppy: true });
+        this.game.move(C.normalizeSAN(n.san), { sloppy: true });
         this.currentFen = n.fen;
         this.board.position(n.fen, true);
         this.appendMove();
@@ -368,7 +343,7 @@
       this.index = next;
       this.game.reset();
       for (let i = 0; i <= this.index; i++) {
-        this.game.move(normalizeSAN(this.moves[i].san), { sloppy: true });
+        this.game.move(C.normalizeSAN(this.moves[i].san), { sloppy: true });
       }
 
       this.currentFen = this.index >= 0 ? this.moves[this.index].fen : "start";
@@ -376,19 +351,8 @@
       this.updateTurn();
       this.updateButtons();
       this.setStatus(null);
-      const last = this.rightPane.lastElementChild;
-if (last) {
-  const top =
-    last.offsetTop -
-    this.rightPane.offsetTop -
-    this.rightPane.clientHeight / 2;
 
-  this.rightPane.scrollTo({
-    top,
-    behavior: "smooth"
-  });
-}
-
+      C.scrollContainerToChild(this.rightPane, this.rightPane.lastElementChild);
     }
 
     updateButtons() {
@@ -401,86 +365,68 @@ if (last) {
     // ------------------------------------------------------------------
 
     appendMove() {
-  const m = this.moves[this.index];
-  if (!m) return;
+      const m = this.moves[this.index];
+      if (!m) return;
 
-  if (!this.mainlineP) {
-    this.mainlineP = document.createElement("p");
-    this.mainlineP.className = "pgn-mainline";
-    this.rightPane.appendChild(this.mainlineP);
-  }
+      if (!this.mainlineP) {
+        this.mainlineP = document.createElement("p");
+        this.mainlineP.className = "pgn-mainline";
+        this.rightPane.appendChild(this.mainlineP);
+      }
 
-  // ---- MOVE NUMBER LOGIC ----
-  if (m.isWhite) {
-    this.mainlineP.appendChild(
-      document.createTextNode(m.moveNo + ". ")
-    );
-  } else if (this.flowBroken) {
-    this.mainlineP.appendChild(
-      document.createTextNode(m.moveNo + "... ")
-    );
-  }
+      if (m.isWhite) {
+        this.mainlineP.appendChild(
+          document.createTextNode(m.moveNo + ". ")
+        );
+      } else if (this.flowBroken) {
+        this.mainlineP.appendChild(
+          document.createTextNode(m.moveNo + "... ")
+        );
+      }
 
-  // move span
-  const span = document.createElement("span");
-  span.className = "pgn-move";
-  span.textContent = m.san + "\u00A0";
-  this.mainlineP.appendChild(span);
+      const span = document.createElement("span");
+      span.className = "pgn-move";
+      span.textContent = m.san + "\u00A0";
+      this.mainlineP.appendChild(span);
 
-  // reset flowBroken once a move prints
-  this.flowBroken = false;
+      this.flowBroken = false;
+      let brokeFlow = false;
 
-  let brokeFlow = false;
+      m.comments.forEach(txt => {
+        if (/^White resigns\.$/i.test(txt)) return;
 
-  // comments
-  m.comments.forEach(txt => {
-    if (/^White resigns\.$/i.test(txt)) return;
+        const p = document.createElement("p");
+        p.className = "pgn-comment";
+        p.textContent = txt;
+        this.rightPane.appendChild(p);
+        brokeFlow = true;
+      });
 
-    const p = document.createElement("p");
-    p.className = "pgn-comment";
-    p.textContent = txt;
-    this.rightPane.appendChild(p);
-    brokeFlow = true;
-  });
+      m.variations.forEach(txt => {
+        const p = document.createElement("p");
+        p.className = "pgn-variation";
+        p.textContent = txt;
+        this.rightPane.appendChild(p);
+        brokeFlow = true;
+      });
 
-  // variations
-  m.variations.forEach(txt => {
-    const p = document.createElement("p");
-    p.className = "pgn-variation";
-    p.textContent = txt;
-    this.rightPane.appendChild(p);
-    brokeFlow = true;
-  });
+      if (brokeFlow) {
+        this.mainlineP = null;
+        this.flowBroken = true;
+      }
 
-  if (brokeFlow) {
-    this.mainlineP = null;
-    this.flowBroken = true;   // ⭐ key line
-  }
+      if (this.index === this.moves.length - 1) {
+        const tail = this.result || "";
+        if (tail) {
+          const p = document.createElement("p");
+          p.className = "pgn-result-line";
+          p.textContent = tail;
+          this.rightPane.appendChild(p);
+        }
+      }
 
-  // result
-  if (this.index === this.moves.length - 1) {
-    const tail = this.result || "";
-    if (tail) {
-      const p = document.createElement("p");
-      p.className = "pgn-result-line";
-      p.textContent = tail;
-      this.rightPane.appendChild(p);
+      C.scrollContainerToChild(this.rightPane, this.rightPane.lastElementChild);
     }
-  }
-
-const last = this.rightPane.lastElementChild;
-if (last) {
-  const top =
-    last.offsetTop -
-    this.rightPane.offsetTop -
-    this.rightPane.clientHeight / 2;
-
-  this.rightPane.scrollTo({
-    top,
-    behavior: "smooth"
-  });
-}
-}
   }
 
 })();
