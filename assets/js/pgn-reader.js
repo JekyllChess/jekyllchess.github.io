@@ -130,15 +130,11 @@
   '<div class="pgn-reader-header"></div>' +
   '<div class="pgn-reader-cols">' +
     '<div class="pgn-reader-left">' +
-
-      '<div class="pgn-sticky-wrap">' +
         '<div class="pgn-reader-board"></div>' +
         '<div class="pgn-reader-buttons">' +
           '<button class="pgn-reader-btn pgn-reader-prev" type="button">◀</button>' +
           '<button class="pgn-reader-btn pgn-reader-next" type="button">▶</button>' +
         '</div>' +
-      '</div>' +
-
     '</div>' +
     '<div class="pgn-reader-right"></div>' +
   '</div>';
