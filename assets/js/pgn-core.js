@@ -16,7 +16,35 @@ t.RESULT_REGEX = /^(1-0|0-1|1\/2-1\/2|½-½|\*)$/;
 t.MOVE_NUMBER_REGEX = /^(\d+)(\.+)$/;
 t.NBSP = "\u00A0";
 
-// ------------------------------------------------------------------
+// ------------------------------------------------------------
+// Mobile layout helper
+// ------------------------------------------------------------
+
+t.mobileEnsureVisible = function(boardEl, listEl, childEl){
+
+  if (!boardEl || !listEl) return;
+
+  const isMobile = window.matchMedia("(max-width: 767px)").matches;
+  if (!isMobile) {
+    // desktop → only scroll list
+    if (childEl) t.scrollContainerToChild(listEl, childEl);
+    return;
+  }
+
+  // 1️⃣ Scroll page so board is fully visible
+  const boardRect = boardEl.getBoundingClientRect();
+  const absoluteTop = boardRect.top + window.scrollY;
+
+  window.scrollTo({
+    top: absoluteTop - 16,
+    behavior: "smooth"
+  });
+
+  // 2️⃣ After slight delay, scroll move list
+  setTimeout(()=>{
+    if (childEl) t.scrollContainerToChild(listEl, childEl);
+  }, 250);
+};
 
 t.NAG_MAP = Object.freeze({
   1:"!",2:"?",3:"‼",4:"⁇",5:"⁉",6:"⁈",
