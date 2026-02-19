@@ -392,10 +392,10 @@
           position: "start",
           draggable: false,
           pieceTheme: C.PIECE_THEME_URL,
-          appearSpeed: 200,
-          moveSpeed: 200,
-          snapSpeed: 25,
-          snapbackSpeed: 50
+          appearSpeed: 150,
+          moveSpeed: "fast",
+          snapSpeed: 120,
+          snapbackSpeed: 120
         },
         30,
         (board) => {
