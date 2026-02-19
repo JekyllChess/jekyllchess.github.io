@@ -109,6 +109,7 @@
       this.parsePGNAsync();
 
       this.flowBroken = false;
+      this.suppressAutoScroll = false;
     }
 
     // -------------------- STATUS CONTROLLER --------------------
@@ -292,8 +293,11 @@
         this.game.move(C.normalizeSAN(n.san), { sloppy: true });
         this.currentFen = n.fen;
         this.board.position(n.fen, true);
+        this.suppressAutoScroll = true;
         this.appendMove();
+        this.suppressAutoScroll = false;
       }
+      
       this.updateTurn();
       this.updateButtons();
     }
@@ -324,6 +328,7 @@
       this.currentFen = expected.fen;
       this.board.position(expected.fen, false);
       this.appendMove();
+      this.suppressAutoScroll = false;
 
       this.updateTurn();
 
@@ -352,11 +357,13 @@
       this.updateButtons();
       this.setStatus(null);
 
+if (!this.suppressAutoScroll) {
 C.mobileEnsureVisible(
   this.boardDiv,
   this.rightPane,
   this.rightPane.lastElementChild
 );
+  }
     }
 
     updateButtons() {
