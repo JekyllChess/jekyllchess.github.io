@@ -352,7 +352,11 @@
       this.updateButtons();
       this.setStatus(null);
 
-      C.scrollContainerToChild(this.rightPane, this.rightPane.lastElementChild);
+C.mobileEnsureVisible(
+  this.boardDiv,
+  this.rightPane,
+  this.rightPane.lastElementChild
+);
     }
 
     updateButtons() {
@@ -425,7 +429,11 @@
         }
       }
 
-      C.scrollContainerToChild(this.rightPane, this.rightPane.lastElementChild);
+C.mobileEnsureVisible(
+  this.boardDiv,
+  this.rightPane,
+  this.rightPane.lastElementChild
+);
     }
   }
 
