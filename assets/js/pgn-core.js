@@ -25,22 +25,18 @@ t.mobileEnsureVisible = function(wrapperEl, listEl, focusEl){
 
   if (!wrapperEl || !listEl) return;
 
-  // Only act on mobile
   if (window.innerWidth > 767) return;
 
   const wrapperRect = wrapperEl.getBoundingClientRect();
   const viewportH = window.innerHeight;
 
-  // If wrapper already fully visible, do nothing
   if (wrapperRect.top >= 0 && wrapperRect.bottom <= viewportH) return;
 
-  // Scroll page so wrapper top is near top with small padding
   window.scrollTo({
     top: window.pageYOffset + wrapperRect.top - 8,
     behavior: "smooth"
   });
 
-  // Then scroll move list internally (if focus element exists)
   if (focusEl && listEl.contains(focusEl)) {
     const top =
       focusEl.offsetTop -
@@ -54,11 +50,7 @@ t.mobileEnsureVisible = function(wrapperEl, listEl, focusEl){
   }
 };
 
-  // 2️⃣ After slight delay, scroll move list
-  setTimeout(()=>{
-    if (childEl) t.scrollContainerToChild(listEl, childEl);
-  }, 250);
-};
+// ------------------------------------------------------------------
 
 t.NAG_MAP = Object.freeze({
   1:"!",2:"?",3:"‼",4:"⁇",5:"⁉",6:"⁈",
@@ -124,7 +116,7 @@ t.makeCastlingUnbreakable = function(x){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared SAN normalizer
+// Shared SAN normalizer
 // ------------------------------------------------------------------
 
 t.normalizeSAN = function(tok){
@@ -139,7 +131,7 @@ t.normalizeSAN = function(tok){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared comment sanitizer
+// Shared comment sanitizer
 // ------------------------------------------------------------------
 
 t.sanitizeComment = function(txt){
@@ -152,7 +144,7 @@ t.sanitizeComment = function(txt){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared player formatter
+// Shared player formatter
 // ------------------------------------------------------------------
 
 t.formatPlayer = function(name, elo, title){
@@ -163,7 +155,7 @@ t.formatPlayer = function(name, elo, title){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared header builder
+// Shared header builder
 // ------------------------------------------------------------------
 
 t.buildGameHeader = function(opts){
@@ -186,7 +178,7 @@ t.buildGameHeader = function(opts){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared scroll helper
+// Shared scroll helper
 // ------------------------------------------------------------------
 
 t.scrollContainerToChild = function(container, child){
@@ -204,7 +196,7 @@ t.scrollContainerToChild = function(container, child){
 };
 
 // ------------------------------------------------------------------
-// ✅ Shared safe chessboard init
+// Shared safe chessboard init
 // ------------------------------------------------------------------
 
 t.safeChessboard = function(targetEl, options, tries=30, onReady){
