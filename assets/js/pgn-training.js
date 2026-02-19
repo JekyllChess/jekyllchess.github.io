@@ -439,7 +439,7 @@ if (!this.suppressAutoScroll) {
 
 if (!this.suppressAutoScroll) {
   C.mobileEnsureVisible(
-    this.boardDiv,
+    this.wrapper,
     this.rightPane,
     this.rightPane.lastElementChild
   );
