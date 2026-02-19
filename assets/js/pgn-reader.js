@@ -330,11 +330,11 @@ gotoSpan(span){
   this.moveSpans.forEach(s=>s.classList.remove("reader-move-active"));
   span.classList.add("reader-move-active");
 
-C.mobileEnsureVisible(
-  this.boardDiv,
-  this.movesCol,
-  span
-);
+  C.mobileEnsureVisible(
+    this.wrapper,
+    this.movesCol,
+    span
+  );
 }
 
 // ------------------------------------------------------------
