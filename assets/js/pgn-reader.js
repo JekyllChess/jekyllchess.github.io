@@ -199,23 +199,26 @@
     }
 
     parseComment(text, startIndex, ctx) {
-      let j = startIndex;
-      while (j < text.length && text[j] !== "}") j++;
-      const raw = text.slice(startIndex, j).trim();
-      if (text[j] === "}") j++;
+  let j = startIndex;
+  while (j < text.length && text[j] !== "}") j++;
 
-      if (!raw) return j;
+  let raw = text.slice(startIndex, j).trim();
+  if (text[j] === "}") j++;
 
-      const p = document.createElement("p");
-      p.className = "pgn-comment";
-      p.textContent = raw;
-      this.movesCol.appendChild(p);
+  // ✅ strip engine tags like [%eval ...], [%clk ...]
+  raw = raw.replace(/\[%.*?]/g, "").trim();
 
-      ctx.container = null;
-      ctx.lastWasInterrupt = true;
-      return j;
-    }
+  if (!raw) return j;
 
+  const p = document.createElement("p");
+  p.className = "pgn-comment";
+  p.textContent = raw;
+  this.movesCol.appendChild(p);
+
+  ctx.container = null;
+  ctx.lastWasInterrupt = true;
+  return j;
+}
     handleSAN(tok, ctx) {
 
       const core = tok.replace(/[^a-hKQRBN0-9=O0-]+$/g, "").replace(/0/g, "O");
