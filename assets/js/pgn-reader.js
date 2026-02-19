@@ -445,14 +445,12 @@
 
         this.moveSpans.forEach((s) => s.classList.remove("reader-move-active"));
         span.classList.add("reader-move-active");
-
-        const container = this.wrapper.querySelector(".pgn-reader-right");
-        if (container) {
-          const scrollTo = span.offsetTop - container.offsetTop - container.clientHeight / 3;
-          container.scrollTo({ top: scrollTo, behavior: "smooth" });
-        }
-      };
-
+        
+        span.scrollIntoView({
+        behavior: "smooth",
+        block: "center" 
+        });
+        
       apply();
     }
 
