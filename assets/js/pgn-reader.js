@@ -149,36 +149,15 @@
       this.parseMovetext(movetext);
     }
 
-    buildHeaderContent(h) {
+    buildHeaderContent(h){
 
-  const wrapper = document.createElement("div");
+  const white = C.formatPlayer(h.White, h.WhiteElo, h.WhiteTitle);
+  const black = C.formatPlayer(h.Black, h.BlackElo, h.BlackTitle);
 
-  // ---- Line 1: Players (h3) ----
-  const H3 = document.createElement("h3");
+  const y = C.extractYear(h.Date);
+  const meta = (h.Event||"") + (y ? ", "+y : "");
 
-  const W =
-    (h.WhiteTitle ? h.WhiteTitle + " " : "") +
-    C.flipName(h.White || "") +
-    (h.WhiteElo ? " (" + h.WhiteElo + ")" : "");
-
-  const B =
-    (h.BlackTitle ? h.BlackTitle + " " : "") +
-    C.flipName(h.Black || "") +
-    (h.BlackElo ? " (" + h.BlackElo + ")" : "");
-
-  appendText(H3, W + " – " + B);
-  wrapper.appendChild(H3);
-
-  // ---- Line 2: Event + Year (h4) ----
-  const H4 = document.createElement("h4");
-
-  const Y = C.extractYear(h.Date);
-  const line = (h.Event || "") + (Y ? ", " + Y : "");
-
-  appendText(H4, line);
-  wrapper.appendChild(H4);
-
-  return wrapper;
+  return C.buildGameHeader({ white, black, meta });
 }
     ensure(ctx, cls) {
       if (!ctx.container) {
