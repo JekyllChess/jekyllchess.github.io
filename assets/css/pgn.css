@@ -133,14 +133,11 @@
 
   .pgn-reader-left,
   .pgn-guess-left,
-  .pgn-training-left { position: sticky; top: 0; z-index: 70; background: #fff;
-                      padding-top: 1rem; margin-top: -1rem; padding-bottom: 0.25rem;
-                      display: flex; flex-direction: column; align-items: center; }
-
+  .pgn-training-left { padding-bottom: 0.25rem; display: flex; flex-direction: column; align-items: center; }
+   
   .pgn-reader-board,
   .pgn-guess-board,
-  .pgn-training-board { position: relative !important; transform: translateZ(0);will-change: transform;
-                       width: 360px; max-width: 100%; margin: 0 auto; background: #fff; }
+  .pgn-training-board { width: 360px; max-width: 100%; margin:0 auto;}
   .pgn-training-board { touch-action: none; }
 }
 
@@ -149,22 +146,13 @@
   .pgn-reader-cols,
   .pgn-guess-cols,
   .pgn-training-cols { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; }
-
-  .pgn-reader-left,
-  .pgn-guess-left,
-  .pgn-training-left {
-    position: static !important; top: auto !important; padding: 0; margin: 0;
-  }
-
+  
   .pgn-reader-board,
   .pgn-reader-buttons,
   .pgn-guess-board,
   .pgn-guess-buttons,
   .pgn-training-board,
-  .pgn-training-buttons {
-    margin-left: 0;
-    margin-right: 0;
-  }
+  .pgn-training-buttons {margin-left: 0;margin-right: 0;}
 
   .pgn-reader-right,
   .pgn-guess-right,
@@ -182,49 +170,6 @@
     padding: 0;
   }
 }
-
-@media (max-width: 767px) {
-
-  .pgn-reader-left {
-    position: static;
-    background:#fff;
-    padding-top:1rem;
-    margin-top:-1rem;
-    padding-bottom:.25rem;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-
-  .pgn-sticky-wrap {
-    position: sticky;
-    top: 0;
-    z-index: 70;
-    background:#fff;
-    width:100%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-
-  .pgn-reader-board {
-    position: relative;
-    width:360px;
-    max-width:100%;
-    margin:0 auto;
-    transform: translateZ(0);
-    will-change: transform;
-  }
-}
-
-/* GPU safety */
-.chessboard-63f37,
-.square-55d63 {
-  transform: translateZ(0);
-}
-
-
-
 
 
 
