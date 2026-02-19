@@ -359,7 +359,7 @@
 
 if (!this.suppressAutoScroll) {
   C.mobileEnsureVisible(
-    this.boardDiv,
+    this.wrapper || this.boardDiv.closest(".pgn-training-wrapper"),
     this.rightPane,
     this.rightPane.lastElementChild
   );
