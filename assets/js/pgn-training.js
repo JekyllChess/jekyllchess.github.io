@@ -376,6 +376,19 @@
       this.updateTurn();
       this.updateButtons();
       this.setStatus(null);
+      const last = this.rightPane.lastElementChild;
+if (last) {
+  const top =
+    last.offsetTop -
+    this.rightPane.offsetTop -
+    this.rightPane.clientHeight / 2;
+
+  this.rightPane.scrollTo({
+    top,
+    behavior: "smooth"
+  });
+}
+
     }
 
     updateButtons() {
@@ -455,7 +468,18 @@
     }
   }
 
-  this.rightPane.scrollTop = this.rightPane.scrollHeight;
+const last = this.rightPane.lastElementChild;
+if (last) {
+  const top =
+    last.offsetTop -
+    this.rightPane.offsetTop -
+    this.rightPane.clientHeight / 2;
+
+  this.rightPane.scrollTo({
+    top,
+    behavior: "smooth"
+  });
+}
 }
   }
 
