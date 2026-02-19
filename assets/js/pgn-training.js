@@ -364,8 +364,6 @@ if (!this.suppressAutoScroll) {
     this.rightPane.lastElementChild
   );
 }
-
-  }
     }
 
     updateButtons() {
