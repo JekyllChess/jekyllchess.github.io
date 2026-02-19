@@ -12,22 +12,14 @@
   margin-bottom: 2rem;
 }
 
-/* Game header */
-.pgn-blog-block h3,
-.pgn-reader-header h3,
-.pgn-guess-header h3,
-.pgn-training-header h3 {
-  margin-bottom: 0;
+.pgn-game-header {
+  margin: 0 0 .15rem 0;
   font-weight: 600;
 }
-
-.pgn-blog-block h4,
-.pgn-reader-header h4,
-.pgn-guess-header h4,
-.pgn-training-header h4 {
-  margin-top: 0;
-  font-weight: 600;
-  color: grey;
+.pgn-game-subheader {
+  margin: 0 0 .6rem 0;
+  font-weight: 400;
+  color:grey;
 }
 
 /* Main line & variation paragraphs */
