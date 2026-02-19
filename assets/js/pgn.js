@@ -143,26 +143,26 @@
         this.sourceEl.parentNode && this.sourceEl.parentNode.replaceChild(this.wrapper, this.sourceEl);
       }
     }
-
+    
     renderHeader(h) {
-      const H = document.createElement("h3");
-      const W =
-        (h.WhiteTitle ? h.WhiteTitle + " " : "") +
-        C.flipName(h.White || "") +
-        (h.WhiteElo ? " (" + h.WhiteElo + ")" : "");
-      const B =
-        (h.BlackTitle ? h.BlackTitle + " " : "") +
-        C.flipName(h.Black || "") +
-        (h.BlackElo ? " (" + h.BlackElo + ")" : "");
-      const Y = C.extractYear(h.Date);
-      const line = (h.Event || "") + (Y ? ", " + Y : "");
-
-      appendText(H, W + " – " + B);
-      H.appendChild(document.createElement("br"));
-      appendText(H, line);
-      this.wrapper.appendChild(H);
-    }
-
+  const H3 = document.createElement("h3");
+  const W =
+    (h.WhiteTitle ? h.WhiteTitle + " " : "") +
+    C.flipName(h.White || "") +
+    (h.WhiteElo ? " (" + h.WhiteElo + ")" : "");
+  const B =
+    (h.BlackTitle ? h.BlackTitle + " " : "") +
+    C.flipName(h.Black || "") +
+    (h.BlackElo ? " (" + h.BlackElo + ")" : "");
+  appendText(H3, W + " – " + B);
+  this.wrapper.appendChild(H3);
+      
+  const H4 = document.createElement("h4");
+  const Y = C.extractYear(h.Date);
+  const line = (h.Event || "") + (Y ? ", " + Y : "");
+  appendText(H4, line);
+  this.wrapper.appendChild(H4);
+}
     ensureContainer(ctx, cls) {
       if (!ctx.container) {
         const p = document.createElement("p");
