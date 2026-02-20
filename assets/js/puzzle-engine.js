@@ -83,11 +83,8 @@
   /* Puzzle renderer                                    */
   /* -------------------------------------------------- */
 
-  function renderLocalPuzzle(container, fen, moves, label, autoFirstMove) {
+  function renderLocalPuzzle(container, fen, moves, label, autoFirstMove, forceBlack) {
 
-    // Lock height to prevent scroll jump
-    const prevHeight = container.offsetHeight;
-    container.style.minHeight = prevHeight + "px";
     container.innerHTML = "";
 
     const boardDiv = document.createElement("div");
@@ -125,7 +122,11 @@
     let solved = false;
 
     function updateSeparators() {
-      sep1.style.display = statusMsg.textContent ? "inline" : "none";
+
+      // first separator only if label exists AND multi-puzzle
+      sep1.style.display =
+        (label && autoFirstMove) ? "inline" : "none";
+
       sep2.style.display =
         nextBtn.style.display !== "none" ? "inline" : "none";
     }
@@ -192,15 +193,20 @@
       return true;
     }
 
+    function computeOrientation() {
+      if (forceBlack) return "black";
+
+      return autoFirstMove
+        ? (solverSide === "b" ? "white" : "black")
+        : (solverSide === "b" ? "black" : "white");
+    }
+
     safeChessboard(
       boardDiv,
       {
         draggable: true,
         position: fen,
-        orientation:
-          autoFirstMove
-            ? (solverSide === "b" ? "white" : "black")
-            : (solverSide === "b" ? "black" : "white"),
+        orientation: computeOrientation(),
         pieceTheme: PIECE_THEME,
         onDrop,
         onSnapEnd: () => hardSync(board, game)
@@ -222,7 +228,6 @@
         };
 
         updateStatus("");
-        container.style.minHeight = ""; // release lock
       }
     );
   }
@@ -317,7 +322,8 @@
         p.fen,
         p.moves,
         `Puzzle ${index + 1} / ${puzzles.length}`,
-        true
+        true,
+        false
       );
     }
 
@@ -330,9 +336,10 @@
 
   document.addEventListener("DOMContentLoaded", () => {
 
-    document.querySelectorAll("puzzle").forEach(node => {
+    document.querySelectorAll("puzzle, puzzle-black").forEach(node => {
 
       const raw = normalizePuzzleText(stripFigurines(node.textContent));
+      const forceBlack = node.tagName.toLowerCase() === "puzzle-black";
 
       const wrap = document.createElement("div");
       wrap.className = "jc-puzzle-wrapper";
@@ -357,7 +364,8 @@
           fenMatch[1].trim(),
           tokenizeMoves(movesMatch[1]),
           "",
-          false
+          false,
+          forceBlack
         );
       } else {
         wrap.textContent = "❌ Invalid puzzle block! ❌";
