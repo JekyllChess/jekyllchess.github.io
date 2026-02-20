@@ -59,10 +59,6 @@
     board.position(game.fen(), false);
   }
 
-  /* -------------------------------------------------- */
-  /* Safe chessboard init                               */
-  /* -------------------------------------------------- */
-
   function safeChessboard(el, opts, cb, tries = 60) {
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -77,133 +73,7 @@
   }
 
   /* -------------------------------------------------- */
-  /* Local puzzle renderer (NO layout jump)              */
-  /* -------------------------------------------------- */
-
-  function renderLocalPuzzle(container, fen, moves, counterText, afterReady) {
-    // Preserve container height to avoid jump
-    const prevHeight = container.offsetHeight;
-    if (prevHeight) container.style.minHeight = prevHeight + "px";
-
-    container.innerHTML = "";
-
-    const boardDiv = document.createElement("div");
-    boardDiv.className = "jc-board";
-
-    const loading = document.createElement("div");
-    loading.textContent = "Loading...";
-    loading.style.marginTop = "6px";
-
-    container.append(boardDiv, loading);
-
-    const game = new Chess(fen);
-    const solverSide = game.turn();
-    let index = 0;
-    let locked = false;
-    let solved = false;
-    let board;
-
-    const status = document.createElement("div");
-    status.style.display = "flex";
-    status.style.alignItems = "center";
-    status.style.gap = "8px";
-    status.style.marginTop = "6px";
-
-    const counter = document.createElement("span");
-    counter.textContent = counterText || "";
-
-    const turn = document.createElement("span");
-    const feedback = document.createElement("span");
-
-    status.append(counter, turn, feedback);
-
-    function updateTurn() {
-      if (solved) {
-        turn.textContent = "";
-        return;
-      }
-      turn.textContent =
-        game.turn() === "w" ? "⚐ White to move" : "⚑ Black to move";
-    }
-
-    function finishSolved() {
-      solved = true;
-      feedback.textContent = "Puzzle solved! 🏆";
-      updateTurn();
-    }
-
-    function autoReply() {
-      if (index >= moves.length) {
-        finishSolved();
-        return;
-      }
-
-      const mv = game.move(moves[index], { sloppy: true });
-      if (!mv) {
-        finishSolved();
-        return;
-      }
-
-      index++;
-      board.move(mv.from + "-" + mv.to);
-
-      setTimeout(() => {
-        hardSync(board, game);
-        locked = false;
-        updateTurn();
-      }, ANIM_MS);
-    }
-
-    function onDrop(from, to) {
-      if (locked || solved || game.turn() !== solverSide) return "snapback";
-
-      const expected = moves[index];
-      const mv = game.move({ from, to, promotion: "q" });
-      if (!mv) return "snapback";
-
-      if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
-        game.undo();
-        feedback.textContent = "Wrong move ❌";
-        hardSync(board, game);
-        return "snapback";
-      }
-
-      index++;
-      feedback.textContent = "Correct! ✅";
-      hardSync(board, game);
-
-      if (index >= moves.length) {
-        finishSolved();
-        return true;
-      }
-
-      locked = true;
-      setTimeout(autoReply, 80);
-      return true;
-    }
-
-    safeChessboard(
-      boardDiv,
-      {
-        draggable: true,
-        position: fen,
-        pieceTheme: PIECE_THEME,
-        onDrop,
-        onSnapEnd: () => hardSync(board, game),
-      },
-      (b) => {
-        board = b;
-        loading.remove();
-        container.append(status);
-        container.style.minHeight = "";
-        updateTurn();
-        afterReady && afterReady(status);
-      }
-    );
-  }
-
-  /* -------------------------------------------------- */
-  /* Remote PGN renderer (NO jump)                       */
+  /* Remote PGN Renderer (Generalized)                  */
   /* -------------------------------------------------- */
 
   function splitIntoPgnGames(text) {
@@ -230,147 +100,126 @@
   }
 
   async function renderRemotePGN(container, url) {
-  container.textContent = "Loading...";
+    container.textContent = "Loading...";
 
-  const res = await fetch(url, { cache: "no-store" });
-  const text = await res.text();
+    const res = await fetch(url, { cache: "no-store" });
+    const text = await res.text();
 
-  const puzzles = splitIntoPgnGames(text).map(parseGame);
-  let index = 0;
+    const puzzles = splitIntoPgnGames(text).map(parseGame);
+    let puzzleIndex = 0;
 
-  function renderCurrent() {
+    function renderCurrent() {
+      const { fen, moves } = puzzles[puzzleIndex];
+      if (!moves || moves.length < 2) {
+        container.textContent = "Invalid puzzle.";
+        return;
+      }
 
-    const { fen, moves } = puzzles[index];
-    if (!moves || moves.length < 2) {
-      container.textContent = "Invalid puzzle.";
-      return;
-    }
+      container.innerHTML = "";
 
-    // Preserve height (no layout jump)
-    const prevHeight = container.offsetHeight;
-    if (prevHeight) container.style.minHeight = prevHeight + "px";
-    container.innerHTML = "";
+      const boardDiv = document.createElement("div");
+      boardDiv.className = "jc-board";
 
-    const boardDiv = document.createElement("div");
-    boardDiv.className = "jc-board";
+      const status = document.createElement("div");
+      status.style.marginTop = "8px";
 
-    const status = document.createElement("div");
-    status.style.marginTop = "6px";
+      container.append(boardDiv, status);
 
-    container.append(boardDiv, status);
+      const game = new Chess(fen);
+      const solverSide = game.turn();
+      let board;
+      let moveIndex = 0;
+      let locked = false;
+      let solved = false;
 
-    const game = new Chess(fen);
-    const solverSide = game.turn();
-    let board;
-    let moveIndex = 0;
-    let locked = false;
-    let solved = false;
+      function updateStatus(msg) {
+        status.textContent =
+          msg || `Puzzle ${puzzleIndex + 1} / ${puzzles.length}`;
+      }
 
-    function updateStatus(msg = "") {
-      status.textContent = msg || `Puzzle ${index + 1} / ${puzzles.length}`;
-    }
+      function finishSolved() {
+        solved = true;
+        updateStatus("Solved! 🏆");
 
-    function finishSolved() {
-      solved = true;
-      updateStatus("Solved! 🏆");
+        const nextBtn = document.createElement("button");
+        nextBtn.textContent = "Next Puzzle →";
+        nextBtn.style.marginTop = "8px";
+        nextBtn.onclick = () => {
+          if (puzzleIndex + 1 < puzzles.length) {
+            puzzleIndex++;
+            renderCurrent();
+          }
+        };
+        container.append(nextBtn);
+      }
 
-      const nextBtn = document.createElement("button");
-      nextBtn.textContent = "Next Puzzle →";
-      nextBtn.style.display = "block";
-      nextBtn.style.marginTop = "8px";
-      nextBtn.onclick = () => {
-        if (index + 1 < puzzles.length) {
-          index++;
-          renderCurrent();
+      function autoReply() {
+        if (moveIndex >= moves.length) {
+          finishSolved();
+          return;
         }
-      };
-      container.append(nextBtn);
-    }
 
-    function autoReply() {
-      if (moveIndex >= moves.length) {
-        finishSolved();
-        return;
+        const mv = game.move(moves[moveIndex], { sloppy: true });
+        if (!mv) {
+          finishSolved();
+          return;
+        }
+
+        moveIndex++;
+        board.move(mv.from + "-" + mv.to);
+
+        setTimeout(() => {
+          hardSync(board, game);
+          locked = false;
+        }, ANIM_MS);
       }
 
-      const mv = game.move(moves[moveIndex], { sloppy: true });
-      if (!mv) {
-        finishSolved();
-        return;
-      }
+      function onDrop(from, to) {
+        if (locked || solved || game.turn() !== solverSide) return "snapback";
 
-      moveIndex++;
-      board.move(mv.from + "-" + mv.to);
+        const expected = moves[moveIndex];
+        const mv = game.move({ from, to, promotion: "q" });
+        if (!mv) return "snapback";
 
-      setTimeout(() => {
+        if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
+          game.undo();
+          hardSync(board, game);
+          return "snapback";
+        }
+
+        moveIndex++;
         hardSync(board, game);
-        locked = false;
-      }, ANIM_MS);
-    }
 
-    function onDrop(from, to) {
-      if (locked || solved || game.turn() !== solverSide) return "snapback";
+        if (moveIndex >= moves.length) {
+          finishSolved();
+          return true;
+        }
 
-      const expected = moves[moveIndex];
-      const mv = game.move({ from, to, promotion: "q" });
-      if (!mv) return "snapback";
-
-      if (normalizeSAN(mv.san) !== normalizeSAN(expected)) {
-        game.undo();
-        hardSync(board, game);
-        return "snapback";
-      }
-
-      moveIndex++;
-      hardSync(board, game);
-
-      if (moveIndex >= moves.length) {
-        finishSolved();
+        locked = true;
+        setTimeout(autoReply, 120);
         return true;
       }
 
-      locked = true;
-      setTimeout(autoReply, 120);
-      return true;
-    }
+      safeChessboard(
+        boardDiv,
+        {
+          draggable: true,
+          position: fen,
+          pieceTheme: PIECE_THEME,
+          onDrop,
+          onSnapEnd: () => hardSync(board, game),
+        },
+        (b) => {
+          board = b;
 
-    safeChessboard(
-      boardDiv,
-      {
-        draggable: true,
-        position: fen,
-        pieceTheme: PIECE_THEME,
-        onDrop,
-        onSnapEnd: () => hardSync(board, game),
-      },
-      (b) => {
-        board = b;
+          // Auto-play FIRST move
+          const mv = game.move(moves[0], { sloppy: true });
+          if (mv) {
+            board.position(game.fen(), true);
+            moveIndex = 1;
+          }
 
-        // 🔥 Auto-play FIRST move
-        const mv = game.move(moves[0], { sloppy: true });
-        if (mv) {
-          board.position(game.fen(), true);
-          moveIndex = 1;
-        }
-
-        updateStatus();
-        container.style.minHeight = "";
-      }
-    );
-  }
-
-  renderCurrent();
-}
-
-          const next = document.createElement("button");
-          next.textContent = "↷";
-          next.disabled = index === puzzles.length - 1;
-          next.onclick = () => {
-            index++;
-            renderCurrent();
-          };
-
-          statusRow.append(prev, next);
+          updateStatus();
         }
       );
     }
@@ -400,20 +249,7 @@
         return;
       }
 
-      const fenMatch = raw.match(/FEN:\s*([^]*?)\s+Moves:/i);
-      const movesMatch = raw.match(/Moves:\s*([^]*)$/i);
-
-      if (fenMatch && movesMatch) {
-        renderLocalPuzzle(
-          wrap,
-          fenMatch[1].trim(),
-          tokenizeMoves(movesMatch[1]),
-          "",
-          () => {}
-        );
-      } else {
-        wrap.textContent = "❌ Invalid puzzle block! ❌";
-      }
+      wrap.textContent = "❌ Invalid puzzle block! ❌";
     });
   });
 })();
