@@ -260,23 +260,26 @@ container.style.minHeight = "";      }
 
 async function renderRemotePGN(container, url) {
 
-  // --- 1) Show empty board immediately ---
+  // Show empty board immediately using safe init
   container.textContent = "";
 
   const emptyDiv = document.createElement("div");
   emptyDiv.className = "jc-board";
   container.appendChild(emptyDiv);
 
-  const emptyBoard = Chessboard(emptyDiv, {
-    draggable: false,
-    position: "empty",
-    pieceTheme: PIECE_THEME
-  });
+  safeChessboard(
+    emptyDiv,
+    {
+      draggable: false,
+      position: "empty",
+      pieceTheme: PIECE_THEME
+    }
+  );
 
-  // Lock height to prevent jump
-  container.style.minHeight = emptyDiv.offsetHeight + "px";
+  // Lock height to prevent layout shift
+  container.style.minHeight = container.offsetHeight + "px";
 
-  // --- 2) Load PGN ---
+  // Load PGN
   const res = await fetch(url, { cache: "no-store" });
   const text = await res.text();
 
@@ -295,7 +298,6 @@ async function renderRemotePGN(container, url) {
 
     const p = puzzles[index];
 
-    // Replace empty board with real puzzle
     renderLocalPuzzle(container, p.fen, p.moves, "", true);
 
     const label = document.createElement("span");
@@ -314,7 +316,6 @@ async function renderRemotePGN(container, url) {
     container.prepend(label);
     container.append(next);
 
-    // Release height lock after render
     container.style.minHeight = "";
   }
 
