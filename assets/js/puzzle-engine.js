@@ -224,14 +224,16 @@
       const fenSide = fen.split(" ")[1];
 
       if (matingSide !== fenSide) {
-        return {
-          fen: fen.replace(
-            /\s[w|b]\s/,
-            matingSide === "w" ? " w " : " b "
-          ),
-          moves: [normalizeSAN(lastMove.san)]
-        };
-      }
+
+  // keep final two plies: lead-in + mate
+  const leadIn = moves[moves.length - 2];
+  const mateMove = normalizeSAN(lastMove.san);
+
+  return {
+    fen: fen,
+    moves: [leadIn, mateMove]
+  };
+}
     }
 
     return { fen, moves };
