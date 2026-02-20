@@ -194,27 +194,56 @@
 
   function parseGame(pgn) {
 
-    const fenMatch = pgn.match(/\[FEN\s+"([^"]+)"\]/i);
-    const fen = fenMatch ? fenMatch[1] : "start";
+  const fenMatch = pgn.match(/\[FEN\s+"([^"]+)"\]/i);
+  const fen = fenMatch ? fenMatch[1] : "start";
 
-    const moveText = String(pgn)
-      .replace(/^\s*(?:\[[^\n]*\]\s*\n)+/m, "")
-      .trim();
+  const moveText = String(pgn)
+    .replace(/^\s*(?:\[[^\n]*\]\s*\n)+/m, "")
+    .trim();
 
-    if (!moveText) return { error: "PGN contains no movetext." };
+  if (!moveText) return { error: "PGN contains no movetext." };
 
-    const moves = tokenizeMoves(moveText);
-    if (!moves.length) return { error: "No legal moves found." };
+  const moves = tokenizeMoves(moveText);
+  if (!moves.length) return { error: "No legal moves found." };
 
-    const test = new Chess(fen);
-    for (const m of moves) {
-      if (!test.move(m, { sloppy: true })) {
-        return { error: "Illegal move: " + m };
-      }
+  const test = new Chess(fen);
+
+  let lastMove = null;
+  for (const m of moves) {
+    lastMove = test.move(m, { sloppy: true });
+    if (!lastMove) {
+      return { error: "Illegal move: " + m };
     }
-
-    return { fen, moves };
   }
+
+  // ------------------------------------------------
+  // AUTO-INFER MATE SIDE
+  // ------------------------------------------------
+
+  if (lastMove && lastMove.san.includes("#")) {
+
+    // side that delivered mate
+    const matingSide = lastMove.color; // "w" or "b"
+
+    // side to move in original FEN
+    const fenSide = fen.split(" ")[1];
+
+    // If PGN starts with opponent move, flip perspective
+    if (matingSide !== fenSide) {
+
+      // Only keep final mating move as puzzle solution
+      return {
+        fen: fen.replace(
+          /\s[w|b]\s/,
+          matingSide === "w" ? " w " : " b "
+        ),
+        moves: [normalizeSAN(lastMove.san)]
+      };
+    }
+  }
+
+  return { fen, moves };
+}
 
   /* -------------------------------------------------- */
   /* Remote PGN renderer                                  */
