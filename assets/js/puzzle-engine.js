@@ -98,8 +98,8 @@
     const status = document.createElement("div");
     status.style.marginTop = "6px";
 
-    container.append(boardDiv, status);
-
+container.replaceChild(boardDiv, placeholder);
+container.append(status);
     const game = new Chess(fen);
     let solverSide = game.turn();
 
