@@ -1,5 +1,5 @@
 // ============================================================================
-// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FIXED)
+// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FINAL FIXED)
 // ============================================================================
 
 (function () {
@@ -83,7 +83,7 @@
   /* Local puzzle renderer                               */
   /* -------------------------------------------------- */
 
-  function renderLocalPuzzle(container, fen, moves, label) {
+  function renderLocalPuzzle(container, fen, moves, label, autoFirstMove) {
 
     container.innerHTML = "";
 
@@ -167,11 +167,12 @@
       b => {
         board = b;
 
-        // Auto-play first move
-        const mv = game.move(moves[0], { sloppy: true });
-        if (mv) {
-          board.position(game.fen(), true);
-          index = 1;
+        if (autoFirstMove) {
+          const mv = game.move(moves[0], { sloppy: true });
+          if (mv) {
+            board.position(game.fen(), true);
+            index = 1;
+          }
         }
 
         updateStatus(label);
@@ -194,56 +195,47 @@
 
   function parseGame(pgn) {
 
-  const fenMatch = pgn.match(/\[FEN\s+"([^"]+)"\]/i);
-  const fen = fenMatch ? fenMatch[1] : "start";
+    const fenMatch = pgn.match(/\[FEN\s+"([^"]+)"\]/i);
+    const fen = fenMatch ? fenMatch[1] : "start";
 
-  const moveText = String(pgn)
-    .replace(/^\s*(?:\[[^\n]*\]\s*\n)+/m, "")
-    .trim();
+    const moveText = String(pgn)
+      .replace(/^\s*(?:\[[^\n]*\]\s*\n)+/m, "")
+      .trim();
 
-  if (!moveText) return { error: "PGN contains no movetext." };
+    if (!moveText) return { error: "PGN contains no movetext." };
 
-  const moves = tokenizeMoves(moveText);
-  if (!moves.length) return { error: "No legal moves found." };
+    const moves = tokenizeMoves(moveText);
+    if (!moves.length) return { error: "No legal moves found." };
 
-  const test = new Chess(fen);
+    const test = new Chess(fen);
 
-  let lastMove = null;
-  for (const m of moves) {
-    lastMove = test.move(m, { sloppy: true });
-    if (!lastMove) {
-      return { error: "Illegal move: " + m };
+    let lastMove = null;
+    for (const m of moves) {
+      lastMove = test.move(m, { sloppy: true });
+      if (!lastMove) {
+        return { error: "Illegal move: " + m };
+      }
     }
-  }
 
-  // ------------------------------------------------
-  // AUTO-INFER MATE SIDE
-  // ------------------------------------------------
+    // AUTO-INFER MATE SIDE
+    if (lastMove && lastMove.san.includes("#")) {
 
-  if (lastMove && lastMove.san.includes("#")) {
+      const matingSide = lastMove.color; // "w" or "b"
+      const fenSide = fen.split(" ")[1];
 
-    // side that delivered mate
-    const matingSide = lastMove.color; // "w" or "b"
-
-    // side to move in original FEN
-    const fenSide = fen.split(" ")[1];
-
-    // If PGN starts with opponent move, flip perspective
-    if (matingSide !== fenSide) {
-
-      // Only keep final mating move as puzzle solution
-      return {
-        fen: fen.replace(
-          /\s[w|b]\s/,
-          matingSide === "w" ? " w " : " b "
-        ),
-        moves: [normalizeSAN(lastMove.san)]
-      };
+      if (matingSide !== fenSide) {
+        return {
+          fen: fen.replace(
+            /\s[w|b]\s/,
+            matingSide === "w" ? " w " : " b "
+          ),
+          moves: [normalizeSAN(lastMove.san)]
+        };
+      }
     }
-  }
 
-  return { fen, moves };
-}
+    return { fen, moves };
+  }
 
   /* -------------------------------------------------- */
   /* Remote PGN renderer                                  */
@@ -274,7 +266,8 @@
         container,
         p.fen,
         p.moves,
-        `Puzzle ${index + 1} / ${puzzles.length}`
+        `Puzzle ${index + 1} / ${puzzles.length}`,
+        true
       );
 
       const next = document.createElement("button");
@@ -325,7 +318,8 @@
           wrap,
           fenMatch[1].trim(),
           tokenizeMoves(movesMatch[1]),
-          ""
+          "",
+          false
         );
       } else {
         wrap.textContent = "❌ Invalid puzzle block! ❌";
