@@ -14,6 +14,7 @@
     "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
 
   const ANIM_MS = 250;
+  const BOARD_MIN_HEIGHT = 320;
 
   /* -------------------------------------------------- */
   /* Utilities                                          */
@@ -89,6 +90,7 @@
 
     const boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
+    boardDiv.style.minHeight = BOARD_MIN_HEIGHT + "px";
 
     const status = document.createElement("div");
     status.style.marginTop = "6px";
@@ -161,9 +163,9 @@
         draggable: true,
         position: fen,
         orientation:
-  autoFirstMove
-    ? (solverSide === "b" ? "white" : "black")
-    : (solverSide === "b" ? "black" : "white"),
+          autoFirstMove
+            ? (solverSide === "b" ? "white" : "black")
+            : (solverSide === "b" ? "black" : "white"),
         pieceTheme: PIECE_THEME,
         onDrop,
         onSnapEnd: () => hardSync(board, game)
@@ -213,30 +215,21 @@
     if (!moves.length) return { error: "No legal moves found." };
 
     const test = new Chess(fen);
-
     let lastMove = null;
+
     for (const m of moves) {
       lastMove = test.move(m, { sloppy: true });
-      if (!lastMove) {
-        return { error: "Illegal move: " + m };
-      }
+      if (!lastMove) return { error: "Illegal move: " + m };
     }
 
-    // AUTO-INFER MATE SIDE
     if (lastMove && lastMove.san.includes("#")) {
-
       const matingSide = lastMove.color;
       const fenSide = fen.split(" ")[1];
 
       if (matingSide !== fenSide) {
-
         const leadIn = moves[moves.length - 2];
         const mateMove = normalizeSAN(lastMove.san);
-
-        return {
-          fen: fen,
-          moves: [leadIn, mateMove]
-        };
+        return { fen, moves: [leadIn, mateMove] };
       }
     }
 
@@ -266,27 +259,31 @@
     let index = 0;
 
     function renderCurrent() {
+
+      // placeholder board prevents jump
+      container.innerHTML = "";
+      const placeholder = document.createElement("div");
+      placeholder.style.minHeight = BOARD_MIN_HEIGHT + "px";
+      container.append(placeholder);
+
       const p = puzzles[index];
 
       renderLocalPuzzle(
         container,
         p.fen,
         p.moves,
-        `Puzzle ${index + 1} / ${puzzles.length}`,
+        `Puzzle ${index + 1} / ${puzzles.length} [→]`,
         true
       );
 
-      const next = document.createElement("button");
-      next.textContent = "Next Puzzle →";
-      next.style.marginTop = "8px";
-      next.onclick = () => {
+      const arrow = container.querySelector("div:last-child");
+      arrow.style.cursor = "pointer";
+      arrow.onclick = () => {
         if (index + 1 < puzzles.length) {
           index++;
           renderCurrent();
         }
       };
-
-      container.append(next);
     }
 
     renderCurrent();
