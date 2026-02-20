@@ -258,43 +258,68 @@ container.style.minHeight = "";      }
   /* Remote PGN renderer                                */
   /* -------------------------------------------------- */
 
-  async function renderRemotePGN(container, url) {
+async function renderRemotePGN(container, url) {
 
-    container.textContent = "Loading...";
+  // --- 1) Show empty board immediately ---
+  container.textContent = "";
 
-    const res = await fetch(url, { cache: "no-store" });
-    const text = await res.text();
+  const emptyDiv = document.createElement("div");
+  emptyDiv.className = "jc-board";
+  container.appendChild(emptyDiv);
 
-    const puzzles = splitIntoPgnGames(text)
-      .map(parseGame)
-      .filter(p => !p.error);
-
-    if (!puzzles.length) {
-      container.textContent = "No valid puzzles in PGN file.";
-      return;
-    }
-
-    let index = 0;
-
-    function renderCurrent() {
-  const p = puzzles[index];
+  const emptyBoard = Chessboard(emptyDiv, {
+    draggable: false,
+    position: "empty",
+    pieceTheme: PIECE_THEME
+  });
 
   // Lock height to prevent jump
-  container.style.minHeight = container.offsetHeight + "px";
+  container.style.minHeight = emptyDiv.offsetHeight + "px";
 
-      renderLocalPuzzle(container, p.fen, p.moves, "", true);
+  // --- 2) Load PGN ---
+  const res = await fetch(url, { cache: "no-store" });
+  const text = await res.text();
 
-      const label = document.createElement("span");
-      label.textContent = `Puzzle ${index + 1} / ${puzzles.length} `;
+  const puzzles = splitIntoPgnGames(text)
+    .map(parseGame)
+    .filter(p => !p.error);
 
-      const next = document.createElement("button");
-      next.textContent = "→";
-      next.style.marginLeft = "6px";
-      next.onclick = () => {
-        if (index + 1 < puzzles.length) {
-          index++;
-          renderCurrent();
-        }
+  if (!puzzles.length) {
+    container.textContent = "No valid puzzles in PGN file.";
+    return;
+  }
+
+  let index = 0;
+
+  function renderCurrent() {
+
+    const p = puzzles[index];
+
+    // Replace empty board with real puzzle
+    renderLocalPuzzle(container, p.fen, p.moves, "", true);
+
+    const label = document.createElement("span");
+    label.textContent = `Puzzle ${index + 1} / ${puzzles.length} `;
+
+    const next = document.createElement("button");
+    next.textContent = "→";
+    next.style.marginLeft = "6px";
+    next.onclick = () => {
+      if (index + 1 < puzzles.length) {
+        index++;
+        renderCurrent();
+      }
+    };
+
+    container.prepend(label);
+    container.append(next);
+
+    // Release height lock after render
+    container.style.minHeight = "";
+  }
+
+  renderCurrent();
+}
       };
 
       container.prepend(label);
