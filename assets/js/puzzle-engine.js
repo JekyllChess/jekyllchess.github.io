@@ -160,7 +160,10 @@
       {
         draggable: true,
         position: fen,
-        orientation: solverSide === "b" ? "black" : "white",
+        orientation:
+  autoFirstMove
+    ? (solverSide === "b" ? "white" : "black")
+    : (solverSide === "b" ? "black" : "white"),
         pieceTheme: PIECE_THEME,
         onDrop,
         onSnapEnd: () => hardSync(board, game)
