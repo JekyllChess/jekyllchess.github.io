@@ -1,5 +1,5 @@
 // ============================================================================
-// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FINAL COMPLETE)
+// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FINAL)
 // ============================================================================
 
 (function () {
@@ -14,7 +14,6 @@
     "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png";
 
   const ANIM_MS = 250;
-  const BOARD_MIN_HEIGHT = 320;
 
   /* -------------------------------------------------- */
   /* Utilities                                          */
@@ -86,11 +85,15 @@
 
   function renderLocalPuzzle(container, fen, moves, label, autoFirstMove) {
 
-    container.innerHTML = "";
+    // Soft clear (keeps height to avoid jump)
+    container.textContent = "";
+    const placeholder = document.createElement("div");
+    placeholder.className = "jc-board";
+    placeholder.style.height = "320px";
+    container.appendChild(placeholder);
 
     const boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
-    boardDiv.style.minHeight = BOARD_MIN_HEIGHT + "px";
 
     const status = document.createElement("div");
     status.style.marginTop = "6px";
@@ -219,9 +222,12 @@
 
     for (const m of moves) {
       lastMove = test.move(m, { sloppy: true });
-      if (!lastMove) return { error: "Illegal move: " + m };
+      if (!lastMove) {
+        return { error: "Illegal move: " + m };
+      }
     }
 
+    // Infer mate side
     if (lastMove && lastMove.san.includes("#")) {
       const matingSide = lastMove.color;
       const fenSide = fen.split(" ")[1];
@@ -259,31 +265,25 @@
     let index = 0;
 
     function renderCurrent() {
-
-      // placeholder board prevents jump
-      container.innerHTML = "";
-      const placeholder = document.createElement("div");
-      placeholder.style.minHeight = BOARD_MIN_HEIGHT + "px";
-      container.append(placeholder);
-
       const p = puzzles[index];
 
-      renderLocalPuzzle(
-        container,
-        p.fen,
-        p.moves,
-        `Puzzle ${index + 1} / ${puzzles.length} [→]`,
-        true
-      );
+      renderLocalPuzzle(container, p.fen, p.moves, "", true);
 
-      const arrow = container.querySelector("div:last-child");
-      arrow.style.cursor = "pointer";
-      arrow.onclick = () => {
+      const label = document.createElement("span");
+      label.textContent = `Puzzle ${index + 1} / ${puzzles.length} `;
+
+      const next = document.createElement("button");
+      next.textContent = "→";
+      next.style.marginLeft = "6px";
+      next.onclick = () => {
         if (index + 1 < puzzles.length) {
           index++;
           renderCurrent();
         }
       };
+
+      container.prepend(label);
+      container.append(next);
     }
 
     renderCurrent();
