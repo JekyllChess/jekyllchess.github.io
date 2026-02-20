@@ -1,5 +1,5 @@
 // ============================================================================
-// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FINAL FIXED)
+// puzzle-engine.js — Local + Remote PGN Puzzle Engine (FINAL COMPLETE)
 // ============================================================================
 
 (function () {
@@ -80,7 +80,7 @@
   }
 
   /* -------------------------------------------------- */
-  /* Local puzzle renderer                               */
+  /* Puzzle renderer                                    */
   /* -------------------------------------------------- */
 
   function renderLocalPuzzle(container, fen, moves, label, autoFirstMove) {
@@ -96,7 +96,7 @@
     container.append(boardDiv, status);
 
     const game = new Chess(fen);
-    const solverSide = game.turn();
+    let solverSide = game.turn();
 
     let board;
     let index = 0;
@@ -160,6 +160,7 @@
       {
         draggable: true,
         position: fen,
+        orientation: solverSide === "b" ? "black" : "white",
         pieceTheme: PIECE_THEME,
         onDrop,
         onSnapEnd: () => hardSync(board, game)
@@ -172,6 +173,7 @@
           if (mv) {
             board.position(game.fen(), true);
             index = 1;
+            solverSide = game.turn();
           }
         }
 
@@ -181,7 +183,7 @@
   }
 
   /* -------------------------------------------------- */
-  /* Remote PGN parsing                                  */
+  /* Remote PGN parsing                                 */
   /* -------------------------------------------------- */
 
   function splitIntoPgnGames(text) {
@@ -220,27 +222,26 @@
     // AUTO-INFER MATE SIDE
     if (lastMove && lastMove.san.includes("#")) {
 
-      const matingSide = lastMove.color; // "w" or "b"
+      const matingSide = lastMove.color;
       const fenSide = fen.split(" ")[1];
 
       if (matingSide !== fenSide) {
 
-  // keep final two plies: lead-in + mate
-  const leadIn = moves[moves.length - 2];
-  const mateMove = normalizeSAN(lastMove.san);
+        const leadIn = moves[moves.length - 2];
+        const mateMove = normalizeSAN(lastMove.san);
 
-  return {
-    fen: fen,
-    moves: [leadIn, mateMove]
-  };
-}
+        return {
+          fen: fen,
+          moves: [leadIn, mateMove]
+        };
+      }
     }
 
     return { fen, moves };
   }
 
   /* -------------------------------------------------- */
-  /* Remote PGN renderer                                  */
+  /* Remote PGN renderer                                */
   /* -------------------------------------------------- */
 
   async function renderRemotePGN(container, url) {
