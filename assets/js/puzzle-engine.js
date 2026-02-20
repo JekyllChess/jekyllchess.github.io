@@ -107,7 +107,7 @@ const sep2 = document.createElement("span");
 sep2.textContent = "·";
 
 const nextBtn = document.createElement("button");
-nextBtn.textContent = "Next Puzzle →";
+nextBtn.textContent = "⤻";
 nextBtn.style.display = "none";
 
 statusBar.append(statusLabel, sep1, statusMsg, sep2, nextBtn);
