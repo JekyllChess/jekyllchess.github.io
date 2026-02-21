@@ -1,8 +1,15 @@
 /* ============================= */
+/* LOCAL STORAGE KEY             */
+/* ============================= */
+
+const STORAGE_KEY = "worksheet_report_stats";
+
+
+/* ============================= */
 /* GLOBAL REPORT CARD STATS      */
 /* ============================= */
 
-const REPORT = {
+const REPORT = loadReport() || {
   attempted: 0,
   correct: 0,
   wrong: 0,
@@ -10,6 +17,23 @@ const REPORT = {
   bestStreak: 0,
   pagesCompleted: 0
 };
+
+
+/* ============================= */
+/* SAVE / LOAD REPORT            */
+/* ============================= */
+
+function saveReport() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(REPORT));
+}
+
+function loadReport() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
 
 
 /* ============================= */
@@ -177,6 +201,7 @@ function renderPage(ws) {
 
           /* WRONG */
           if (!expected || move.san !== expected) {
+
             game.undo();
             feedback.textContent = move.san + " ❌";
             applyFigurine(feedback);
@@ -184,6 +209,7 @@ function renderPage(ws) {
             REPORT.attempted++;
             REPORT.wrong++;
             REPORT.currentStreak = 0;
+            saveReport();
 
             cell.classList.add("disabled");
             board.draggable = false;
@@ -201,6 +227,8 @@ function renderPage(ws) {
           REPORT.currentStreak++;
           if (REPORT.currentStreak > REPORT.bestStreak)
             REPORT.bestStreak = REPORT.currentStreak;
+
+          saveReport();
 
           if (puzzle.solution.length === 0) {
             cell.classList.add("disabled");
@@ -264,6 +292,7 @@ function updateNextButtonState(ws) {
   if (allAttempted) {
     ws._nextButton.disabled = false;
     REPORT.pagesCompleted++;
+    saveReport();
   }
 
 }
@@ -352,7 +381,6 @@ function openReportCard() {
   }
 
 }
-
 
 /* ============================= */
 /* FIGURINE APPLY                */

@@ -47,10 +47,6 @@ worksheet {
 
 }
 
-/* ============================= */
-/* REPORT CARD BUTTON            */
-/* ============================= */
-
 .worksheet-toolbar {
   display: flex;
   justify-content: center;
@@ -58,18 +54,7 @@ worksheet {
   margin-top: 24px;
 }
 
-.report-btn {
-  padding: 10px 18px;
-  background: linear-gradient(135deg,#3a3a3a,#1f1f1f);
-  color: #fff;
-  border: 1px solid #555;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.report-btn:hover {
-  background: linear-gradient(135deg,#444,#2a2a2a);
-}
+.report-btn { }
 
 /* ============================= */
 /* MODAL OVERLAY                 */
