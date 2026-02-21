@@ -6,6 +6,14 @@
    - chessboard.js
 */
 
+// Register <worksheet> as a valid custom element
+if (!customElements.get("worksheet")) {
+  customElements.define(
+    "worksheet",
+    class extends HTMLElement {}
+  );
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const worksheets = document.querySelectorAll("worksheet");
 
