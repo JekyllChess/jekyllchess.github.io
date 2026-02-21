@@ -33,3 +33,5 @@ worksheet {
 }
 
 .worksheet-next {display:block;margin:auto;margin-top:3rem;padding:1rem;}
+
+*{border:1px solid red;}
