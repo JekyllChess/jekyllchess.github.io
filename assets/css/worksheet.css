@@ -46,3 +46,103 @@ worksheet {
   }
 
 }
+
+/* ============================= */
+/* REPORT CARD BUTTON            */
+/* ============================= */
+
+.worksheet-toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.report-btn {
+  padding: 10px 18px;
+  background: linear-gradient(135deg,#3a3a3a,#1f1f1f);
+  color: #fff;
+  border: 1px solid #555;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.report-btn:hover {
+  background: linear-gradient(135deg,#444,#2a2a2a);
+}
+
+/* ============================= */
+/* MODAL OVERLAY                 */
+/* ============================= */
+
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.report-card {
+  width: 420px;
+  background: #111;
+  border-radius: 12px;
+  padding: 26px;
+  box-shadow: 0 0 40px rgba(0,0,0,.7);
+  color: #eee;
+  position: relative;
+}
+
+.report-close {
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ============================= */
+/* REPORT LAYOUT                 */
+/* ============================= */
+
+.report-title {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+  letter-spacing: .5px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.report-box {
+  background: #1a1a1a;
+  padding: 14px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.report-box span {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.progress-bar {
+  height: 10px;
+  background: #333;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 14px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg,#6cff9a,#2ecc71);
+  width: 0%;
+}

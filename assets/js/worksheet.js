@@ -1,3 +1,21 @@
+/* ============================= */
+/* GLOBAL REPORT CARD STATS      */
+/* ============================= */
+
+const REPORT = {
+  attempted: 0,
+  correct: 0,
+  wrong: 0,
+  currentStreak: 0,
+  bestStreak: 0,
+  pagesCompleted: 0
+};
+
+
+/* ============================= */
+/* DOM READY                     */
+/* ============================= */
+
 document.addEventListener("DOMContentLoaded", () => {
 
   const worksheets = document.querySelectorAll("worksheet");
@@ -35,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* ============================= */
-/* Split PGN into puzzles        */
+/* SPLIT PGN                     */
 /* ============================= */
 
 function splitPGN(text) {
@@ -52,7 +70,7 @@ function splitPGN(text) {
 
 
 /* ============================= */
-/* Extract FEN + solver + moves  */
+/* EXTRACT PUZZLE                */
 /* ============================= */
 
 function extractPuzzle(pgn) {
@@ -69,11 +87,8 @@ function extractPuzzle(pgn) {
 
   if (moveLine) {
 
-    if (/^[0-9]+\.\.\./.test(moveLine)) {
-      solver = "white";
-    } else if (/^[0-9]+\.\s/.test(moveLine)) {
-      solver = "black";
-    }
+    if (/^[0-9]+\.\.\./.test(moveLine)) solver = "white";
+    else if (/^[0-9]+\.\s/.test(moveLine)) solver = "black";
 
     const cleaned = moveLine
       .replace(/[0-9]+\.(\.\.)?/g, "")
@@ -85,7 +100,6 @@ function extractPuzzle(pgn) {
 
   const game = new Chess(startFEN === "start" ? undefined : startFEN);
 
-  // Apply first half-move (already shown)
   if (solutionMoves.length) {
     game.move(solutionMoves[0], { sloppy: true });
     solutionMoves.shift();
@@ -94,14 +108,15 @@ function extractPuzzle(pgn) {
   return {
     fen: game.fen(),
     orientation: solver === "black" ? "black" : "white",
-    solution: solutionMoves
+    solution: solutionMoves,
+    attempted: false
   };
 
 }
 
 
 /* ============================= */
-/* Render Current Page           */
+/* RENDER PAGE                   */
 /* ============================= */
 
 function renderPage(ws) {
@@ -110,7 +125,6 @@ function renderPage(ws) {
   const end = start + 10;
   const slice = ws._puzzles.slice(start, end);
 
-  // Reset attempt state for this page
   slice.forEach(p => p.attempted = false);
 
   ws.innerHTML = "";
@@ -142,12 +156,9 @@ function renderPage(ws) {
         position: puzzle.fen,
         orientation: puzzle.orientation,
         draggable: true,
-
         moveSpeed: 0,
         snapSpeed: 0,
-
-        pieceTheme:
-          "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+        pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
         onDrop: (source, target) => {
 
@@ -159,27 +170,37 @@ function renderPage(ws) {
 
           if (!move) return "snapback";
 
-          const expected = puzzle.solution[0];
-
-          // Mark attempted
           puzzle.attempted = true;
           updateNextButtonState(ws);
 
-          // WRONG MOVE
+          const expected = puzzle.solution[0];
+
+          /* WRONG */
           if (!expected || move.san !== expected) {
             game.undo();
             feedback.textContent = move.san + " ❌";
             applyFigurine(feedback);
+
+            REPORT.attempted++;
+            REPORT.wrong++;
+            REPORT.currentStreak = 0;
+
             cell.classList.add("disabled");
             board.draggable = false;
             return "snapback";
           }
 
-          // CORRECT MOVE
+          /* CORRECT */
           puzzle.solution.shift();
           feedback.textContent = move.san + " ✅";
           applyFigurine(feedback);
           board.position(game.fen(), false);
+
+          REPORT.attempted++;
+          REPORT.correct++;
+          REPORT.currentStreak++;
+          if (REPORT.currentStreak > REPORT.bestStreak)
+            REPORT.bestStreak = REPORT.currentStreak;
 
           if (puzzle.solution.length === 0) {
             cell.classList.add("disabled");
@@ -193,24 +214,42 @@ function renderPage(ws) {
 
   });
 
-  // NEXT BUTTON
+  /* TOOLBAR */
+
   if (end < ws._puzzles.length) {
 
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Next";
-    nextBtn.className = "worksheet-next";
-    nextBtn.disabled = true; // start disabled
+    const toolbar = document.createElement("div");
+    toolbar.className = "worksheet-toolbar";
 
-    nextBtn.addEventListener("click", () => {
+    const reportBtn = document.createElement("button");
+    reportBtn.className = "report-btn";
+    reportBtn.textContent = "Report Card";
+    reportBtn.onclick = openReportCard;
+
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "worksheet-next";
+    nextBtn.textContent = "Next";
+    nextBtn.disabled = true;
+
+    nextBtn.onclick = () => {
       ws._page++;
       renderPage(ws);
-    });
+    };
 
     ws._nextButton = nextBtn;
-    ws.appendChild(nextBtn);
+
+    toolbar.appendChild(reportBtn);
+    toolbar.appendChild(nextBtn);
+    ws.appendChild(toolbar);
 
   }
+
 }
+
+
+/* ============================= */
+/* NEXT BUTTON STATE             */
+/* ============================= */
 
 function updateNextButtonState(ws) {
 
@@ -222,15 +261,105 @@ function updateNextButtonState(ws) {
 
   const allAttempted = slice.every(p => p.attempted);
 
-  ws._nextButton.disabled = !allAttempted;
+  if (allAttempted) {
+    ws._nextButton.disabled = false;
+    REPORT.pagesCompleted++;
+  }
+
 }
 
+
 /* ============================= */
-/* Apply Figurine Notation       */
+/* REPORT CARD                   */
 /* ============================= */
 
-function applyFigurine(element) {
+function openReportCard() {
+
+  const accuracy = REPORT.attempted
+    ? Math.round((REPORT.correct / REPORT.attempted) * 100)
+    : 0;
+
+  const overlay = document.createElement("div");
+  overlay.className = "report-overlay";
+
+  overlay.innerHTML = `
+    <div class="report-card">
+      <div class="report-close">✖</div>
+
+      <div class="report-title">♟ Training Report Card</div>
+
+      <div class="report-grid">
+
+        <div class="report-box">
+          <span>${REPORT.attempted}</span>
+          Puzzles Attempted
+        </div>
+
+        <div class="report-box">
+          <span>${REPORT.correct}</span>
+          Correct
+        </div>
+
+        <div class="report-box">
+          <span>${REPORT.wrong}</span>
+          Wrong
+        </div>
+
+        <div class="report-box">
+          <span>${accuracy}%</span>
+          Accuracy
+        </div>
+
+        <div class="report-box">
+          <span>${REPORT.currentStreak}</span>
+          Current Streak
+        </div>
+
+        <div class="report-box">
+          <span>${REPORT.bestStreak}</span>
+          Best Streak
+        </div>
+
+      </div>
+
+      <div class="report-box" style="margin-top:14px">
+        <span>${REPORT.pagesCompleted}</span>
+        Pages Completed
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${accuracy}%"></div>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  overlay.querySelector(".report-close").onclick = close;
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  document.addEventListener("keydown", esc);
+
+  function close() {
+    overlay.remove();
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", esc);
+  }
+
+  function esc(e) {
+    if (e.key === "Escape") close();
+  }
+
+}
+
+
+/* ============================= */
+/* FIGURINE APPLY                */
+/* ============================= */
+
+function applyFigurine(el) {
   if (window.ChessFigurine && typeof window.ChessFigurine.run === "function") {
-    window.ChessFigurine.run(element);
+    window.ChessFigurine.run(el);
   }
 }
