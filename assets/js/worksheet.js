@@ -64,22 +64,16 @@ function renderBoards(container, fens) {
   grid.className = "worksheet-grid";
   container.appendChild(grid);
 
-  fens.forEach((fen, i) => {
+  fens.forEach(fen => {
     const cell = document.createElement("div");
     cell.className = "worksheet-item";
-
-    const label = document.createElement("div");
-    label.className = "worksheet-label";
-    label.textContent = `Puzzle ${i + 1}`;
 
     const boardDiv = document.createElement("div");
     boardDiv.className = "worksheet-board";
 
-    cell.appendChild(label);
     cell.appendChild(boardDiv);
     grid.appendChild(cell);
 
-    // Important: create AFTER inserted
     requestAnimationFrame(() => {
       Chessboard(boardDiv, {
         position: fen === "start" ? "start" : fen,
