@@ -1,15 +1,15 @@
 /* ============================= */
-/* LOCAL STORAGE KEY             */
+/* STORAGE KEYS                  */
 /* ============================= */
 
-const STORAGE_KEY = "worksheet_report_stats";
+const STORAGE_KEY = "worksheet_progress_v1";
 
 
 /* ============================= */
 /* GLOBAL REPORT CARD STATS      */
 /* ============================= */
 
-const REPORT = loadReport() || {
+let REPORT = {
   attempted: 0,
   correct: 0,
   wrong: 0,
@@ -20,19 +20,19 @@ const REPORT = loadReport() || {
 
 
 /* ============================= */
-/* SAVE / LOAD REPORT            */
+/* LOAD / SAVE                   */
 /* ============================= */
 
-function saveReport() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(REPORT));
-}
-
-function loadReport() {
+function loadProgress() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
   } catch {
     return null;
   }
+}
+
+function saveProgress(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 
@@ -41,6 +41,8 @@ function loadReport() {
 /* ============================= */
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  const saved = loadProgress();
 
   const worksheets = document.querySelectorAll("worksheet");
 
@@ -60,15 +62,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const puzzles = splitPGN(pgnText);
 
+        if (saved) {
+          REPORT = saved.report;
+          ws._page = saved.page;
+          puzzles.forEach((p, i) => {
+            if (saved.puzzles[i]) {
+              p.state = saved.puzzles[i];
+            }
+          });
+        } else {
+          ws._page = 0;
+        }
+
         ws._puzzles = puzzles;
-        ws._page = 0;
 
         renderPage(ws);
 
-      })
-      .catch(err => {
-        ws.innerHTML = "Failed to load PGN.";
-        console.error(err);
       });
 
   });
@@ -133,7 +142,7 @@ function extractPuzzle(pgn) {
     fen: game.fen(),
     orientation: solver === "black" ? "black" : "white",
     solution: solutionMoves,
-    attempted: false
+    state: "new" // new | wrong | solved
   };
 
 }
@@ -149,15 +158,13 @@ function renderPage(ws) {
   const end = start + 10;
   const slice = ws._puzzles.slice(start, end);
 
-  slice.forEach(p => p.attempted = false);
-
   ws.innerHTML = "";
 
   const grid = document.createElement("div");
   grid.className = "worksheet-grid";
   ws.appendChild(grid);
 
-  slice.forEach(puzzle => {
+  slice.forEach((puzzle, index) => {
 
     const cell = document.createElement("div");
     cell.className = "worksheet-item";
@@ -172,134 +179,135 @@ function renderPage(ws) {
     cell.appendChild(feedback);
     grid.appendChild(cell);
 
-    requestAnimationFrame(() => {
+    const game = new Chess(puzzle.fen);
 
-      const game = new Chess(puzzle.fen);
+    const board = Chessboard(boardDiv, {
+      position: puzzle.fen,
+      orientation: puzzle.orientation,
+      draggable: puzzle.state === "new",
+      moveSpeed: 0,
+      snapSpeed: 0,
+      pieceTheme:
+        "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
-      const board = Chessboard(boardDiv, {
-        position: puzzle.fen,
-        orientation: puzzle.orientation,
-        draggable: true,
-        moveSpeed: 0,
-        snapSpeed: 0,
-        pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+      onDrop: (source, target) => {
 
-        onDrop: (source, target) => {
+        const move = game.move({
+          from: source,
+          to: target,
+          promotion: "q"
+        });
 
-          const move = game.move({
-            from: source,
-            to: target,
-            promotion: "q"
-          });
+        if (!move) return "snapback";
 
-          if (!move) return "snapback";
+        const expected = puzzle.solution[0];
 
-          puzzle.attempted = true;
-          updateNextButtonState(ws);
+        /* WRONG */
+        if (!expected || move.san !== expected) {
 
-          const expected = puzzle.solution[0];
-
-          /* WRONG */
-          if (!expected || move.san !== expected) {
-
-            game.undo();
-            feedback.textContent = move.san + " ❌";
-            applyFigurine(feedback);
-
-            REPORT.attempted++;
-            REPORT.wrong++;
-            REPORT.currentStreak = 0;
-            saveReport();
-
-            cell.classList.add("disabled");
-            board.draggable = false;
-            return "snapback";
-          }
-
-          /* CORRECT */
-          puzzle.solution.shift();
-          feedback.textContent = move.san + " ✅";
+          game.undo();
+          feedback.textContent = move.san + " ❌";
           applyFigurine(feedback);
-          board.position(game.fen(), false);
+
+          puzzle.state = "wrong";
+
+          REPORT.attempted++;
+          REPORT.wrong++;
+          REPORT.currentStreak = 0;
+
+          cell.classList.add("disabled");
+          board.draggable = false;
+
+          persist(ws);
+          return "snapback";
+        }
+
+        /* CORRECT */
+        puzzle.solution.shift();
+        feedback.textContent = move.san + " ✅";
+        applyFigurine(feedback);
+        board.position(game.fen(), false);
+
+        if (puzzle.solution.length === 0) {
+
+          puzzle.state = "solved";
 
           REPORT.attempted++;
           REPORT.correct++;
           REPORT.currentStreak++;
-          if (REPORT.currentStreak > REPORT.bestStreak)
-            REPORT.bestStreak = REPORT.currentStreak;
+          REPORT.bestStreak = Math.max(REPORT.bestStreak, REPORT.currentStreak);
 
-          saveReport();
-
-          if (puzzle.solution.length === 0) {
-            cell.classList.add("disabled");
-            board.draggable = false;
-          }
-
+          cell.classList.add("disabled");
+          board.draggable = false;
         }
-      });
+
+        persist(ws);
+
+      }
 
     });
+
+    /* RESTORE STATE */
+
+    if (puzzle.state === "wrong") {
+      feedback.textContent = "❌";
+      cell.classList.add("disabled");
+    }
+
+    if (puzzle.state === "solved") {
+      feedback.textContent = "✅";
+      cell.classList.add("disabled");
+    }
 
   });
 
   /* TOOLBAR */
 
-  if (end < ws._puzzles.length) {
+  const toolbar = document.createElement("div");
+  toolbar.className = "worksheet-toolbar";
 
-    const toolbar = document.createElement("div");
-    toolbar.className = "worksheet-toolbar";
+  const reportBtn = document.createElement("button");
+  reportBtn.className = "report-btn";
+  reportBtn.textContent = "Report Card";
+  reportBtn.onclick = openReportCard;
 
-    const reportBtn = document.createElement("button");
-    reportBtn.className = "report-btn";
-    reportBtn.textContent = "Report Card";
-    reportBtn.onclick = openReportCard;
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "worksheet-next";
+  nextBtn.textContent = "Next";
 
-    const nextBtn = document.createElement("button");
-    nextBtn.className = "worksheet-next";
-    nextBtn.textContent = "Next";
-    nextBtn.disabled = true;
+  const allDone = slice.every(p => p.state !== "new");
+  nextBtn.disabled = !allDone;
 
-    nextBtn.onclick = () => {
-      ws._page++;
-      renderPage(ws);
-    };
+  nextBtn.onclick = () => {
+    ws._page++;
+    persist(ws);
+    renderPage(ws);
+  };
 
-    ws._nextButton = nextBtn;
-
-    toolbar.appendChild(reportBtn);
-    toolbar.appendChild(nextBtn);
-    ws.appendChild(toolbar);
-
-  }
+  toolbar.appendChild(reportBtn);
+  if (end < ws._puzzles.length) toolbar.appendChild(nextBtn);
+  ws.appendChild(toolbar);
 
 }
 
 
 /* ============================= */
-/* NEXT BUTTON STATE             */
+/* PERSIST                       */
 /* ============================= */
 
-function updateNextButtonState(ws) {
+function persist(ws) {
 
-  if (!ws._nextButton) return;
-
-  const start = ws._page * 10;
-  const end = start + 10;
-  const slice = ws._puzzles.slice(start, end);
-
-  const allAttempted = slice.every(p => p.attempted);
-
-  if (allAttempted) {
-    ws._nextButton.disabled = false;
-    REPORT.pagesCompleted++;
-    saveReport();
-  }
+  saveProgress({
+    page: ws._page,
+    report: REPORT,
+    puzzles: ws._puzzles.map(p => p.state)
+  });
 
 }
 
 
 /* ============================= */
-/* REPORT CARD                   */
+/* REPORT CARD MODAL             */
 /* ============================= */
 
 function openReportCard() {
@@ -314,46 +322,17 @@ function openReportCard() {
   overlay.innerHTML = `
     <div class="report-card">
       <div class="report-close">✖</div>
-
       <div class="report-title">♟ Training Report Card</div>
 
       <div class="report-grid">
 
-        <div class="report-box">
-          <span>${REPORT.attempted}</span>
-          Puzzles Attempted
-        </div>
+        <div class="report-box"><span>${REPORT.attempted}</span>Attempted</div>
+        <div class="report-box"><span>${REPORT.correct}</span>Correct</div>
+        <div class="report-box"><span>${REPORT.wrong}</span>Wrong</div>
+        <div class="report-box"><span>${accuracy}%</span>Accuracy</div>
+        <div class="report-box"><span>${REPORT.currentStreak}</span>Current Streak</div>
+        <div class="report-box"><span>${REPORT.bestStreak}</span>Best Streak</div>
 
-        <div class="report-box">
-          <span>${REPORT.correct}</span>
-          Correct
-        </div>
-
-        <div class="report-box">
-          <span>${REPORT.wrong}</span>
-          Wrong
-        </div>
-
-        <div class="report-box">
-          <span>${accuracy}%</span>
-          Accuracy
-        </div>
-
-        <div class="report-box">
-          <span>${REPORT.currentStreak}</span>
-          Current Streak
-        </div>
-
-        <div class="report-box">
-          <span>${REPORT.bestStreak}</span>
-          Best Streak
-        </div>
-
-      </div>
-
-      <div class="report-box" style="margin-top:14px">
-        <span>${REPORT.pagesCompleted}</span>
-        Pages Completed
       </div>
 
       <div class="progress-bar">
@@ -366,28 +345,22 @@ function openReportCard() {
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
 
-  overlay.querySelector(".report-close").onclick = close;
   overlay.onclick = e => { if (e.target === overlay) close(); };
-  document.addEventListener("keydown", esc);
+  overlay.querySelector(".report-close").onclick = close;
 
   function close() {
     overlay.remove();
     document.body.style.overflow = "";
-    document.removeEventListener("keydown", esc);
-  }
-
-  function esc(e) {
-    if (e.key === "Escape") close();
   }
 
 }
+
 
 /* ============================= */
 /* FIGURINE APPLY                */
 /* ============================= */
 
 function applyFigurine(el) {
-  if (window.ChessFigurine && typeof window.ChessFigurine.run === "function") {
+  if (window.ChessFigurine)
     window.ChessFigurine.run(el);
-  }
 }
