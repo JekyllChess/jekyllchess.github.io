@@ -1,73 +1,88 @@
-document.addEventListener("DOMContentLoaded", function () {
-
-  // Find all worksheet blocks
+document.addEventListener("DOMContentLoaded", () => {
   const worksheets = document.querySelectorAll("worksheet");
 
-  worksheets.forEach((worksheet, worksheetIndex) => {
+  worksheets.forEach(ws => {
+    const pgnLine = ws.innerText
+      .split("\n")
+      .find(l => l.trim().startsWith("PGN:"));
 
-    const content = worksheet.textContent.trim();
-    const match = content.match(/PGN:\s*(.*)/i);
+    if (!pgnLine) return;
 
-    if (!match) return;
+    const url = pgnLine.replace("PGN:", "").trim();
 
-    const pgnUrl = match[1].trim();
-
-    // Clear original content
-    worksheet.innerHTML = "<p>Loading puzzles...</p>";
-
-    fetch(pgnUrl)
-      .then(response => response.text())
+    fetch(url)
+      .then(r => r.text())
       .then(pgnText => {
-
-        const games = splitPGNGames(pgnText);
-
-        worksheet.innerHTML = ""; // Clear loading text
-
-        games.forEach((gameText, index) => {
-
-          const chess = new Chess();
-          chess.load_pgn(gameText);
-
-          const fen = chess.fen();
-
-          const puzzleContainer = document.createElement("div");
-          puzzleContainer.className = "worksheet-puzzle";
-
-          const boardDiv = document.createElement("div");
-          boardDiv.id = `worksheet-board-${worksheetIndex}-${index}`;
-          boardDiv.className = "worksheet-board";
-
-          puzzleContainer.appendChild(boardDiv);
-          worksheet.appendChild(puzzleContainer);
-
-          Chessboard(boardDiv.id, {
-            position: fen,
-            draggable: false,
-            pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
-          });
-
-        });
-
+        const puzzles = splitPGN(pgnText);
+        renderBoards(ws, puzzles.slice(0, 10));
       })
-      .catch(error => {
-        worksheet.innerHTML = "<p>Error loading PGN.</p>";
-        console.error("Worksheet PGN load error:", error);
+      .catch(err => {
+        ws.innerHTML = "Failed to load PGN.";
+        console.error(err);
       });
-
   });
-
 });
 
 
-// ----------------------------
-// Helper: Split multiple PGNs
-// ----------------------------
-function splitPGNGames(pgnText) {
+/* ----------------------------- */
+/* Split PGN into individual games */
+/* ----------------------------- */
 
-  // Split on new headers
-  const rawGames = pgnText.split(/\n(?=\[Event)/g);
-
-  return rawGames
+function splitPGN(text) {
+  const games = text
+    .split(/\n\n(?=\[Event)/g)
     .map(g => g.trim())
-    .filter(g => g.length > 0);
+    .filter(Boolean);
+
+  return games.map(extractFEN);
+}
+
+
+/* ----------------------------- */
+/* Extract starting FEN */
+/* ----------------------------- */
+
+function extractFEN(pgn) {
+  const fenMatch = pgn.match(/\[FEN\s+"([^"]+)"\]/);
+
+  if (fenMatch) return fenMatch[1];
+
+  // If no FEN tag, assume standard start
+  return "start";
+}
+
+
+/* ----------------------------- */
+/* Render Boards */
+/* ----------------------------- */
+
+function renderBoards(container, fens) {
+  container.innerHTML = "";
+
+  const grid = document.createElement("div");
+  grid.className = "worksheet-grid";
+
+  fens.forEach((fen, i) => {
+    const cell = document.createElement("div");
+    cell.className = "worksheet-item";
+
+    const label = document.createElement("div");
+    label.className = "worksheet-label";
+    label.textContent = `Puzzle ${i + 1}`;
+
+    const boardDiv = document.createElement("div");
+    boardDiv.className = "worksheet-board";
+
+    cell.appendChild(label);
+    cell.appendChild(boardDiv);
+    grid.appendChild(cell);
+
+    Chessboard(boardDiv, {
+      position: fen === "start" ? "start" : fen,
+      draggable: false,
+      pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
+    });
+  });
+
+  container.appendChild(grid);
 }
