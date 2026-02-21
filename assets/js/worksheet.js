@@ -161,6 +161,7 @@ function renderPage(ws) {
           if (!expected || move.san !== expected) {
             game.undo();
             feedback.textContent = move.san + " ❌";
+            applyFigurine(feedback);
             cell.classList.add("disabled");
             board.draggable = false;
             return "snapback";
@@ -169,6 +170,7 @@ function renderPage(ws) {
           // CORRECT MOVE
           puzzle.solution.shift();
           feedback.textContent = move.san + " ✅";
+          applyFigurine(feedback);
           board.position(game.fen(), false);
 
           if (puzzle.solution.length === 0) {
@@ -199,4 +201,14 @@ function renderPage(ws) {
 
   }
 
+}
+
+/* ============================= */
+/* Apply Figurine Notation       */
+/* ============================= */
+
+function applyFigurine(element) {
+  if (window.ChessFigurine && typeof window.ChessFigurine.run === "function") {
+    window.ChessFigurine.run(element);
+  }
 }
