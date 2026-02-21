@@ -31,7 +31,11 @@ worksheet {
   pointer-events: none;
 }
 
-.worksheet-item.disabled::after {
+.worksheet-item.disabled .worksheet-board {
+  position: relative;
+}
+
+.worksheet-item.disabled .worksheet-board::after {
   content: "";
   position: absolute;
   inset: 0;
