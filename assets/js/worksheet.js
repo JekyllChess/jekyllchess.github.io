@@ -64,12 +64,13 @@ function initWorksheet(container, pgnText) {
 
       // Load puzzle
       const puzzleGame = new Chess();
-      puzzleGame.load_pgn(pgn);
+puzzleGame.load_pgn(pgn);
 
-      const solutionMoves = puzzleGame.history({ verbose: true });
-      const correctMove = solutionMoves[0];
+const startFen = puzzleGame.fen();
+const solutionMoves = puzzleGame.history({ verbose: true });
+const correctMove = solutionMoves[0];
 
-      puzzleGame.reset();
+const playGame = new Chess(startFen);
 
       const board = Chessboard(boardDiv.id, {
         position: puzzleGame.fen(),
