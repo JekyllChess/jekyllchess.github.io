@@ -1,7 +1,11 @@
 worksheet {
   display: block;
-  width:100%;
-  margin: 2rem auto;
+  width: 100%;
+  margin-top: 2rem;
+
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .worksheet-grid {
@@ -9,6 +13,7 @@ worksheet {
   grid-template-columns: repeat(auto-fill, 300px);
   gap: 20px;
   justify-content: start;
+  align-self:center;
 }
 
 .worksheet-item {
