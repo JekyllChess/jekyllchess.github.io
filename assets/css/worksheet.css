@@ -1,23 +1,18 @@
 worksheet {
   display: block;
-  width: 100%;
-  margin-top: 2rem;
-
-  max-width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 2rem 0;
 }
 
 .worksheet-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 300px);
+  grid-template-columns: repeat(2, 300px);
   gap: 20px;
-  justify-content: start;
-  align-self:center;
+  justify-content: center;
 }
 
 .worksheet-item {
   width: 300px;
+  position: relative;
 }
 
 .worksheet-board {
@@ -25,8 +20,14 @@ worksheet {
   height: 300px;
 }
 
+.move-feedback {
+  margin-top: 6px;
+  font-size: 14px;
+  min-height: 18px;
+  text-align: center;
+}
+
 .worksheet-item.disabled {
-  position: relative;
   pointer-events: none;
 }
 
@@ -38,6 +39,10 @@ worksheet {
   z-index: 5;
 }
 
-.worksheet-next {display:block;margin:auto;margin-top:3rem;padding:1rem;}
+@media (max-width: 650px) {
 
-*{border:1px solid red;}
+  .worksheet-grid {
+    grid-template-columns: 300px;
+  }
+
+}
