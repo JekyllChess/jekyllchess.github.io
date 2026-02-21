@@ -131,3 +131,9 @@ worksheet {
   background: linear-gradient(90deg,#6cff9a,#2ecc71);
   width: 0%;
 }
+
+.report-card,
+.report-card * {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
