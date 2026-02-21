@@ -30,7 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function splitPGN(text) {
   const games = text
-    .split(/\n\n(?=\[Event)/g)
+    .replace(/\r/g, "")
+    .split(/\n\s*\n(?=\[)/g)
     .map(g => g.trim())
     .filter(Boolean);
 
