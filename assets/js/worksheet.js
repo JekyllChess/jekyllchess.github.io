@@ -284,10 +284,37 @@ function renderPage(ws) {
     renderPage(ws);
   };
 
-  toolbar.appendChild(reportBtn);
-  if (end < ws._puzzles.length) toolbar.appendChild(nextBtn);
-  ws.appendChild(toolbar);
+  const resetBtn = document.createElement("button");
+resetBtn.className = "report-btn";
+resetBtn.textContent = "Reset Progress";
+resetBtn.onclick = () => resetProgress(ws);
 
+toolbar.appendChild(reportBtn);
+toolbar.appendChild(resetBtn);
+if (end < ws._puzzles.length) toolbar.appendChild(nextBtn);
+ws.appendChild(toolbar);
+
+}
+
+function resetProgress(ws) {
+
+  if (!confirm("Reset all worksheet progress?")) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  REPORT = {
+    attempted: 0,
+    correct: 0,
+    wrong: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    pagesCompleted: 0
+  };
+
+  ws._puzzles.forEach(p => p.state = "new");
+  ws._page = 0;
+
+  renderPage(ws);
 }
 
 
