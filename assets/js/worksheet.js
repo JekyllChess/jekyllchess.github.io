@@ -2,7 +2,7 @@
 /* STORAGE KEY                   */
 /* ============================= */
 
-const STORAGE_KEY = "worksheet_progress_v1";
+const STORAGE_KEY = "worksheet_progress_v2";
 
 /* ============================= */
 /* GLOBAL REPORT CARD STATS      */
@@ -70,8 +70,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (saved) {
           REPORT = saved.report;
           ws._page = saved.page || 0;
+
           puzzles.forEach((p, i) => {
-            if (saved.puzzles[i]) p.state = saved.puzzles[i];
+            if (saved.puzzles[i]) {
+              p.state = saved.puzzles[i].state;
+              p.playedMove = saved.puzzles[i].playedMove;
+            }
           });
         } else {
           ws._page = 0;
@@ -137,7 +141,8 @@ function extractPuzzle(pgn) {
     fen: game.fen(),
     orientation: solver === "black" ? "black" : "white",
     solution: moves,
-    state: "new"
+    state: "new",
+    playedMove: null
   };
 
 }
@@ -180,7 +185,8 @@ function renderPage(ws) {
       draggable: puzzle.state === "new",
       moveSpeed: 0,
       snapSpeed: 0,
-      pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+      pieceTheme:
+        "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
       onDragStart: lockScroll,
 
@@ -203,10 +209,11 @@ function renderPage(ws) {
         if (!expected || move.san !== expected) {
 
           game.undo();
+          puzzle.state = "wrong";
+          puzzle.playedMove = move.san;
+
           feedback.textContent = move.san + " ❌";
           applyFigurine(feedback);
-
-          puzzle.state = "wrong";
 
           REPORT.attempted++;
           REPORT.wrong++;
@@ -223,6 +230,8 @@ function renderPage(ws) {
 
         /* CORRECT */
         puzzle.solution.shift();
+        puzzle.playedMove = move.san;
+
         feedback.textContent = move.san + " ✅";
         applyFigurine(feedback);
         board.position(game.fen(), false);
@@ -248,9 +257,18 @@ function renderPage(ws) {
 
     });
 
+    /* RESTORE STATE */
+
     if (puzzle.state !== "new") {
+
       cell.classList.add("disabled");
-      feedback.textContent = puzzle.state === "solved" ? "✅" : "❌";
+
+      if (puzzle.playedMove) {
+        feedback.textContent =
+          puzzle.playedMove + (puzzle.state === "solved" ? " ✅" : " ❌");
+        applyFigurine(feedback);
+      }
+
     }
 
   });
@@ -315,7 +333,10 @@ function persist(ws) {
   saveProgress({
     page: ws._page,
     report: REPORT,
-    puzzles: ws._puzzles.map(p => p.state)
+    puzzles: ws._puzzles.map(p => ({
+      state: p.state,
+      playedMove: p.playedMove
+    }))
   });
 
 }
@@ -339,9 +360,12 @@ function resetProgress(ws) {
     pagesCompleted: 0
   };
 
-  ws._puzzles.forEach(p => p.state = "new");
-  ws._page = 0;
+  ws._puzzles.forEach(p => {
+    p.state = "new";
+    p.playedMove = null;
+  });
 
+  ws._page = 0;
   renderPage(ws);
 
 }
