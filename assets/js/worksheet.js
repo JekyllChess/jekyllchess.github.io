@@ -74,7 +74,7 @@ function initWorksheet(container, pgnText) {
         Chessboard(boardDiv.id, {
           position: fen,
           draggable: false,
-          pieceTheme: "/assets/img/chesspieces/wikipedia/{piece}.png"
+          pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
         });
       }, 0);
 
