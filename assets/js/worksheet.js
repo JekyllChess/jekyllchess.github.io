@@ -42,7 +42,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
           Chessboard(boardDiv.id, {
             position: fen,
-            draggable: false
+            draggable: false,
+            pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png"
           });
 
         });
