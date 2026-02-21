@@ -70,8 +70,11 @@ function initWorksheet(container, pgnText){
   let page = 0;
   const pageSize = 10;
 
-  const grid = document.createElement("div");
-  grid.className = "worksheet-grid";
+ const grid = document.createElement("div");
+
+grid.style.display = "grid";
+grid.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
+grid.style.gap = "20px";
 
   const nextBtn = document.createElement("button");
   nextBtn.textContent = "Next Page →";
@@ -97,6 +100,7 @@ function initWorksheet(container, pgnText){
 
       const wrapper=document.createElement("div");
       wrapper.className="worksheet-item";
+wrapper.style.width="100%";
 
       const boardDiv=document.createElement("div");
       boardDiv.className="worksheet-board";
