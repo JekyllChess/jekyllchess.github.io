@@ -119,13 +119,18 @@ function renderPage(ws) {
   slice.forEach(puzzle => {
 
     const cell = document.createElement("div");
-    cell.className = "worksheet-item";
+cell.className = "worksheet-item";
 
-    const boardDiv = document.createElement("div");
-    boardDiv.className = "worksheet-board";
+const boardDiv = document.createElement("div");
+boardDiv.className = "worksheet-board";
 
-    cell.appendChild(boardDiv);
-    grid.appendChild(cell);
+const solvedOverlay = document.createElement("div");
+solvedOverlay.className = "worksheet-solved";
+solvedOverlay.textContent = "SOLVED!";
+
+cell.appendChild(boardDiv);
+cell.appendChild(solvedOverlay);
+grid.appendChild(cell);
 
     requestAnimationFrame(() => {
 
@@ -135,6 +140,8 @@ const board = Chessboard(boardDiv, {
   position: puzzle.fen,
   orientation: puzzle.orientation,
   draggable: true,
+  moveSpeed: 0,
+  snapSpeed: 0,
   pieceTheme: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
 
   onDrop: (source, target) => {
@@ -158,8 +165,9 @@ const board = Chessboard(boardDiv, {
     board.position(game.fen());
 
     if (puzzle.solution.length === 0) {
-      board.draggable = false;
-    }
+  board.draggable = false;
+  cell.classList.add("solved");
+}
 
   }
 });
