@@ -21,7 +21,7 @@ Automatically replaces SAN piece letters (K, Q, R, B, N) with Unicode figurines 
 ---
 
 ### 📊 FEN Diagrams
-Use custom `<fen>` tags directly in Markdown or HTML to render visual chessboards.
+Use custom `<fen>` tags directly in Markdown to render visual chessboards.
 
 Supports:
 - Inline diagrams
@@ -34,7 +34,6 @@ Supports:
 Convert raw PGN inside `<pgn>` elements into a formatted chess blog layout.
 
 Supports:
-- Move numbers
 - Variations
 - Comments
 - Numeric Annotation Glyphs (NAGs)
@@ -45,9 +44,9 @@ Supports:
 ### 🎮 Interactive PGN Viewer
 The `<pgn-reader>` component creates an interactive chess viewer with:
 
+- Smooth game replay
 - Clickable move list
-- Smooth board animations
-- Variation support
+- Variation and comment support
 - Responsive layout
 - Desktop & mobile friendly UI
 
@@ -63,12 +62,12 @@ Interactive puzzles powered by FEN or multi-puzzle PGN packs.
 ---
 
 ### 🏋️ Training Mode
-A guided PGN training board where moves are revealed as the reader finds correct continuations.
+A guided PGN training board where moves are revealed as the reader finds the correct continuation.
 
 ---
 
 ### 📝 Worksheet Mode
-Simple mate-in-one and tactical worksheets using FEN positions.
+Simple worksheets generated using PGN files.
 
 ---
 
@@ -175,7 +174,7 @@ MIT License — free to use, modify, and distribute.
 
 Pull requests and ideas are welcome.
 
-If you build something cool with JekyllChess, feel free to share it!
+If you build something cool with JekyllChess, feel free to share it with us!
 
 ---
 
