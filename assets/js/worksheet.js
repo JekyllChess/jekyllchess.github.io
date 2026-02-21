@@ -1,109 +1,72 @@
-/*
-  worksheet.js
-  Turns <worksheet> PGN into multiple FEN diagrams
-  Requires:
-   - chess.js
-   - chessboard.js
-*/
+document.addEventListener("DOMContentLoaded", function () {
 
-// Register <worksheet> as a valid custom element
-if (!customElements.get("worksheet")) {
-  customElements.define(
-    "worksheet",
-    class extends HTMLElement {}
-  );
-}
-
-document.addEventListener("DOMContentLoaded", () => {
+  // Find all worksheet blocks
   const worksheets = document.querySelectorAll("worksheet");
 
-  worksheets.forEach(ws => {
-    const raw = ws.textContent.trim();
-    const match = raw.match(/PGN:\s*(.+)/i);
+  worksheets.forEach((worksheet, worksheetIndex) => {
+
+    const content = worksheet.textContent.trim();
+    const match = content.match(/PGN:\s*(.*)/i);
+
     if (!match) return;
 
     const pgnUrl = match[1].trim();
-    ws.innerHTML = `<div class="worksheet-container">Loading puzzles...</div>`;
+
+    // Clear original content
+    worksheet.innerHTML = "<p>Loading puzzles...</p>";
 
     fetch(pgnUrl)
-      .then(r => r.text())
+      .then(response => response.text())
       .then(pgnText => {
-        const games = splitPGN(pgnText);
-        renderGames(ws, games);
+
+        const games = splitPGNGames(pgnText);
+
+        worksheet.innerHTML = ""; // Clear loading text
+
+        games.forEach((gameText, index) => {
+
+          const chess = new Chess();
+          chess.load_pgn(gameText);
+
+          const fen = chess.fen();
+
+          const puzzleContainer = document.createElement("div");
+          puzzleContainer.className = "worksheet-puzzle";
+
+          const boardDiv = document.createElement("div");
+          boardDiv.id = `worksheet-board-${worksheetIndex}-${index}`;
+          boardDiv.className = "worksheet-board";
+
+          puzzleContainer.appendChild(boardDiv);
+          worksheet.appendChild(puzzleContainer);
+
+          Chessboard(boardDiv.id, {
+            position: fen,
+            draggable: false
+          });
+
+        });
+
       })
-      .catch(err => {
-        ws.innerHTML = "Failed to load PGN file.";
-        console.error(err);
+      .catch(error => {
+        worksheet.innerHTML = "<p>Error loading PGN.</p>";
+        console.error("Worksheet PGN load error:", error);
       });
+
   });
+
 });
 
-/* ----------------------------- */
-/* Split PGN into individual games */
-/* ----------------------------- */
 
-function splitPGN(pgnText) {
-  return pgnText
-    .split(/\n\s*\n(?=\[Event|\[FEN|\[Site|\[White)/g)
+// ----------------------------
+// Helper: Split multiple PGNs
+// ----------------------------
+function splitPGNGames(pgnText) {
+
+  // Split on new headers
+  const rawGames = pgnText.split(/\n(?=\[Event)/g);
+
+  return rawGames
     .map(g => g.trim())
-    .filter(g => g.length);
-}
-
-/* ----------------------------- */
-/* Render puzzles */
-/* ----------------------------- */
-
-function renderGames(container, games) {
-  container.innerHTML = "";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "worksheet-container";
-
-  // FIRST: build DOM
-  games.forEach((pgn, index) => {
-    const boardId = `worksheet-board-${index}`;
-    const puzzleDiv = document.createElement("div");
-    puzzleDiv.className = "worksheet-puzzle";
-
-    puzzleDiv.innerHTML = `
-      <div class="worksheet-board" id="${boardId}"></div>
-      <div class="worksheet-label">Puzzle ${index + 1}</div>
-    `;
-
-    wrapper.appendChild(puzzleDiv);
-  });
-
-  // Attach everything to page
-  container.appendChild(wrapper);
-
-  // SECOND: initialize boards
-  games.forEach((pgn, index) => {
-    const boardId = `worksheet-board-${index}`;
-    const fen = extractFEN(pgn);
-
-    Chessboard(boardId, {
-      position: fen,
-      draggable: false,
-      showNotation: false
-    });
-  });
-}
-
-  container.appendChild(wrapper);
-}
-
-/* ----------------------------- */
-/* Extract FEN */
-/* ----------------------------- */
-
-function extractFEN(pgn) {
-
-  // 1) Use FEN tag if exists
-  const fenTag = pgn.match(/\[FEN\s+"([^"]+)"\]/i);
-  if (fenTag) return fenTag[1];
-
-  // 2) Otherwise build from moves
-  const game = new Chess();
-  game.load_pgn(pgn);
-  return game.fen();
+    .filter(g => g.length > 0);
 }
