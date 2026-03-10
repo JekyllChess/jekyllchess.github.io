@@ -227,3 +227,17 @@
     padding: 20px 16px;
   }
 }
+
+/* Two-column layout for PGN moves */
+.pgn-container.two-col .pgn-moves {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 columns */
+  column-gap: 2rem;               /* gap between columns */
+  row-gap: 0.5rem;                /* gap between rows */
+}
+
+@media (max-width: 768px) {
+  .pgn-container.two-col .pgn-moves {
+    grid-template-columns: 1fr;   /* stack on small screens */
+  }
+}
