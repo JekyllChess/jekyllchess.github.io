@@ -97,8 +97,15 @@
   }
 
   function getSquareCenter(boardDiv, square) {
-    var squareEl = boardDiv.querySelector('[data-square="' + square + '"]');
-    if (!squareEl) return null;
+    if (!boardDiv.__squareCache) {
+  boardDiv.__squareCache = {};
+  boardDiv.querySelectorAll("[data-square]").forEach(function (el) {
+    boardDiv.__squareCache[el.dataset.square] = el;
+  });
+}
+
+var squareEl = boardDiv.__squareCache[square];
+if (!squareEl) return null;
 
     var boardRect = boardDiv.getBoundingClientRect();
     var rect = squareEl.getBoundingClientRect();
@@ -262,7 +269,9 @@
         continue;
       }
 
-      var moveMatch = text.slice(i).match(/^[^\s(){}]+/);
+      var moveMatch = text
+  .slice(i)
+  .match(/^(?:O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|[a-h][1-8])[\+#]?/);
       if (moveMatch) {
         tokens.push({ type: "move", value: moveMatch[0] });
         i += moveMatch[0].length;
@@ -829,13 +838,33 @@
     btnNext.addEventListener("click", function () { goToMove(currentIndex + 1); });
     btnLast.addEventListener("click", function () { goToMove(allNodes.length - 1); });
 
-    document.addEventListener("keydown", function (e) {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "ArrowLeft") { e.preventDefault(); goToMove(currentIndex - 1); }
-      if (e.key === "ArrowRight") { e.preventDefault(); goToMove(currentIndex + 1); }
-      if (e.key === "Home") { e.preventDefault(); goToMove(-1); }
-      if (e.key === "End") { e.preventDefault(); goToMove(allNodes.length - 1); }
-    });
+    if (!window.__jcKeyHandler) {
+  window.__jcKeyHandler = true;
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goToMove(currentIndex - 1);
+    }
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goToMove(currentIndex + 1);
+    }
+
+    if (e.key === "Home") {
+      e.preventDefault();
+      goToMove(-1);
+    }
+
+    if (e.key === "End") {
+      e.preventDefault();
+      goToMove(allNodes.length - 1);
+    }
+  });
+}
 
     goToMove(-1);
   }
@@ -999,7 +1028,11 @@
         if (state.index >= state.moves.length) return finishSolved();
 
         var mv = state.game.move(state.moves[state.index], { sloppy: true });
-        if (!mv) return finishSolved();
+
+if (!mv) {
+  console.error("Invalid puzzle move:", state.moves[state.index]);
+  return;
+}
 
         state.index++;
         board.position(state.game.fen(), true);
@@ -1030,8 +1063,9 @@
         dispatchMoveEvent(state.index);
 
         boardDiv.classList.remove("jc-fire-once");
-        void boardDiv.offsetWidth;
-        boardDiv.classList.add("jc-fire-once");
+requestAnimationFrame(function () {
+  boardDiv.classList.add("jc-fire-once");
+});
 
         setTimeout(function () {
           if (!state.solved) boardDiv.classList.remove("jc-fire-once");
@@ -1149,7 +1183,7 @@
       return;
     }
 
-    node.textContent = "Loading puzzles...";
+    node.textContent = "Loading puzzles…";
 
     function processText(text) {
       var games = splitIntoPgnBlocks(text);
@@ -1312,7 +1346,7 @@
       var src = el.getAttribute("src");
 
       if (src) {
-        fetch(src)
+        fetch(src, { cache: "no-store" })
           .then(function (res) { return res.text(); })
           .then(function (text) {
             renderFullPGN(text, container);
@@ -1347,7 +1381,7 @@
       var src = el.getAttribute("src");
 
       if (src) {
-        fetch(src)
+        fetch(src, { cache: "no-store" })
           .then(function (res) { return res.text(); })
           .then(function (text) {
             renderPGNReader(text, wrapper);
