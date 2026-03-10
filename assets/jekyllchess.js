@@ -1340,6 +1340,7 @@ requestAnimationFrame(function () {
 
       var container = document.createElement("div");
       container.className = "pgn-container game-card";
+      if (el.dataset.columns === "2") container.classList.add("two-col");
       el.replaceWith(container);
 
       var pgnText = "";
