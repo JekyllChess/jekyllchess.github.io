@@ -9,95 +9,35 @@
  */
 
 /* ================================================================
-   PGN HEADERS
+   <pgn> element
 ================================================================ */
-
-.pgn-headers {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-}
-
-.pgn-players {
-  margin-bottom: 4px;
-}
-
-/* ================================================================
-   PGN MOVES — <pgn> element
-================================================================ */
-
-.pgn-container {
-  padding: 32px;
-  overflow: hidden;
-}
-
-.pgn-moves {
-  line-height: 2;
-}
-
-.pgn-mainline {
-  display: inline;
-  margin: 0;
-}
-
-.pgn-mainline::after {
-  content: " ";
-}
-
-.pgn-variation {
-  display: block;
-  margin: 8px 0 8px 16px;
-  padding-left: 12px;
-}
-
-.pgn-variation-line {
-  display: inline;
-  margin: 0;
-}
-
-.pgn-variation-line::after {
-  content: " ";
-}
-
-.pgn-comment {
-  display: block;
-  margin: 8px 0;
-  padding: 8px 12px;
-  line-height: 1.6;
-}
-
-.pgn-error {
-  padding: 12px;
-}
+.pgn-headers {}
+.pgn-players {}
+.pgn-container { overflow: hidden; }
+.pgn-moves { line-height: 2; }
+.pgn-mainline { display: inline; margin: 0; font-weight: bold; }
+.pgn-mainline::after { content: " "; }
+.pgn-variation { display: block; }
+.pgn-variation-line { display: inline; margin: 0; }
+.pgn-variation-line::after { content: " "; }
+.pgn-comment { display: block; }
+.pgn-error { }
 
 /* ================================================================
    CHESSBOARD — Board wrapper + SVG overlay
 ================================================================ */
 
-.jc-board-wrapper {
-  position: relative;
-  display: inline-block;
-  margin: 16px auto;
-  max-width: 400px;
-  width: 100%;
-}
+.jc-board-wrapper { position: relative; display: inline-block; margin: 16px auto; max-width: 400px; width: 100%;box-sizing:content-box!important; }
+.jc-board { display:block;width:400px;max-width:100%;margin:1rem auto;break-inside:avoid; }
+.jc-overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }
+.jc-board *,.jc-board *::before,.jc-board *::after,
+.board-wrapper{box-sizing:content-box!important;}
 
-.jc-board {
-  width: 100%;
-  max-width: 400px;
-}
-
-.jc-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* Prevent chessboard.js overflow issues */
-.board-b72b1 {
-  overflow: hidden;
-}
+/* Chessboard absolute fix */
+.board-b72b1 { overflow: hidden; }
+.chessboard-63f37,.chessboard-63f37 div,.chessboard-63f37 img{background:transparent !important;}
+.chessboard-63f37 .white-1e1d7 {background-color:#f0d9b5 !important;}
+.chessboard-63f37 .black-3c85d {background-color:#b58863 !important;}
 
 /* ================================================================
    FEN — <fen> element
@@ -105,34 +45,21 @@
 
 .fen-container {
   display: inline-block;
-  margin: 16px auto;
-  max-width: 400px;
-  width: 100%;
+  margin: 1rem auto;
+  width:400px;max-width:100%;
 }
 
-.fen-caption {
-  text-align: center;
-  margin-top: 8px;
-  padding: 4px 8px;
-  font-style: italic;
-}
+.fen-caption { text-align: center; }
 
 /* ================================================================
    PGN READER — <pgn-reader> element
 ================================================================ */
 
-.pgn-reader-container {
-  padding: 24px;
-  margin: 24px 0;
-}
-
-.pgn-reader-header {
-  margin-bottom: 20px;
-}
-
+.pgn-reader-container { }
+.pgn-reader-header { }
 .pgn-reader-layout {
   display: flex;
-  gap: 24px;
+  gap: 1rem;
   align-items: flex-start;
 }
 
@@ -172,22 +99,11 @@
   padding: 2px 4px;
 }
 
-.pgn-reader-inline-comment {
-  display: inline;
-  font-style: italic;
-  opacity: 0.7;
-  font-size: 0.9em;
-}
+.pgn-reader-inline-comment { display: inline; }
 
-.pgn-reader-inline-comment-active {
-  opacity: 1;
-  font-weight: 500;
-}
+.pgn-reader-inline-comment-active { }
 
 .pgn-reader-comment {
-  margin-top: 16px;
-  padding: 10px 14px;
-  line-height: 1.6;
   display: none;
 }
 
@@ -196,29 +112,25 @@
 ================================================================ */
 
 .jc-puzzle {
-  max-width: 400px;
+  width:400px;max-width:100%;
 }
 
 /* ================================================================
    PUZZLE BLOCK — <puzzle-block> element
 ================================================================ */
 
-.jc-puzzle-item {
-  padding: 24px;
-  margin-bottom: 24px;
-}
+.jc-puzzle-item { }
 
 .jc-puzzle-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .jc-puzzle-move-comment {
   margin-top: 12px;
   min-height: 20px;
-  padding: 8px 12px;
 }
 
 .jc-puzzle-move-comment:empty {
@@ -265,14 +177,14 @@
 .pgn-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 1rem;
   align-items: start;
 }
 
 .puzzle-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 1rem;
   align-items: start;
 }
 
@@ -315,20 +227,3 @@
     padding: 20px 16px;
   }
 }
-
-/* Required CSS fix for chessboard.js */
-#board,.board,.fen-board,.pgn-diagram,.jc-board{display:block;width:400px;max-width:100%;margin:1rem auto;break-inside:avoid;}
-#board *,#board *::before,#board *::after,
-.board *,.board *::before,.board *::after,
-.fen-board *,.fen-board *::before,.fen-board *::after,
-.pgn-diagram *,.pgn-diagram *::before,.pgn-diagram *::after,
-.jc-board *,.jc-board *::before,.jc-board *::after,
-.board-wrapper{box-sizing:content-box!important;}
-/* Chessboard absolute fix */
-.chessboard-63f37,.chessboard-63f37 div,.chessboard-63f37 img{background:transparent !important;}
-.chessboard-63f37 .white-1e1d7 {background-color:#f0d9b5 !important;}
-.chessboard-63f37 .black-3c85d {background-color:#b58863 !important;}
-/* Mobile */
-@media (max-width: 640px) {#board,.board,.fen-board,.pgn-diagram,.jc-board{touch-action: none;width:350px;}}
-/* Icon */
-h1 a{color:#24292e;font-weight:normal;}h1 a:hover{text-decoration:none;font-weight:bold;}
