@@ -7,6 +7,18 @@ title: Home
 📌 [{{ post.title }}]({{ post.url }})
 {% endfor %}
 
+<pgn>
+[White "White test"]
+[Black "Black test"]
+[Event "Event test"]
+[Site "Site test"]
+[Date "2000.01.01"]
+[Round "1"]
+[Result "1-0"]
+
+1. e4 { [%cal Gd1h5,Gf1c4] } 1... e5 2. Nf3 Nc6 3. Bb5 { Ruy Lopez Opening } 3... Nf6 { Berlin Defense } { [%cal Gf6e4] [%csl Re4] }
+</pgn>
+
 <fen caption="Starting Position">
 rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 </fen>
