@@ -3,8 +3,19 @@ layout: default
 title: Home
 ---
 
-<fen caption="Lucena Position — White to play and win">1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1</fen>
-<fen caption="Philidor Position — Black draws">8/8/8/4k3/R7/4K3/4P3/3r4 w - - 0 1</fen>
+<puzzle>
+[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1"]
+[FirstMoveAuto "false"]
+
+1. Qxf7#
+</puzzle>
+
+<puzzle>
+[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1"]
+[FirstMoveAuto "false"]
+
+1. Qxf7#
+</puzzle>
 
 {% for post in site.posts %}
 📌 [{{ post.title }}]({{ post.url }})
