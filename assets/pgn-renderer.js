@@ -1,6 +1,6 @@
 /* ================================================================
    PGN RENDERER
-   Static renderer for <pgn>
+   Static renderer for <pgn> blocks
 ================================================================ */
 
 import { NBSP } from "./configuration.js";
@@ -47,7 +47,7 @@ function parseHeaders(pgnText) {
 }
 
 /* ================================================================
-   HEADER RENDERER
+   HEADER RENDER
 ================================================================ */
 
 function renderHeaders(headers, container) {
@@ -82,7 +82,8 @@ function renderHeaders(headers, container) {
 }
 
 /* ================================================================
-   PGN SPLITTING (IMPORTANT STABILITY STEP)
+   PGN SPLITTING
+   (critical stability improvement)
 ================================================================ */
 
 function splitPGN(pgnText) {
@@ -97,7 +98,7 @@ function splitPGN(pgnText) {
 }
 
 /* ================================================================
-   COMMENT CLEANER
+   COMMENT CLEANING
 ================================================================ */
 
 function cleanComment(comment) {
@@ -167,81 +168,88 @@ function renderCommentBlock(parent, text) {
 }
 
 /* ================================================================
-   MOVE RENDER
-================================================================ */
-
-function renderMove(move, container, board) {
-
-  const span = document.createElement("span");
-  span.className = "pgn-move";
-
-  let label = "";
-
-  if (move.color === "w") {
-    label += move.moveNumber + "." + NBSP;
-  }
-
-  label += toFigurine(move.san) + renderNAG(move.nags);
-
-  span.textContent = label + NBSP;
-
-  span.addEventListener("click", () => {
-
-    board.reset();
-
-    const stack = [];
-    let cur = move;
-
-    while (cur && cur.san) {
-      stack.unshift(cur.san);
-      cur = cur.parent;
-    }
-
-    stack.forEach(m => board.move(m));
-
-    parseAnnotations(move.comment, board);
-
-  });
-
-  container.appendChild(span);
-
-  if (move.comment) {
-    renderCommentBlock(container, move.comment);
-  }
-
-  /* variations */
-
-  if (move.variations && move.variations.length) {
-
-    move.variations.forEach(v => {
-
-      const div = document.createElement("div");
-      div.className = "pgn-variation";
-
-      renderLine(v, div, board);
-
-      container.appendChild(div);
-
-    });
-
-  }
-}
-
-/* ================================================================
-   LINE RENDER
+   FAST LINE RENDERER (DocumentFragment optimization)
 ================================================================ */
 
 function renderLine(node, container, board) {
+
+  const fragment = document.createDocumentFragment();
 
   let cur = node;
 
   while (cur) {
 
-    renderMove(cur, container, board);
+    const span = document.createElement("span");
+    span.className = "pgn-move";
+
+    let label = "";
+
+    if (cur.color === "w") {
+      label += cur.moveNumber + "." + NBSP;
+    }
+
+    label += toFigurine(cur.san) + renderNAG(cur.nags);
+
+    span.textContent = label + NBSP;
+
+    span.addEventListener("click", () => {
+
+      board.reset();
+
+      const stack = [];
+      let temp = cur;
+
+      while (temp && temp.san) {
+        stack.unshift(temp.san);
+        temp = temp.parent;
+      }
+
+      stack.forEach(m => board.move(m));
+
+      parseAnnotations(cur.comment, board);
+
+    });
+
+    fragment.appendChild(span);
+
+    if (cur.comment) {
+
+      const clean = cleanComment(cur.comment);
+
+      if (clean) {
+
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "pgn-comment";
+        commentDiv.textContent = clean;
+
+        fragment.appendChild(commentDiv);
+
+      }
+
+    }
+
+    /* variations */
+
+    if (cur.variations && cur.variations.length) {
+
+      cur.variations.forEach(v => {
+
+        const varDiv = document.createElement("div");
+        varDiv.className = "pgn-variation";
+
+        renderLine(v, varDiv, board);
+
+        fragment.appendChild(varDiv);
+
+      });
+
+    }
 
     cur = cur.next;
 
   }
+
+  container.appendChild(fragment);
 
 }
 
@@ -258,7 +266,7 @@ function renderFullPGN(pgnText, container) {
     return;
   }
 
-  /* critical stability step */
+  /* split headers and movetext */
 
   const { headers, movetext } = splitPGN(pgnText);
 
