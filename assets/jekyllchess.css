@@ -5,11 +5,11 @@
 
 /* <pgn> element */
 
-.pgn-headers{}
-.pgn-players{}
-.pgn-container{overflow:hidden;}
+.pgn-headers{margin-bottom:1rem;}
+.pgn-players{font-weight:bold;}
+.pgn-container{overflow:hidden;margin-bottom:1rem;}
 .pgn-moves{column-count:2;column-gap:1rem;column-rule:1px solid grey;padding:1rem;}
-.pgn-mainline {display:inline;margin:0;font-weight:bold;}
+.pgn-mainline {display:inline;margin:0;font-weight:bold;margin-bottom:1rem;}
 .pgn-mainline::after{content: " ";}
 .pgn-variation{display:block;}
 .pgn-variation-line{display:inline;margin: 0;}
