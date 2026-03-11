@@ -127,13 +127,12 @@ function renderComment(parent, text) {
 }
 
 /* ================================================================
-   MAIN MOVE RENDERER
+   MOVE RENDER
 ================================================================ */
 
-function renderMoves(root, container) {
+function renderMoves(root, container, board) {
 
   let cur = root;
-
   let moveNumber = 1;
   let color = "w";
 
@@ -159,7 +158,6 @@ function renderMoves(root, container) {
     } else {
 
       label =
-        moveNumber + "..." + NBSP +
         toFigurine(cur.san) +
         renderNAG(cur.nags) +
         NBSP;
@@ -171,18 +169,22 @@ function renderMoves(root, container) {
 
     span.textContent = label;
 
+    span.addEventListener("click", () => {
+      board.move(cur.san);
+    });
+
     fragment.appendChild(span);
 
     if (cur.comment) {
       renderComment(fragment, cur.comment);
     }
 
-    cur = cur.next;
+    board.move(cur.san);
 
+    cur = cur.next;
   }
 
   container.appendChild(fragment);
-
 }
 
 /* ================================================================
@@ -202,50 +204,27 @@ function renderFullPGN(pgnText, container) {
 
   renderHeaders(headers, container);
 
-  const root = buildMoveTree(movetext);
+  /* board */
 
-  if (!root) return;
+  const boardDiv = document.createElement("div");
+  boardDiv.className = "jc-board";
 
-  const firstMoveBlock = document.createElement("div");
-  firstMoveBlock.className = "pgn-moves";
+  container.appendChild(boardDiv);
 
-  container.appendChild(firstMoveBlock);
+  const board = createBoard(boardDiv, headers.FEN || "start");
 
-  /* first move */
-
-  const firstMove = document.createElement("span");
-  firstMove.className = "pgn-move";
-  firstMove.textContent = "1." + NBSP + toFigurine(root.san);
-
-  firstMoveBlock.appendChild(firstMove);
-
-  /* first board */
-
-  const board1 = document.createElement("div");
-  board1.className = "jc-board";
-
-  container.appendChild(board1);
-
-  createBoard(board1);
-
-  /* rest of moves */
+  /* moves */
 
   const movesDiv = document.createElement("div");
   movesDiv.className = "pgn-moves";
 
   container.appendChild(movesDiv);
 
-  renderMoves(root.next, movesDiv);
+  const root = buildMoveTree(movetext);
 
-  /* final board */
+  if (!root) return;
 
-  const board2 = document.createElement("div");
-  board2.className = "jc-board";
-
-  container.appendChild(board2);
-
-  createBoard(board2);
-
+  renderMoves(root, movesDiv, board);
 }
 
 /* ================================================================
