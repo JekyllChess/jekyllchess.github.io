@@ -13,6 +13,7 @@ import { createBoard } from "./board.js";
 ================================================================ */
 
 function renderNAG(nags) {
+
   if (!nags || !nags.length) return "";
 
   const map = {
@@ -32,6 +33,7 @@ function renderNAG(nags) {
 ================================================================ */
 
 function parseHeaders(pgnText) {
+
   const headers = {};
   const regex = /\[(\w+)\s+"([^"]*)"\]/g;
 
@@ -45,7 +47,7 @@ function parseHeaders(pgnText) {
 }
 
 /* ================================================================
-   HEADER RENDER
+   HEADER RENDERER
 ================================================================ */
 
 function renderHeaders(headers, container) {
@@ -80,16 +82,32 @@ function renderHeaders(headers, container) {
 }
 
 /* ================================================================
-   COMMENT BLOCK
+   PGN SPLITTING (IMPORTANT STABILITY STEP)
 ================================================================ */
 
-function renderCommentBlock(parent, text) {
+function splitPGN(pgnText) {
 
-  const p = document.createElement("div");
-  p.className = "pgn-comment";
-  p.textContent = text;
+  const headers = parseHeaders(pgnText);
 
-  parent.appendChild(p);
+  const movetext = pgnText
+    .replace(/(?:\[[^\]]+\]\s*)+/g, "")
+    .trim();
+
+  return { headers, movetext };
+}
+
+/* ================================================================
+   COMMENT CLEANER
+================================================================ */
+
+function cleanComment(comment) {
+
+  if (!comment) return "";
+
+  return comment
+    .replace(/\[%cal [^\]]+\]/g, "")
+    .replace(/\[%csl [^\]]+\]/g, "")
+    .trim();
 }
 
 /* ================================================================
@@ -98,7 +116,7 @@ function renderCommentBlock(parent, text) {
 
 function parseAnnotations(comment, board) {
 
-  if (!comment) return;
+  if (!comment || !board) return;
 
   const cal = comment.match(/\[%cal ([^\]]+)\]/);
   const csl = comment.match(/\[%csl ([^\]]+)\]/);
@@ -114,6 +132,7 @@ function parseAnnotations(comment, board) {
       board.drawArrow(from, to, color);
 
     });
+
   }
 
   if (csl && board.highlightSquare) {
@@ -126,11 +145,29 @@ function parseAnnotations(comment, board) {
       board.highlightSquare(sq, color);
 
     });
+
   }
 }
 
 /* ================================================================
-   MOVE RENDERER
+   COMMENT RENDER
+================================================================ */
+
+function renderCommentBlock(parent, text) {
+
+  const clean = cleanComment(text);
+
+  if (!clean) return;
+
+  const div = document.createElement("div");
+  div.className = "pgn-comment";
+  div.textContent = clean;
+
+  parent.appendChild(div);
+}
+
+/* ================================================================
+   MOVE RENDER
 ================================================================ */
 
 function renderMove(move, container, board) {
@@ -174,7 +211,7 @@ function renderMove(move, container, board) {
 
   /* variations */
 
-  if (move.variations) {
+  if (move.variations && move.variations.length) {
 
     move.variations.forEach(v => {
 
@@ -191,7 +228,7 @@ function renderMove(move, container, board) {
 }
 
 /* ================================================================
-   LINE RENDERER
+   LINE RENDER
 ================================================================ */
 
 function renderLine(node, container, board) {
@@ -209,7 +246,7 @@ function renderLine(node, container, board) {
 }
 
 /* ================================================================
-   MAIN PGN RENDER
+   MAIN PGN RENDERER
 ================================================================ */
 
 function renderFullPGN(pgnText, container) {
@@ -221,7 +258,9 @@ function renderFullPGN(pgnText, container) {
     return;
   }
 
-  const headers = parseHeaders(pgnText);
+  /* critical stability step */
+
+  const { headers, movetext } = splitPGN(pgnText);
 
   renderHeaders(headers, container);
 
@@ -237,7 +276,7 @@ function renderFullPGN(pgnText, container) {
 
   container.appendChild(movesDiv);
 
-  const root = buildMoveTree(pgnText);
+  const root = buildMoveTree(movetext);
 
   if (!root) return;
 
