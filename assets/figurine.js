@@ -1,20 +1,26 @@
-/* ================= FIGURINE CONVERSION ================= */
+/* ================================================================
+   FIGURINE CONVERSION
+================================================================ */
 
 function toFigurine(san) {
-  if (!san) return "";
-  return san
-    .replace(/K/g, "♔")
-    .replace(/Q/g, "♕")
-    .replace(/R/g, "♖")
-    .replace(/B/g, "♗")
-    .replace(/N/g, "♘")
-    .replace(/P/g, "♙")
-    .replace(/k/g, "♚")
-    .replace(/q/g, "♛")
-    .replace(/r/g, "♜")
-    .replace(/b/g, "♝")
-    .replace(/n/g, "♞")
-    .replace(/p/g, "♟");
+
+  if (!san) return san;
+
+  const map = {
+    K: "♔",
+    Q: "♕",
+    R: "♖",
+    B: "♗",
+    N: "♘"
+  };
+
+  const first = san[0];
+
+  if (map[first]) {
+    return map[first] + san.slice(1);
+  }
+
+  return san;
 }
 
 export { toFigurine };
