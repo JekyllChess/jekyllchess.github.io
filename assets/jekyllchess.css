@@ -20,7 +20,7 @@
 
 /* CHESSBOARD — Board wrapper + SVG overlay */
 
-.jc-board-wrapper { position: relative; display: block; margin: 16px auto; max-width: 400px; width: 100%;box-sizing:content-box!important; }
+.jc-board-wrapper { position: relative; display: block; margin: 16px auto;width:400px;max-width:100%;box-sizing:content-box!important; }
 .jc-board { display:inline-block;width:400px;max-width:100%;margin:1rem auto;break-inside:avoid; }
 .jc-overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }
 .jc-board *,.jc-board *::before,.jc-board *::after,
@@ -41,12 +41,12 @@
 
 .pgn-reader-container{}
 .pgn-reader-header{}
-.pgn-reader-layout {display: flex;gap: 1rem;align-items: flex-start;}
-.pgn-reader-board-area {flex-shrink: 0;width: 320px;}
-.pgn-reader-board {width: 320px !important;max-width: 320px !important;}
+.pgn-reader-layout {display:flex;gap:1rem;align-items:flex-start;}
+.pgn-reader-board-area {flex-shrink:0;width:400px;}
+.pgn-reader-board {width:400px;max-width:100%;}
 .pgn-reader-controls{display:flex;justify-content:center;gap:8px;margin-top: 12px;}
 .pgn-reader-btn {padding: 8px 16px;cursor: pointer;line-height: 1;}
-.pgn-reader-moves-panel {flex: 1;max-height: 360px;overflow-y: auto;}
+.pgn-reader-moves-panel {flex:1;max-height:400px;overflow-y:auto;}
 .pgn-reader-move {cursor: pointer;}
 .pgn-reader-inline-comment{display: inline;}
 .pgn-reader-inline-comment-active{font-weight: bold;}
@@ -81,7 +81,7 @@
 
 /* Mobile */
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .pgn-reader-layout{flex-direction: column;}
   .pgn-reader-board-area{width: 100%;}
   .pgn-reader-board{width:100% !important;max-width:100% !important;}
