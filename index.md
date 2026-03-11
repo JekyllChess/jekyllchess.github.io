@@ -7,7 +7,7 @@ title: Home
 📌 [{{ post.title }}]({{ post.url }})
 {% endfor %}
 
-<pgn data-columns="2">
+<pgn>
 [White "White test"]
 [Black "Black test"]
 [Event "Event test"]
