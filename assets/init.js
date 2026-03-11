@@ -2,86 +2,56 @@
  * JekyllChess — Element Initializers
  */
 
-import { PIECE_THEME } from "./config.js";
-import { stripFigurines, normalizePuzzleText } from "./puzzle-helpers.js";
-import { renderFullPGN } from "./pgn-renderer.js";
-import { renderPGNReader } from "./pgn-reader.js";
-import { jcPuzzleCreate, renderPuzzleBlock } from "./puzzle-block.js";
-import { renderPuzzleRush } from "./puzzle-rush.js";
+import { PIECE_THEME, fetchText, stripFigurines, normalizePuzzleText } from "./helpers.js";
+import { renderFullPGN, renderPGNReader } from "./pgn.js";
+import { jcPuzzleCreate, renderPuzzleBlock, renderPuzzleRush } from "./puzzle.js";
 
-export function initPgnElements() {
-  document.querySelectorAll("pgn").forEach(function (el) {
-    if (el.dataset.jcRendered === "1") return;
-    el.dataset.jcRendered = "1";
+/* ── Init helpers ─────────────────────────────────────────── */
 
-    var container = document.createElement("div");
-    container.className = "pgn-container game-card";
-    el.replaceWith(container);
-
-    var pgnText = "";
-    var src = el.getAttribute("src");
-
-    if (src) {
-      fetch(src, { cache: "no-store" })
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (text) {
-          renderFullPGN(text, container);
-        })
-        .catch(function (e) {
-          container.textContent = "Failed to load PGN: " + e.message;
-        });
-    } else {
-      pgnText = el.textContent.trim();
-      if (!pgnText) {
-        container.textContent = "No PGN content found.";
-        return;
-      }
-      try {
-        renderFullPGN(pgnText, container);
-      } catch (e) {
-        container.textContent = "Error rendering PGN: " + e.message;
-      }
-    }
-  });
-}
-
-export function initPgnReaderElements() {
-  document.querySelectorAll("pgn-reader").forEach(function (el) {
+/**
+ * Generic "replace custom element, load PGN, render" helper.
+ * Eliminates the repeated fetch-or-inline pattern.
+ */
+function initCustomElements(selector, wrapperClass, renderFn) {
+  document.querySelectorAll(selector).forEach(function (el) {
     if (el.dataset.jcRendered === "1") return;
     el.dataset.jcRendered = "1";
 
     var wrapper = document.createElement("div");
-    wrapper.className = "pgn-reader-container";
+    wrapper.className = wrapperClass;
     el.replaceWith(wrapper);
 
     var src = el.getAttribute("src");
 
     if (src) {
-      fetch(src, { cache: "no-store" })
-        .then(function (res) {
-          return res.text();
-        })
-        .then(function (text) {
-          renderPGNReader(text, wrapper);
-        })
+      fetchText(src)
+        .then(function (text) { renderFn(text, wrapper); })
         .catch(function (e) {
           wrapper.textContent = "Failed to load PGN: " + e.message;
         });
     } else {
-      var pgnText = el.textContent.trim();
-      if (!pgnText) {
+      var text = el.textContent.trim();
+      if (!text) {
         wrapper.textContent = "No PGN content found.";
         return;
       }
       try {
-        renderPGNReader(pgnText, wrapper);
+        renderFn(text, wrapper);
       } catch (e) {
-        wrapper.textContent = "Error rendering PGN reader: " + e.message;
+        wrapper.textContent = "Error rendering: " + e.message;
       }
     }
   });
+}
+
+/* ── Public init functions ────────────────────────────────── */
+
+export function initPgnElements() {
+  initCustomElements("pgn", "pgn-container game-card", renderFullPGN);
+}
+
+export function initPgnReaderElements() {
+  initCustomElements("pgn-reader", "pgn-reader-container", renderPGNReader);
 }
 
 export function initFenElements() {

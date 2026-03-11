@@ -2,7 +2,7 @@
  * JekyllChess — Board creation + SVG annotation overlay
  */
 
-import { PIECE_THEME } from "./config.js";
+import { PIECE_THEME } from "./helpers.js";
 
 export function createBoard(container, fen, moveNode) {
   var wrapper = document.createElement("div");
@@ -70,18 +70,15 @@ function getSquareCenter(boardDiv, square) {
   };
 }
 
+var COLOR_MAP = {
+  R: "rgba(255,0,0,",
+  Y: "rgba(255,170,0,",
+  G: "rgba(0,170,0,",
+  B: "rgba(0,0,255,",
+};
+
 function lichessColor(code, alpha) {
-  if (alpha === undefined) alpha = 0.35;
-  var colors = {
-    R: [255, 0, 0],
-    Y: [255, 170, 0],
-    G: [0, 170, 0],
-    B: [0, 0, 255],
-  };
-  var rgb = colors[code] || colors.R;
-  return (
-    "rgba(" + rgb[0] + ", " + rgb[1] + ", " + rgb[2] + ", " + alpha + ")"
-  );
+  return (COLOR_MAP[code] || COLOR_MAP.R) + (alpha === undefined ? 0.35 : alpha) + ")";
 }
 
 function drawCircle(svg, boardDiv, square, color) {
@@ -124,62 +121,24 @@ function drawArrow(svg, boardDiv, fromSquare, toSquare, color) {
 
   var sin = Math.sin(angle);
   var cos = Math.cos(angle);
-  var halfBody = bodyWidth / 2;
-  var halfHead = headWidth / 2;
+  var hb = bodyWidth / 2;
+  var hh = headWidth / 2;
 
-  var p1x = start.x + halfBody * sin;
-  var p1y = start.y - halfBody * cos;
-  var p2x = start.x - halfBody * sin;
-  var p2y = start.y + halfBody * cos;
+  var bx = start.x + bodyLength * cos;
+  var by = start.y + bodyLength * sin;
 
-  var baseX = start.x + bodyLength * cos;
-  var baseY = start.y + bodyLength * sin;
-
-  var p3x = baseX - halfBody * sin;
-  var p3y = baseY + halfBody * cos;
-  var p7x = baseX + halfBody * sin;
-  var p7y = baseY - halfBody * cos;
-
-  var p4x = baseX - halfHead * sin;
-  var p4y = baseY + halfHead * cos;
-  var p6x = baseX + halfHead * sin;
-  var p6y = baseY - halfHead * cos;
-
-  var p5x = end.x;
-  var p5y = end.y;
+  var d = [
+    "M", start.x + hb * sin, start.y - hb * cos,
+    "L", start.x - hb * sin, start.y + hb * cos,
+    "L", bx - hb * sin, by + hb * cos,
+    "L", bx - hh * sin, by + hh * cos,
+    "L", end.x, end.y,
+    "L", bx + hh * sin, by - hh * cos,
+    "L", bx + hb * sin, by - hb * cos,
+    "Z",
+  ].join(" ");
 
   var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  var d =
-    "M " +
-    p1x +
-    " " +
-    p1y +
-    " L " +
-    p2x +
-    " " +
-    p2y +
-    " L " +
-    p3x +
-    " " +
-    p3y +
-    " L " +
-    p4x +
-    " " +
-    p4y +
-    " L " +
-    p5x +
-    " " +
-    p5y +
-    " L " +
-    p6x +
-    " " +
-    p6y +
-    " L " +
-    p7x +
-    " " +
-    p7y +
-    " Z";
-
   path.setAttribute("d", d);
   path.setAttribute("fill", lichessColor(color));
 

@@ -16,15 +16,10 @@
  *   <puzzle-rush>   — Sequential puzzle rush mode
  */
 
-import { toFigurine } from "./figurine.js";
+import { toFigurine, parseGame } from "./helpers.js";
 import { createBoard } from "./board.js";
-import { buildMoveTree, parseHeaders } from "./pgn-parser.js";
-import { renderFullPGN } from "./pgn-renderer.js";
-import { renderPGNReader } from "./pgn-reader.js";
-import { parseGame } from "./puzzle-helpers.js";
-import { renderLocalPuzzle } from "./puzzle-engine.js";
-import { renderPuzzleBlock } from "./puzzle-block.js";
-import { renderPuzzleRush } from "./puzzle-rush.js";
+import { buildMoveTree, parseHeaders, renderFullPGN, renderPGNReader } from "./pgn.js";
+import { renderLocalPuzzle, renderPuzzleBlock, renderPuzzleRush } from "./puzzle.js";
 import { initAll } from "./init.js";
 
 /* ================================================================
