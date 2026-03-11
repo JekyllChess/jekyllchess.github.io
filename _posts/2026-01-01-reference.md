@@ -230,14 +230,12 @@ Renders a drag-and-drop puzzle. The user must find the correct sequence of moves
 ```html
 <puzzle>
 [FEN "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1"]
-[FirstMoveAuto "false"]
 
 1. Qxf7#
 </puzzle>
 ```
 <puzzle>
 [FEN "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1"]
-[FirstMoveAuto "false"]
 
 1. Qxf7#
 </puzzle>
@@ -255,6 +253,13 @@ When `FirstMoveAuto` is `"true"`, the engine plays the first move automatically,
 </puzzle>
 ```
 
+<puzzle>
+[FEN "r2qk2r/ppp2ppp/2n1bn2/3pp3/2B1P1b1/3P1N2/PPP2PPP/RNBQ1RK1 w kq - 0 6"]
+[FirstMoveAuto "true"]
+
+6. Bxf7+ Kxf7 7. Ng5+ Ke8 8. Qxg4
+</puzzle>
+
 ### With Orientation Control
 
 Force the board to show from Black's perspective:
@@ -267,6 +272,13 @@ Force the board to show from Black's perspective:
 2... Qh4#
 </puzzle>
 ```
+
+<puzzle>
+[FEN "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2"]
+[Orientation "black"]
+
+2... Qh4#
+</puzzle>
 
 ### Attributes / Headers
 
@@ -394,44 +406,7 @@ Add a button to reset progress:
 
 ---
 
-## 7. Layout Utilities
-
-### Two-Column Layouts
-
-Display two `<pgn>` elements side by side:
-
-```html
-<div class="pgn-two-col">
-  <pgn>
-  [White "Game 1"]
-  [Black "Opponent 1"]
-
-  1. e4 e5 2. Nf3 Nc6 1-0
-  </pgn>
-
-  <pgn>
-  [White "Game 2"]
-  [Black "Opponent 2"]
-
-  1. d4 d5 2. c4 e6 0-1
-  </pgn>
-</div>
-```
-
-Display two `<puzzle-block>` elements side by side:
-
-```html
-<div class="puzzle-two-col">
-  <puzzle-block src="./data/puzzles-set-1.pgn"></puzzle-block>
-  <puzzle-block src="./data/puzzles-set-2.pgn"></puzzle-block>
-</div>
-```
-
-Both layouts are responsive — they collapse to single column on screens ≤ 768px.
-
----
-
-## 8. Setup & Dependencies
+## 7. Setup & Dependencies
 
 ### Required External Libraries
 
