@@ -1,6 +1,6 @@
-/**
- * JekyllChess — Element Initializers
- */
+/*init.js*/
+ 
+/* JekyllChess — Element Initializers */
 
 import { PIECE_THEME, fetchText, stripFigurines, normalizePuzzleText } from "./helpers.js";
 import { renderFullPGN, renderPGNReader } from "./pgn.js";

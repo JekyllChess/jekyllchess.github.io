@@ -1,8 +1,4 @@
-/**
- * JekyllChess — Shared constants, utilities, and helpers
- *
- * Merged from: config.js, figurine.js, puzzle-helpers.js
- */
+/* helpers.js */
 
 /* ================================================================
    CONSTANTS
