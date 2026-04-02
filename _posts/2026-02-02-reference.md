@@ -13,8 +13,9 @@ This document demonstrates **every custom HTML element** provided by JekyllChess
 
 1. [`<fen>`](#1-fen--static-board-from-fen-string)
 2. [`<pgn>`](#2-pgn--annotated-game-viewer)
-3. [`<puzzle>`](#3-puzzle--single-interactive-puzzle)
-4. [Setup & Dependencies](#4-setup--dependencies)
+3. [`<pgn-player>`](#3-pgn-player--interactive-video-style-game-player)
+4. [`<puzzle>`](#4-puzzle--single-interactive-puzzle)
+5. [Setup & Dependencies](#5-setup--dependencies)
 
 ---
 
@@ -160,7 +161,51 @@ exf5 27. Rxf5 Nh7 28. Rcf1 Qd8 29. Qg3 Re7 30. h4 Rbb7
 
 ---
 
-## 3. `<puzzle>` — Single Interactive Puzzle
+## 3. `<pgn-player>` — Interactive Video-Style Game Player
+
+Renders a video-style chess game player with play/pause controls, an eval bar, clickable move list, comments, variations, move quality glyphs, and board annotations. Supports keyboard navigation and gesture controls.
+
+### Load from File
+
+```html
+<pgn-player src="./assets/pgn/sample-player.pgn"></pgn-player>
+```
+
+<pgn-player src="/assets/pgn/sample-player.pgn"></pgn-player>
+
+### Features
+
+- **Play/Pause**: Click the board or press Space to toggle playback
+- **Keyboard navigation**: ← (prev), → (next); also works inside variations
+- **Double-tap**: Left/right halves of the board to skip ±10 moves
+- **Eval bar**: Displays evaluation scores from PGN `[%eval]` annotations
+- **Move list**: Horizontal scrollable list; click any move to jump to that position
+- **Comments & Variations**: Displayed below the board with continue button
+- **Move quality glyphs**: `!`, `?`, `!!`, `??`, `!?`, `?!` shown as badges on the board
+- **Board annotations**: Arrow `[%cal]` and square `[%csl]` highlights
+- **Settings toolbar**: Flip board, adjust playback speed (0.5x/1x/2x), download PGN
+- **Multiple players**: Each `<pgn-player>` on a page gets its own independent engine
+
+### Attributes
+
+| Attribute | Required | Description |
+|-----------|----------|-------------|
+| `src` | ✅ | URL to a PGN file |
+
+### Supported PGN Features
+
+| Feature | Syntax | Example |
+|---------|--------|---------|
+| Comments | `{text}` | `{A strong move.}` |
+| Variations | `(moves)` | `(7. Nc2 Bd3)` |
+| NAGs | `$1` – `$6` or `!?` suffixes | `$3` → `!!`, `Nd5!` |
+| Eval scores | `[%eval 0.5]` or `[%eval #3]` | Displayed in eval bar |
+| Arrow annotations | `[%cal Rf1f7]` | Colored arrows on board |
+| Square highlights | `[%csl Gc5,Rd4]` | Colored square markers |
+
+---
+
+## 4. `<puzzle>` — Single Interactive Puzzle
 
 Renders a drag-and-drop puzzle. The user must find the correct sequence of moves.
 
@@ -235,11 +280,11 @@ Force the board to show from Black's perspective:
 
 ---
 
-## 4. Setup & Dependencies
+## 5. Setup & Dependencies
 
 ### Required External Libraries
 
-Load these **before** `jekyllchess.js`:
+Load these **before** JekyllChess scripts:
 
 ```html
 <!-- jQuery (required by chessboard.js) -->
@@ -251,6 +296,9 @@ Load these **before** `jekyllchess.js`:
 <!-- chessboard.js (board rendering) -->
 <link rel="stylesheet" href="https://unpkg.com/@chessboard-element/chessboard-element@1.0.0/lib/chessboard-element.css" />
 <script src="https://chessboardjs.com/js/chessboard-1.0.0.js"></script>
+
+<!-- Material Icons (required by pgn-player) -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 ```
 
 ### JekyllChess Files
@@ -261,6 +309,10 @@ Load these **before** `jekyllchess.js`:
 
 <!-- JekyllChess JS (all-in-one) -->
 <script src="jekyllchess.js"></script>
+
+<!-- PGN Player (required for <pgn-player> element) -->
+<link rel="stylesheet" href="pgn-player/pgn-player.css" />
+<script src="pgn-player/pgn-player.js"></script>
 ```
 
 ## Quick Reference
@@ -269,6 +321,7 @@ Load these **before** `jekyllchess.js`:
 |---------|---------|-------------|--------|
 | `<fen>` | Static board | ❌ | Inline FEN |
 | `<pgn>` | Annotated game | ❌ | Inline or `src` |
+| `<pgn-player>` | Video-style player | ✅ Play/pause/keyboard | `src` |
 | `<puzzle>` | Single puzzle | ✅ Drag & drop | Inline PGN |
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
