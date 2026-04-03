@@ -50,7 +50,7 @@ or
 ```
 displays:
 - a static FEN diagram in the specified board orientation,
-- a caption below the diagram,
+- a caption below the diagram.
 
 ---
 
@@ -58,7 +58,7 @@ displays:
 
 Renders a drag-and-drop puzzle. The user must find the correct sequence of moves.
 
-### Inline FEN in PGN header
+### Inline FEN
 
 ```html
 <puzzle>
@@ -72,6 +72,10 @@ Renders a drag-and-drop puzzle. The user must find the correct sequence of moves
 
 1. Qxf7#
 </puzzle>
+
+or
+
+### Inline PGN Headers
 
 ```html
 <puzzle>
@@ -93,7 +97,17 @@ displays:
 - a caption below the diagram,
 - the first move on the board if `FirstMoveAuto` is set to `true`.
 
-### Attributes / PGN Headers
+or
+
+### Load from File
+
+```html
+<puzzle src="/assets/pgn/sample-puzzle-pack.pgn"></puzzle>
+```
+
+<puzzle src="/assets/pgn/sample-puzzle-pack.pgn"></puzzle>
+
+### Attributes
 
 | Header | Required | Description |
 |--------|----------|-------------|
@@ -117,6 +131,7 @@ Renders a complete annotated game with move numbers, comments, variations, NAGs,
 [White "..."]
 [Black "..."]
 [Result "..."]
+
 1. ...
 </pgn>
 ```
@@ -131,7 +146,7 @@ or
 
 <pgn src="/assets/pgn/sample-game.pgn"></pgn>
 
-### Supported PGN Features
+### Features
 
 | Feature | Syntax | Example |
 |---------|--------|---------|
