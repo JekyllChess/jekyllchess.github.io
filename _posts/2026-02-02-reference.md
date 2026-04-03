@@ -3,7 +3,7 @@ layout: post
 title: Complete Reference
 ---
 
-Chess-Blog Complete Element Reference
+♟️ Chess-Blog Complete Element Reference
 
 This document demonstrates **every custom HTML element** provided, along with all supported usage patterns.
 
