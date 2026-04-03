@@ -152,7 +152,7 @@ Renders a video-style chess game player with play/pause controls, an eval bar, c
 ### Load from File
 
 ```html
-<pgn-player src="/assets/pgn/sample-player.pgn"></pgn-player>
+<pgn-player src="/assets/pgn/sample-game.pgn"></pgn-player>
 ```
 
 <pgn-player src="/assets/pgn/sample-game.pgn"></pgn-player>
