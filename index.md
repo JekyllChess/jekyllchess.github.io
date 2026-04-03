@@ -3,7 +3,7 @@ layout: default
 title: Home
 ---
 
-<p>{{ site.description }}</p>
+{{ site.description }}
 
 {% for post in site.posts %}
 📌 [{{ post.title }}]({{ post.url }})
