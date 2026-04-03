@@ -41,23 +41,16 @@ or
 
 ```html
 <fen>
-[White "..."]
-[Black "..."]
-[Event "..."]
-[Date "..."]
 [FEN "..."]
-[Caption "..."]
 [Orientation "..."]
-[FirstMoveAuto "..."]
+[Caption "..."]
 
 1. ...
 </fen>
 ```
-Displays:
-- a title with player names, event, and date,
-- a static FEN diagram in desired board orientation,
+displays:
+- a static FEN diagram in the specified board orientation,
 - a caption below the diagram,
-- the first move played if `[FirstMoveAuto]` is set to `true`.
 
 ---
 
@@ -164,13 +157,34 @@ Renders a drag-and-drop puzzle. The user must find the correct sequence of moves
 1. Qxf7#
 </puzzle>
 
+```html
+<puzzle>
+[White "..."]
+[Black "..."]
+[Event "..."]
+[Date "..."]
+[FEN "..."]
+[Orientation "..."]
+[Caption "..."]
+[FirstMoveAuto "..."]
+
+1. ...
+</puzzle>
+```
+
+displays:
+- a puzzle title with player names, event, and date,
+- a draggable puzzle diagram in specified board orientation,
+- a caption below the diagram,
+- the first move on the board if `FirstMoveAuto` is set to `true`.
+
 ### Attributes / PGN Headers
 
 | Header | Required | Description |
 |--------|----------|-------------|
-| `FEN` | ✅ | Starting position |
-| `FirstMoveAuto` | ❌ | `"true"` to auto-play first move |
+| `FEN` | ✅ | Position |
 | `Orientation` | ❌ | `"white"` or `"black"` |
+| `FirstMoveAuto` | ❌ | `"true"` to auto-play first move |
 
 ---
 
@@ -178,35 +192,16 @@ Renders a drag-and-drop puzzle. The user must find the correct sequence of moves
 
 ### Required External Libraries
 
-Load these **before** JekyllChess scripts:
+All required external libraries (jQuery, Chess.js, Chessboard.js, and Google Material Icons) are automatically loaded.
+
+### Chess-Blog Files
 
 ```html
-<!-- jQuery (required by chessboard.js) -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Chess-Blog JS (all-in-one JavaScript code, includes <fen>, <puzzle>, <pgn>, and <pgn-player> elements.) -->
+<script src="chess-blog.js"></script>
 
-<!-- chess.js (move validation engine) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-
-<!-- chessboard.js (board rendering) -->
-<link rel="stylesheet" href="https://unpkg.com/@chessboard-element/chessboard-element@1.0.0/lib/chessboard-element.css" />
-<script src="https://chessboardjs.com/js/chessboard-1.0.0.js"></script>
-
-<!-- Material Icons (required by pgn-player) -->
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-```
-
-### JekyllChess Files
-
-```html
-<!-- JekyllChess CSS (required) -->
-<link rel="stylesheet" href="jekyllchess.css" />
-
-<!-- JekyllChess JS (all-in-one) -->
-<script src="jekyllchess.js"></script>
-
-<!-- PGN Player (required for <pgn-player> element) -->
-<link rel="stylesheet" href="pgn-player/pgn-player.css" />
-<script src="pgn-player/pgn-player.js"></script>
+<!-- Chess-Blog CSS (required) -->
+<link rel="stylesheet" href="chess-blog.css" />
 ```
 
 ## Quick Reference
