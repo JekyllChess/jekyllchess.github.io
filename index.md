@@ -8,9 +8,9 @@ title: Home
 {% endfor %}
 
 <style>
-h1 {color:black;text-decoration:none;}
-h1:active {color:black;text-decoration:none;cursor:pointer;}
-h1:hover {color:black;text-decoration:none;cursor:pointer;}
+h1 a {color:black;text-decoration:none;}
+h1 a:active {color:black;text-decoration:none;cursor:pointer;}
+h1 a:hover {color:black;text-decoration:none;cursor:pointer;}
 </style>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
