@@ -1,5 +1,5 @@
 /**
- * JekyllChess — All-in-one chess blog engine
+ * ChessPublica — All-in-one chess blog engine
  * Combines: figurine, board, pgn-engine, puzzle-system, and element initializers
  *
  * Dependencies (load BEFORE this script):
@@ -1146,7 +1146,7 @@
      PUBLIC API (optional — for programmatic use)
   ================================================================ */
 
-  window.JekyllChess = {
+  window.ChessPublica = {
     renderFullPGN: renderFullPGN,
     buildMoveTree: buildMoveTree,
     parseHeaders: parseHeaders,

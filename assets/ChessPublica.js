@@ -1,6 +1,5 @@
 /**
- * PublishChess — All-in-one chess blog engine (ES6 Module Entry Point)
- * Combines: figurine, board, pgn-engine, puzzle-system, and element initializers
+ * ChessPublica — All-in-one chess blog engine (ES6 Module Entry Point)
  *
  * Dependencies (load BEFORE this script):
  *   - chess.js (Chess class)

@@ -1,5 +1,5 @@
 /**
- * PublishChess — PGN Engine
+ * ChessPublica — PGN Engine
  *
  * Sections:
  *   1. Tokenizer        — parsePGN()

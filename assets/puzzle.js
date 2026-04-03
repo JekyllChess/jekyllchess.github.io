@@ -1,5 +1,5 @@
 /**
- * PublishChess — Puzzle System
+ * ChessPublica — Puzzle System
  *
  * Sections:
  *   1. Puzzle Engine     — renderLocalPuzzle() (interactive drag-and-drop)

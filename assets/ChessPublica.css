@@ -1,5 +1,5 @@
 /* ================================================================
- * PublishChess — CSS
+ * ChessPublica — CSS
 ================================================================ */
 
 /* <pgn> element */
@@ -312,7 +312,7 @@
 
 .board-toolbar {
   position: absolute;
-  top: 0; right: 0; /* or "right: 10px" = eval-bar width */
+  top: 0; right: 0; /* or "right: 1 0px" = eval-bar width */
   z-index: 25;
   display: flex;
   flex-direction: row-reverse;

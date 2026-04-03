@@ -1,3 +1,5 @@
+/* ChessPublica <pgn-player> element */
+
 function loadPGN(pgn) {
 
   const chess = new Chess();
@@ -1484,8 +1486,6 @@ class VideoEngine {
     this._loopRAF();
   }
 
-
-
   pause() {
 
     this.state.playing = false;
@@ -1495,12 +1495,9 @@ class VideoEngine {
     this.goTo(this.state.index);
   }
 
-
-
   togglePlay(showIcon = true) {
     this.state.playing ? this.pause() : this.play();
   }
-
 
 
   /* Timestamp-based RAF loop */

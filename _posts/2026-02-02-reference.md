@@ -3,9 +3,9 @@ layout: post
 title: Complete Reference
 ---
 
-## PublishChess Complete Element Reference
+## ChessPublica Complete Element Reference
 
-This document demonstrates **every custom HTML element** provided by **PublishChess**, along with all supported usage patterns.
+This document demonstrates **every custom HTML element** provided by **ChessPublica**, along with all supported usage patterns.
 
 ---
 
@@ -210,16 +210,16 @@ or
 
 ## 5. Setup & Dependencies
 
-### PublishChess Setup
+### ChessPublica Setup
 
 Setup requires only two lines of code:
 
 ```html
-<!-- PublishChess JS (all-in-one JavaScript code, includes <fen>, <puzzle>, <pgn>, and <pgn-player> elements.) -->
-<script src="PublishChess.js"></script>
+<!-- ChessPublica JS (all-in-one JavaScript code, includes <fen>, <puzzle>, <pgn>, and <pgn-player> elements.) -->
+<script src="ChessPublica.js"></script>
 
-<!-- PublishChess CSS (required) -->
-<link rel="stylesheet" href="PublishChess.css" />
+<!-- ChessPublica CSS (required) -->
+<link rel="stylesheet" href="ChessPublica.css" />
 ```
 ### Required External Libraries
 
@@ -244,6 +244,6 @@ All required external libraries ([jQuery](https://jquery.com/), [Chess.js](https
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-<script type="module" src="/assets/PublishChess.js"></script>
-<link rel="stylesheet" href="/assets/PublishChess.css" />
+<script type="module" src="/assets/ChessPublica.js"></script>
+<link rel="stylesheet" href="/assets/ChessPublica.css" />
 <script src="/assets/pgn-player.js"></script>

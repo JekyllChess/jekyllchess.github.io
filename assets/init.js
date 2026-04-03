@@ -1,17 +1,11 @@
-/**
- * PublishChess — Element Initializers
- */
+/* ChessPublica — Element Initializers */
 
 import { PIECE_THEME, fetchText } from "./helpers.js";
 import { renderFullPGN } from "./pgn.js";
 import { jcPuzzleCreate } from "./puzzle.js";
 
-/* ── Init helpers ─────────────────────────────────────────── */
+/* Init helpers */
 
-/**
- * Generic "replace custom element, load PGN, render" helper.
- * Eliminates the repeated fetch-or-inline pattern.
- */
 function initCustomElements(selector, wrapperClass, renderFn) {
   document.querySelectorAll(selector).forEach(function (el) {
     if (el.dataset.jcRendered === "1") return;
