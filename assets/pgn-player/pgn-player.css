@@ -1,6 +1,7 @@
 /* WRAPPER */
+
 .player-wrapper {
-  width: 360px;
+  width: 360px; /* 350px board + 10px eval bar */
   max-width: 100vw;
   min-height: 500px;
   position: relative;
@@ -8,8 +9,9 @@
 }
 
 /* TITLE — above the board */
+
 .video-title {
-  max-width: 360px;
+  max-width: 360px; /* 350px board + 10px eval bar */
   margin: 0 0 1rem;
   display: flex;
   flex-direction: row;
@@ -35,26 +37,30 @@
 .video-title-event   { color: #555; font-weight: normal; }
 
 /* PLAYER ROW */
+
 .player-container {
   position: relative;
   display: flex;
   flex-direction: row;
-  width: 360px;
+  width: 360px; /* 350px board + 10px eval bar */
 }
 
 /* BOARD WRAP */
+
 .board-wrap {
   width: 350px;
   position: relative;
 }
 
 /* BOARD */
+
 .board {
   width: 350px;
   position: relative;
 }
 
 /* EVAL BAR */
+
 .eval-bar {
   width: 10px;
   height: 350px;
@@ -72,7 +78,8 @@
   transition: height 0.25s linear;
 }
 
-/* OVERLAY — JS-controlled via .visible class */
+/* OVERLAY */
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -90,6 +97,7 @@
 }
 
 /* MOVE LIST */
+
 .video-moves {
   max-width: 350px;
   overflow-x: auto;
@@ -138,18 +146,16 @@
   user-select: none;
 }
 
-/* =============================================
-   COMMENT AREA  (FIX 1 — mirrors .video-title layout)
-============================================= */
+/* COMMENT AREA */
+
 .video-comment {
-  max-width: 360px;
+  max-width: 360px; /* 350px board + 10px eval bar */
   margin: 0.5rem 0;
   line-height: 1.5;
   position: relative;
   padding-bottom: 0.5rem;
 }
 
-/* Row: emoji on left, text-block on right — same pattern as .video-title */
 .comment-line {
   display: flex;
   flex-direction: row;
@@ -164,7 +170,6 @@
   flex-shrink: 0;
 }
 
-/* Column that holds the comment text + optional button */
 .comment-text-block {
   display: flex;
   flex-direction: column;
@@ -176,7 +181,6 @@
   flex: 1 1 auto;
 }
 
-/* Continue button */
 .comment-play-btn {
   width: 2.5rem;
   height: 2.5rem;
@@ -202,7 +206,8 @@
   line-height: 1;
 }
 
-/* VARIATION BLOCK — two-column layout like .comment-line / .video-title */
+/* VARIATION BLOCK */
+
 .variation-block {
   display: flex;
   flex-direction: row;
@@ -221,6 +226,7 @@
 }
 
 /* BOARD OVERLAY */
+
 .board-overlay {
   position: absolute;
   top: 0; left: 0;
@@ -230,6 +236,7 @@
 }
 
 /* PLAY BUTTON */
+
 .play {
   position: absolute;
   top: 50%; left: 50%;
@@ -251,7 +258,8 @@
 
 .play.hidden { opacity: 0; pointer-events: none; }
 
-/* BOARD TOOLBAR — floats above the board, right-aligned with board edge */
+/* BOARD SETTINGS TOOLBAR */
+
 .board-toolbar {
   position: absolute;
   top: 0; right: 0;          /* 10px = eval-bar width */
@@ -308,9 +316,7 @@
   white-space: nowrap;
 }
 
-/* =============================================
-   MOVE QUALITY BADGE  (good-move.js)
-============================================= */
+/* MOVE QUALITY BADGE */
 
 .gm-badge {
   position: absolute;

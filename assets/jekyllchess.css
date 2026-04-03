@@ -1,6 +1,5 @@
 /* ================================================================
  * JekyllChess — CSS
- * This file contains functional layout/positioning rules.
 ================================================================ */
 
 /* <pgn> element */
@@ -8,18 +7,17 @@
 .pgn-headers{margin-bottom:1rem;}
 .pgn-players{font-weight:bold;}
 .pgn-container{overflow:hidden;padding:0 1rem;margin-bottom:1rem;}
-/* .pgn-moves{column-count:2;column-gap:2rem;column-rule:1px solid grey;} */
 .pgn-mainline {display:inline;margin:0;font-weight:bold;margin-bottom:1rem;}
 .pgn-mainline::after{content: " ";}
 .pgn-variation{display:block;}
-.pgn-variation-line{display:inline;margin: 0;}
+.pgn-variation-line{display:inline;margin:0;}
 .pgn-variation-line::after{content: " ";}
 .pgn-comment{display: block;}
 .pgn-error {color:red;}
 
 /* CHESSBOARD — Board wrapper + SVG overlay */
 
-.jc-board-wrapper {position:relative;display:block;margin:16px auto;width:100%;max-width:350px;box-sizing:content-box!important;}
+.jc-board-wrapper {position:relative;display:block;margin:1rem auto;width:100%;max-width:350px;box-sizing:content-box!important;}
 .jc-board {display:block;width:100%;max-width:350px;margin:1rem auto;break-inside:avoid;}
 .jc-overlay {position: absolute;top:0;left:0;pointer-events:none;z-index:10;}
 .jc-board *,.jc-board *::before,.jc-board *::after,
@@ -40,8 +38,6 @@
 
 .jc-puzzle {display:block;vertical-align:top;width:100%;max-width:350px;}
 
-/* PUZZLE ANIMATIONS — Shake feedback for wrong moves */
-
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
@@ -50,9 +46,7 @@
 
 .jc-shake{animation: shake 0.5s ease-in-out;}
 
-/* Mobile */
+/* Larger screens
+.pgn-moves{column-count:2;column-gap:2rem;column-rule:1px solid grey;} 
 
-@media (max-width: 640px) {
-  .jc-board-wrapper{max-width:100%;}
-  .jc-board{max-width:100%;}
-}
+*/
