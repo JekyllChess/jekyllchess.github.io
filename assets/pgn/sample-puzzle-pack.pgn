@@ -1,0 +1,43 @@
+[Event "Lichess Puzzle w8hj8"]
+[Site "https://lichess.org/TfNpj7eb#61"]
+[FEN "r6k/6pp/8/1p6/B2P1Q2/KPq3P1/5P1P/3R4 w - - 0 31"]
+[SetUp "1"]
+[LichessPuzzleRating "1844"]
+[LichessPuzzleTags "endgame, mate, mateIn1, oneMove, pin"]
+[Orientation "Black"]
+[FirstMoveAuto "True"]
+
+31. Qe3 Rxa4# *
+
+[Event "Lichess Puzzle wCJT8"]
+[Site "https://lichess.org/9iN2N2WD/black#28"]
+[FEN "rn2k2r/pp2pp1p/3p4/q1pP1QN1/2P2P2/2P1P3/P2n2PP/R3K2R b KQkq - 0 14"]
+[SetUp "1"]
+[LichessPuzzleRating "1961"]
+[LichessPuzzleTags "master, mate, mateIn1, middlegame, oneMove"]
+[Orientation "Black"]
+[FirstMoveAuto "True"]
+
+14... Qxc3 15. Qc8# *
+
+[Event "Lichess Puzzle wD7JX"]
+[Site "https://lichess.org/7bTHBjVo#35"]
+[FEN "r3r1k1/1pp3pp/p7/3PKpq1/2B5/P6P/1PP3P1/R2Q3R w - - 1 18"]
+[SetUp "1"]
+[LichessPuzzleRating "1951"]
+[LichessPuzzleTags "mate, mateIn1, middlegame, oneMove"]
+[Orientation "Black"]
+[FirstMoveAuto "True"]
+
+18. Kd4 Qe3# *
+
+[Event "Lichess Puzzle wDrnT"]
+[Site "https://lichess.org/0BNneYzL#51"]
+[FEN "2kr4/pp2pp2/3q4/1N3PP1/1n1N2Q1/1P6/P2K3r/R6R w - - 0 26"]
+[SetUp "1"]
+[LichessPuzzleRating "1805"]
+[LichessPuzzleTags "mate, mateIn1, middlegame, oneMove"]
+[Orientation "Black"]
+[FirstMoveAuto "True"]
+
+26. Kc3 Qc5# *
