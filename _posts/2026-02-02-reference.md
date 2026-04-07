@@ -142,6 +142,17 @@ Renders a complete annotated game with move numbers, comments, variations, NAGs,
 </pgn>
 ```
 
+<pgn>
+[Event "Event"]
+[Site "Site"]
+[Date "2026"]
+[White "White"]
+[Black "Black"]
+[Result "0-1"]
+
+1. g4 e5 2. f3?? Qh4#
+</pgn>
+
 or
 
 ### Load from File
