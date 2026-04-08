@@ -40,9 +40,6 @@ or
 [Caption "..."]
 </fen>
 ```
-displays:
-- a static FEN diagram in the specified board orientation,
-- a caption below the diagram.
 
 <fen>
 [FEN "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
@@ -60,13 +57,11 @@ Renders a drag-and-drop puzzle. The user must find the correct sequence of moves
 
 ```html
 <puzzle>
-[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 1"]
+[FEN "..."]
 
-1. Qxf7#
+1. ...
 </puzzle>
 ```
-
-or
 
 ### Inline PGN Headers
 
@@ -84,11 +79,6 @@ or
 1. ...
 </puzzle>
 ```
-displays:
-- a puzzle title with player names, event, and date,
-- a draggable puzzle diagram in specified board orientation,
-- a caption below the diagram,
-- the first move on the board if `FirstMoveAuto` is set to `true`.
 
 <puzzle>
 [White "White"]
@@ -102,8 +92,6 @@ displays:
 
 3... Nf6?? 4. Qxf7#
 </puzzle>
-
-or
 
 ### Load from File
 
@@ -153,8 +141,6 @@ Renders a complete annotated game with move numbers, comments, variations, NAGs,
 1. g4 e5 2. f3?? {[D]} {Black to move and mate in one.} 2... Qh4#
 </pgn>
 
-or
-
 ### Load from File
 
 ```html
@@ -195,7 +181,6 @@ Renders a video-style chess game player with play/pause controls, an eval bar, c
 1. ...
 </pgn-player>
 ```
-or
 
 ### Load from File
 
