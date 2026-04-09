@@ -1674,6 +1674,12 @@ class PgnPlayerElement extends HTMLElement {
 
   connectedCallback() {
 
+    /* Capture any inline PGN text BEFORE we inject the player DOM,
+       otherwise the wrapper's own text (button labels etc.) would be
+       mixed into textContent. */
+    const inlineText = this.textContent.trim();
+    this.innerHTML = "";
+
     /* ── Build internal DOM ── */
 
     const wrapper = document.createElement("div");
@@ -1724,27 +1730,41 @@ class PgnPlayerElement extends HTMLElement {
     const container = wrapper.querySelector(".player-container");
     const engine    = new VideoEngine(container);
 
-    const pgnSrc = this.getAttribute("src") || "./data/sample-game.pgn";
+    const showError = (msg) => {
+      console.error("PGN load error:", msg);
+      const titleEl = wrapper.querySelector(".video-title");
+      if (titleEl) {
+        titleEl.textContent = `⚠️ Could not load game: ${msg}`;
+      }
+    };
 
-    fetch(pgnSrc)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.text();
-      })
-      .then(pgnText => {
-        const data = loadPGN(pgnText);
-        if (!data.moves || data.moves.length === 0) {
-          throw new Error("No moves found in PGN");
-        }
-        engine.load(data, pgnText);
-      })
-      .catch(err => {
-        console.error("PGN load error:", err);
-        const titleEl = wrapper.querySelector(".video-title");
-        if (titleEl) {
-          titleEl.textContent = `⚠️ Could not load game: ${err.message}`;
-        }
-      });
+    const renderFromText = (pgnText) => {
+      const data = loadPGN(pgnText);
+      if (!data.moves || data.moves.length === 0) {
+        throw new Error("No moves found in PGN");
+      }
+      engine.load(data, pgnText);
+    };
+
+    const pgnSrc = this.getAttribute("src");
+
+    if (pgnSrc) {
+      fetch(pgnSrc)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.text();
+        })
+        .then(renderFromText)
+        .catch(err => showError(err.message));
+    } else if (inlineText) {
+      try {
+        renderFromText(inlineText);
+      } catch (err) {
+        showError(err.message);
+      }
+    } else {
+      showError("<pgn-player> is empty (no inline content and no src attribute).");
+    }
   }
 }
 
