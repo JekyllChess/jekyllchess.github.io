@@ -5,11 +5,11 @@ title: Home
 
 *{{ site.description }}*
 
-## ♟️ ChessPublica: Markdown + Chess Awareness
+## Markdown with Chess Awareness
 
-ChessPublica is a markdown-friendly publishing engine for chess content, built on [Chess.js](https://github.com/jhlywa/chess.js/) and [Chessboard.js](https://chessboardjs.com/).
+ChessPublica is a [markdown](https://www.markdownguide.org/)-friendly publishing engine for chess content, built on [Chess.js](https://github.com/jhlywa/chess.js/) and [Chessboard.js](https://chessboardjs.com/).
 
-It transforms raw chess notation—[FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) and [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)—into figurines, diagrams, puzzles, studies, and fully playable content, directly in the browser.
+It transforms raw chess notation—[FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) and [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)—into figurines, diagrams, puzzles, studies, and fully playable, interactive content directly in the browser.
 
 ## Elements
 
