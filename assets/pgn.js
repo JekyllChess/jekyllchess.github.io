@@ -8,7 +8,7 @@
  *   4. Static Renderer   — renderFullPGN(), renderHeaders(), renderMoveTree()
  */
 
-import { NBSP, toFigurine } from "./helpers.js";
+import { NBSP, toFigurine, formatComment } from "./helpers.js";
 import { createBoard } from "./board.js";
 
 /* ================================================================
@@ -438,14 +438,17 @@ function renderLine(node, parent, isVariation) {
         var part = current.parts[pi];
         if (part.type === "text") {
           if (isVariation) {
-            /* Inline comments inside variations stay on the same line */
-            buffer += part.value + " ";
+            /* Inline comments inside variations stay on the same line.
+               Comments are pre-sanitized so flushBuffer can safely use
+               innerHTML for variation lines (moves are plain SAN and
+               contain no HTML-special characters). */
+            buffer += formatComment(part.value) + " ";
           } else {
             flushBuffer(parent, buffer, isVariation);
             buffer = "";
             var p = document.createElement("p");
             p.className = "pgn-comment";
-            p.textContent = part.value;
+            p.innerHTML = formatComment(part.value);
             parent.appendChild(p);
             needsMoveNumber = true;
           }
@@ -484,7 +487,15 @@ function flushBuffer(parent, text, isVariation) {
   if (!trimmed) return;
   var p = document.createElement("p");
   p.className = isVariation ? "pgn-variation-line" : "pgn-mainline";
-  p.textContent = trimmed;
+  /* Variation buffers carry already-sanitized comment HTML mixed with
+     plain SAN move text, so innerHTML is needed to render them.
+     Main-line buffers only ever hold move text, so textContent is fine
+     (and also slightly safer). */
+  if (isVariation) {
+    p.innerHTML = trimmed;
+  } else {
+    p.textContent = trimmed;
+  }
   parent.appendChild(p);
 }
 
