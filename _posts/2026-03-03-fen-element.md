@@ -1,6 +1,6 @@
 ---
 layout: post
-title: `<fen>` element
+title: <fen> element
 ---
 
 ## Single board diagram
