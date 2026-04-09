@@ -40,6 +40,10 @@ ChessPublica's `<pgn-player>` element displays a game in a basic player.
 
 ### Load from Remote URL (e.g. Lichess URL)
 
+```html
+<pgn-player src="https://lichess.org/study/97di6JjX/Jzyakrf4.pgn"></pgn-player>
+```
+
 <pgn-player src="https://lichess.org/study/97di6JjX/Jzyakrf4.pgn"></pgn-player>
 
 <style>
