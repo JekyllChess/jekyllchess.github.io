@@ -11,6 +11,16 @@ ChessPublica is a [markdown](https://www.markdownguide.org/)-friendly publishing
 
 It transforms raw chess notation—[FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) and [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)—into figurines, diagrams, puzzles, studies, and fully playable, interactive content directly in the browser.
 
+<puzzle>
+[Site "Endgame study by Richard Réti"]
+[Event "📰 Endgame study by Richard Réti, originally published in Münchner Neueste Nachrichten, in 1928."]
+[FEN "8/5K2/8/4pk2/4R3/8/8/8 w - - 0 1"]
+[Orientation "White"]
+[Caption "🏳️ White to move and win."]
+
+1. Re2 e4 2. Re1 Ke5 3. Ke7 Kd4 4. Ke6 Kd3 5. Ke5 e3 6. Kf4 e2 7. Kf3
+</puzzle>
+
 ## 🧰 Elements
 
 {% for post in site.posts %}
