@@ -1,6 +1,6 @@
 ---
 layout: post
-title: FEN Diagrams
+title: Static diagrams
 ---
 
 Static chess diagrams are handled by the `<fen>` element.
