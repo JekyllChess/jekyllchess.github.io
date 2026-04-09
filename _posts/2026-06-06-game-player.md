@@ -1,12 +1,12 @@
 ---
 layout: post
-title: Annotated Game
+title: Game Player
 ---
 
-ChessPublica `<pgn>` element displays the game with comments, variations, annotations, and diagrams.
+ChessPublica's `<pgn-player>` element displays a game in a basic player.
 
 ```html
-<pgn>
+<pgn-player>
 [Event "Event"]
 [Site "Site"]
 [Date "2026"]
@@ -15,10 +15,10 @@ ChessPublica `<pgn>` element displays the game with comments, variations, annota
 [Result "0-1"]
 
 1. g4?! {An eccentric opening (Grob’s Attack). It weakens the kingside badly, especially the diagonal e1–h4, and does little for development or king safety.} 1... e5! {Principled and strong. Black takes the center and immediately prepares to exploit the weakened diagonal.} 2. f3?? {[D]} {A blunder of the highest order. This move:} {📌 Opens the e1–h4 diagonal completely} {📌 Weakens the king further} {📌 Blocks natural knight development: Nf3} 2... Qh4# {Checkmate. The king on e1 has no escape squares, no pieces can block, and nothing can capture the queen.}
-</pgn>
+</pgn-player>
 ```
 
-<pgn>
+<pgn-player>
 [Event "Event"]
 [Site "Site"]
 [Date "2026"]
@@ -27,16 +27,16 @@ ChessPublica `<pgn>` element displays the game with comments, variations, annota
 [Result "0-1"]
 
 1. g4?! {An eccentric opening (Grob’s Attack). It weakens the kingside badly, especially the diagonal e1–h4, and does little for development or king safety.} 1... e5! {Principled and strong. Black takes the center and immediately prepares to exploit the weakened diagonal.} 2. f3?? {[D]} {A blunder of the highest order. This move:} {📌 Opens the e1–h4 diagonal completely} {📌 Weakens the king further} {📌 Blocks natural knight development: Nf3} 2... Qh4# {Checkmate. The king on e1 has no escape squares, no pieces can block, and nothing can capture the queen.}
-</pgn>
+</pgn-player>
 
 
 ### Load from File
 
 ```html
-<pgn src="/assets/pgn/sample-game.pgn"></pgn>
+<pgn-player src="/assets/pgn/sample-game.pgn"></pgn-player>
 ```
 
-<pgn src="/assets/pgn/sample-game.pgn"></pgn>
+<pgn-player src="/assets/pgn/sample-game.pgn"></pgn-player>
 
 <style>
 h1 a {color:black;text-decoration:none;}

@@ -55,4 +55,3 @@ h1 a:hover {color:black;text-decoration:none;cursor:pointer;}
 
 <script type="module" src="/assets/ChessPublica.js"></script>
 <link rel="stylesheet" href="/assets/ChessPublica.css" />
-<script src="/assets/pgn-player.js"></script>
