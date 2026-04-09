@@ -759,21 +759,35 @@ function createGridOverlaySVG(boardDiv, extraClass) {
   return svg;
 }
 
-function getSquareCenter(grid, square) {
+function getSquareCenter(svg, grid, square) {
 
   const squareEl = grid.querySelector(`[data-square="${square}"]`);
   if (!squareEl) return null;
 
-  const gridRect = grid.getBoundingClientRect();
-  const rect     = squareEl.getBoundingClientRect();
+  // Compute the square's true center in screen-pixel space, then map it
+  // into the SVG's own user-coordinate system via the SVG's current
+  // transformation matrix. This is immune to border/padding/box-sizing
+  // differences on any ancestor, so the arrows and circles align exactly
+  // with the squares regardless of how chessboard.js lays out its DOM.
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const inv = ctm.inverse();
 
-  const xInGrid = (rect.left - gridRect.left) + rect.width  / 2;
-  const yInGrid = (rect.top  - gridRect.top)  + rect.height / 2;
+  const sr = squareEl.getBoundingClientRect();
+  const cx = sr.left + sr.width  / 2;
+  const cy = sr.top  + sr.height / 2;
+
+  const pt = svg.createSVGPoint();
+  pt.x = cx;  pt.y = cy;
+  const center = pt.matrixTransform(inv);
+
+  pt.x = cx + sr.width;  pt.y = cy;
+  const edge = pt.matrixTransform(inv);
 
   return {
-    x:    (xInGrid     / gridRect.width)  * 100,
-    y:    (yInGrid     / gridRect.height) * 100,
-    size: (rect.width  / gridRect.width)  * 100,
+    x:    center.x,
+    y:    center.y,
+    size: edge.x - center.x,   // full square width in SVG user units
   };
 }
 
@@ -795,7 +809,7 @@ function lichessColor(code, alpha = 0.85) {
 
 function drawCircle(svg, boardDiv, square, color) {
 
-  const center = getSquareCenter(boardDiv, square);
+  const center = getSquareCenter(svg, boardDiv, square);
   if (!center) return;
 
   const strokeWidth = center.size * 0.09;
@@ -819,8 +833,8 @@ function drawCircle(svg, boardDiv, square, color) {
 
 function drawArrow(svg, boardDiv, fromSquare, toSquare, color) {
 
-  const start = getSquareCenter(boardDiv, fromSquare);
-  const end   = getSquareCenter(boardDiv, toSquare);
+  const start = getSquareCenter(svg, boardDiv, fromSquare);
+  const end   = getSquareCenter(svg, boardDiv, toSquare);
 
   if (!start || !end) return;
 
@@ -1587,8 +1601,8 @@ class VideoEngine {
 --------------------------------------------------------------- */
 function _drawLastMoveArrowSVG(svg, boardDiv, fromSquare, toSquare) {
 
-  const start = getSquareCenter(boardDiv, fromSquare);
-  const end   = getSquareCenter(boardDiv, toSquare);
+  const start = getSquareCenter(svg, boardDiv, fromSquare);
+  const end   = getSquareCenter(svg, boardDiv, toSquare);
   if (!start || !end) return;
 
   const dx     = end.x - start.x;
