@@ -1,7 +1,9 @@
 ---
 layout: post
-title: <fen> element
+title: FEN Diagrams
 ---
+
+Static chess diagrams are handled by the `<fen>` element.
 
 ## Single board diagram
 
