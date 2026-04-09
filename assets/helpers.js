@@ -224,20 +224,23 @@ export function tokenizeMoves(text) {
 }
 
 /**
- * Parse PGN-ish move text into parallel arrays of SAN moves and the
- * comments attached to them. Comments in {braces} attach to the most
- * recent mainline move. Multiple comments on the same move are joined
- * with a single space. Variations (in parens) and their inner comments
- * are ignored.
+ * Parse PGN-ish move text into parallel arrays of SAN moves, the
+ * comments attached to them, and any variations branching off them.
+ * Comments in {braces} attach to the most recent mainline move.
+ * Multiple comments on the same move are joined with a single space.
+ * Variations (in parens) are recursively parsed and attached to the
+ * mainline move they branch from — so variations[i] is either null or
+ * an array of { moves, comments, variations } objects.
  *
- * Returns { moves: string[], comments: (string|null)[] } with
- * comments.length === moves.length.
+ * Returns { moves, comments, variations } with all three arrays having
+ * length === moves.length.
  */
 export function parseMovesWithComments(text) {
   var s = String(text || "").replace(/;[^\n]*/g, " ");
 
   var moves = [];
   var comments = [];
+  var variations = [];
   var i = 0;
 
   while (i < s.length) {
@@ -259,9 +262,10 @@ export function parseMovesWithComments(text) {
       continue;
     }
 
-    /* Variation — skip everything up to the matching ), correctly
-       handling nested parens and brace-comments that happen to sit
-       inside the variation. */
+    /* Variation — scan to the matching ), correctly handling nested
+       parens and brace-comments inside the variation, then recursively
+       parse the inner content and attach to the most recent mainline
+       move. */
     if (ch === "(") {
       var depth = 1;
       var k = i + 1;
@@ -277,6 +281,19 @@ export function parseMovesWithComments(text) {
           if (k < s.length) k++;
         } else {
           k++;
+        }
+      }
+      /* When depth reached 0, k is one past the matching ')'. When we
+         ran off the end (malformed), treat the rest of the string as
+         the variation body. */
+      var innerEnd = (depth === 0) ? k - 1 : k;
+      var inner = s.slice(i + 1, innerEnd);
+      if (moves.length > 0) {
+        var parsed = parseMovesWithComments(inner);
+        if (parsed.moves.length > 0) {
+          var vidx = moves.length - 1;
+          if (!variations[vidx]) variations[vidx] = [];
+          variations[vidx].push(parsed);
         }
       }
       i = k;
@@ -306,6 +323,7 @@ export function parseMovesWithComments(text) {
     if (mv) {
       moves.push(mv[0].replace(/[!?]+$/, ""));
       comments.push(null);
+      variations.push(null);
       i += mv[0].length;
       continue;
     }
@@ -313,7 +331,7 @@ export function parseMovesWithComments(text) {
     i++;
   }
 
-  return { moves: moves, comments: comments };
+  return { moves: moves, comments: comments, variations: variations };
 }
 
 /* ================================================================
@@ -352,6 +370,7 @@ export function parseGame(pgn) {
         fen: fenMatch[1].trim(),
         moves: moves,
         comments: new Array(moves.length).fill(null),
+        variations: new Array(moves.length).fill(null),
         firstMoveAuto: false,
         orientation: null,
       };
@@ -374,6 +393,7 @@ export function parseGame(pgn) {
     fen: fen,
     moves: moves2,
     comments: parsedMoves.comments,
+    variations: parsedMoves.variations || [],
     firstMoveAuto: firstMoveAuto,
     orientation: orientation,
   };

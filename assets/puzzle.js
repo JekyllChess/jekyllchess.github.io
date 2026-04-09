@@ -27,6 +27,7 @@ export function renderLocalPuzzle(
 ) {
   opts = opts || {};
   var comments = opts.comments || [];
+  var variations = opts.variations || [];
   var captionEl = opts.captionEl || null;
   var initialCaption = opts.initialCaption || "";
 
@@ -56,6 +57,32 @@ export function renderLocalPuzzle(
     boardDiv.className = "jc-board";
     container.appendChild(boardDiv);
 
+    /* Refresh button — hidden by default. Shown while the solver is
+       exploring a variation (acts as "return to main line") and again
+       once the puzzle is solved (acts as "replay the puzzle"). */
+    var refreshBtn = document.createElement("button");
+    refreshBtn.type = "button";
+    refreshBtn.className = "jc-puzzle-refresh";
+    refreshBtn.setAttribute("aria-label", "Reset puzzle");
+    refreshBtn.title = "Reset puzzle";
+    refreshBtn.textContent = "↻";
+    refreshBtn.style.display = "none";
+    refreshBtn.style.margin = "0.5rem auto";
+    refreshBtn.style.padding = "0.25rem 0.75rem";
+    refreshBtn.style.fontSize = "1.1rem";
+    refreshBtn.style.cursor = "pointer";
+    refreshBtn.addEventListener("click", function () {
+      handleRefresh();
+    });
+    container.appendChild(refreshBtn);
+
+    function showRefreshButton() {
+      refreshBtn.style.display = "block";
+    }
+    function hideRefreshButton() {
+      refreshBtn.style.display = "none";
+    }
+
     var game = new Chess(fen);
 
     var state = {
@@ -65,6 +92,7 @@ export function renderLocalPuzzle(
       solverSide: game.turn(),
       locked: false,
       solved: false,
+      savedForVariation: null,
     };
 
     resetCaption();
@@ -87,11 +115,38 @@ export function renderLocalPuzzle(
       );
     }
 
+    /* Refresh behavior depends on current state:
+       — solved: full puzzle reset
+       — inside a variation: undo the variation move, restore the
+         main-line FEN/index/caption, and continue solving
+       — otherwise: no-op (button is hidden) */
+    function handleRefresh() {
+      if (state.solved) {
+        if (container.reset) container.reset();
+        return;
+      }
+      if (state.savedForVariation) {
+        var saved = state.savedForVariation;
+        state.game.load(saved.fen);
+        state.index = saved.index;
+        state.savedForVariation = null;
+        state.locked = false;
+        board.position(state.game.fen(), true);
+        if (state.index > 0) {
+          setCaptionForMoveIndex(state.index - 1);
+        } else {
+          resetCaption();
+        }
+        hideRefreshButton();
+      }
+    }
+
     function finishSolved() {
       state.solved = true;
       board.position(state.game.fen(), false);
       boardDiv.classList.remove("jc-fire-once");
       boardDiv.classList.add("jc-fire-solved");
+      showRefreshButton();
 
       boardDiv.addEventListener(
         "mousedown",
@@ -124,15 +179,56 @@ export function renderLocalPuzzle(
       }, ANIM_MS);
     }
 
+    /* If the move the user just played (already applied to state.game)
+       matches the first move of any variation attached to the current
+       main-line index, return that variation object. Otherwise null. */
+    function matchVariationFirstMove(userSan) {
+      var vars = variations[state.index];
+      if (!vars || !vars.length) return null;
+      var norm = normalizeSAN(userSan);
+      for (var vi = 0; vi < vars.length; vi++) {
+        var v = vars[vi];
+        if (v && v.moves && v.moves.length &&
+            normalizeSAN(v.moves[0]) === norm) {
+          return v;
+        }
+      }
+      return null;
+    }
+
     function onDrop(from, to) {
       if (state.locked || state.solved || state.game.turn() !== state.solverSide)
         return "snapback";
 
       var expectedSAN = String(state.moves[state.index] || "").trim();
+      var previousFen = state.game.fen();
       var move = state.game.move({ from: from, to: to, promotion: "q" });
       if (!move) return "snapback";
 
       if (normalizeSAN(move.san) !== normalizeSAN(expectedSAN)) {
+        /* Not the main-line move — check whether it matches the first
+           move of a variation attached to the current index. */
+        var matchedVar = matchVariationFirstMove(move.san);
+        if (matchedVar) {
+          /* Accept the variation move. Remember the pre-move state so
+             the refresh button can bring the solver back to the main
+             line, lock further input, and show the variation's
+             first-move comment if any. */
+          state.savedForVariation = {
+            fen: previousFen,
+            index: state.index,
+          };
+          state.locked = true;
+          board.position(state.game.fen(), false);
+          var varComment = matchedVar.comments && matchedVar.comments[0];
+          if (captionEl) {
+            captionEl.innerHTML = varComment ? formatComment(varComment) : "";
+          }
+          showRefreshButton();
+          return true;
+        }
+
+        /* Wrong move — undo and shake. */
         state.game.undo();
         board.position(state.game.fen(), false);
         boardDiv.classList.remove("jc-shake");
@@ -212,6 +308,7 @@ export function jcPuzzleCreate(el, cfg) {
     false,
     {
       comments: parsed.comments || [],
+      variations: parsed.variations || [],
       captionEl: cfg.captionEl || null,
       initialCaption: cfg.initialCaption || "",
     },
