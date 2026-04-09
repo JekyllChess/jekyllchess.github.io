@@ -33,10 +33,20 @@ function isBracketHeaderForm(text) {
 
 /* ── <pgn> ────────────────────────────────────────────────── */
 
-function initCustomElements(selector, wrapperClass, renderFn) {
+function initCustomElements(selector, wrapperClass, renderFn, opts) {
+  var preserveInlineHTML = !!(opts && opts.preserveInlineHTML);
+
   document.querySelectorAll(selector).forEach(function (el) {
     if (el.dataset.jcRendered === "1") return;
     el.dataset.jcRendered = "1";
+
+    /* For <pgn> we read innerHTML (not textContent) so that inline HTML
+       the author put inside comments — e.g. <br>, <strong>, Kramdown-
+       produced <em>…</em> from *italic* — survives into the tokenizer
+       and can be rendered by the sanitizing formatComment() helper. */
+    var inlineRaw = preserveInlineHTML
+      ? el.innerHTML
+      : el.textContent;
 
     var wrapper = document.createElement("div");
     wrapper.className = wrapperClass;
@@ -57,7 +67,7 @@ function initCustomElements(selector, wrapperClass, renderFn) {
           showError(wrapper, "failed to load " + src + ": " + e.message);
         });
     } else {
-      var text = el.textContent.trim();
+      var text = inlineRaw.trim();
       if (!text) {
         showError(wrapper, "<" + selector + "> is empty (no inline content and no src attribute).");
         return;
@@ -72,7 +82,9 @@ function initCustomElements(selector, wrapperClass, renderFn) {
 }
 
 export function initPgnElements() {
-  initCustomElements("pgn", "pgn-container game-card", renderFullPGN);
+  initCustomElements("pgn", "pgn-container game-card", renderFullPGN, {
+    preserveInlineHTML: true,
+  });
 }
 
 /* ── <fen> ────────────────────────────────────────────────── */
@@ -249,16 +261,20 @@ function renderSinglePuzzle(raw, wrapper, packInfo) {
   boardHost.className = "jc-puzzle-board";
   wrapper.appendChild(boardHost);
 
-  if (caption) {
-    var cap = document.createElement("div");
-    cap.className = "fen-caption";
-    cap.textContent = caption;
-    wrapper.appendChild(cap);
-  }
+  /* Always create the caption slot (even when no initial caption is
+     set) so that per-move comments have a home to render into. */
+  var cap = document.createElement("div");
+  cap.className = "fen-caption";
+  if (caption) cap.textContent = caption;
+  wrapper.appendChild(cap);
 
   try {
     var before = boardHost.innerHTML;
-    jcPuzzleCreate(boardHost, { rawPGN: raw });
+    jcPuzzleCreate(boardHost, {
+      rawPGN: raw,
+      captionEl: cap,
+      initialCaption: caption || "",
+    });
     if (boardHost.innerHTML === before) {
       showError(wrapper, "could not parse <puzzle>: missing FEN or moves.");
     }

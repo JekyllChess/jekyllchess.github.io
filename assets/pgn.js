@@ -8,7 +8,7 @@
  *   4. Static Renderer   — renderFullPGN(), renderHeaders(), renderMoveTree()
  */
 
-import { NBSP, toFigurine } from "./helpers.js";
+import { NBSP, toFigurine, formatComment } from "./helpers.js";
 import { createBoard } from "./board.js";
 
 /* ================================================================
@@ -376,10 +376,22 @@ export function renderHeaders(headers, container) {
   container.appendChild(div);
 }
 
-export function renderMoveTree(rootNode, container) {
+export function renderMoveTree(rootNode, container, headers) {
   var movesDiv = document.createElement("div");
   movesDiv.className = "pgn-moves";
   renderLine(rootNode, movesDiv, false);
+
+  /* Append the game result (1-0 / 0-1 / ½-½) inline at the end of
+     the main line. Skip "*" (ongoing) and missing values. */
+  var rawResult = headers && headers.Result;
+  if (rawResult && rawResult !== "*") {
+    var label = rawResult === "1/2-1/2" ? "½-½" : rawResult;
+    var resultP = document.createElement("p");
+    resultP.className = "pgn-mainline pgn-result";
+    resultP.textContent = label;
+    movesDiv.appendChild(resultP);
+  }
+
   container.appendChild(movesDiv);
 }
 
@@ -438,14 +450,17 @@ function renderLine(node, parent, isVariation) {
         var part = current.parts[pi];
         if (part.type === "text") {
           if (isVariation) {
-            /* Inline comments inside variations stay on the same line */
-            buffer += part.value + " ";
+            /* Inline comments inside variations stay on the same line.
+               Comments are pre-sanitized so flushBuffer can safely use
+               innerHTML for variation lines (moves are plain SAN and
+               contain no HTML-special characters). */
+            buffer += formatComment(part.value) + " ";
           } else {
             flushBuffer(parent, buffer, isVariation);
             buffer = "";
             var p = document.createElement("p");
             p.className = "pgn-comment";
-            p.textContent = part.value;
+            p.innerHTML = formatComment(part.value);
             parent.appendChild(p);
             needsMoveNumber = true;
           }
@@ -484,7 +499,15 @@ function flushBuffer(parent, text, isVariation) {
   if (!trimmed) return;
   var p = document.createElement("p");
   p.className = isVariation ? "pgn-variation-line" : "pgn-mainline";
-  p.textContent = trimmed;
+  /* Variation buffers carry already-sanitized comment HTML mixed with
+     plain SAN move text, so innerHTML is needed to render them.
+     Main-line buffers only ever hold move text, so textContent is fine
+     (and also slightly safer). */
+  if (isVariation) {
+    p.innerHTML = trimmed;
+  } else {
+    p.textContent = trimmed;
+  }
   parent.appendChild(p);
 }
 
@@ -495,7 +518,7 @@ export function renderFullPGN(pgnText, container) {
 
     var rootNode = buildMoveTree(pgnText);
     if (rootNode) {
-      renderMoveTree(rootNode, container);
+      renderMoveTree(rootNode, container, headers);
     }
   } catch (e) {
     var errorDiv = document.createElement("div");
