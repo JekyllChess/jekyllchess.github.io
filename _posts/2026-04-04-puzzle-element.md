@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Puzzle element
+title: Puzzles
 ---
 
 Chess puzzles are handled by the `<puzzle>` element.
