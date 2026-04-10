@@ -5,9 +5,7 @@ title: Home
 
 *{{ site.description }}*
 
-**ChessPublica** brings *chess awareness* into HTML and [markdown](https://www.markdownguide.org/). It's a minimal publishing engine for chess content, built on [Chess.js](https://github.com/jhlywa/chess.js/) and [Chessboard.js](https://chessboardjs.com/).
-
-It transforms raw chess notation—[FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) and [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)—into figurines, diagrams, puzzles, studies, and fully playable, interactive content directly in the browser.
+**ChessPublica** brings *chess awareness* into HTML and [markdown](https://www.markdownguide.org/). It's a minimal publishing engine for chess content, built on [Chess.js](https://github.com/jhlywa/chess.js/) and [Chessboard.js](https://chessboardjs.com/). It transforms raw chess notation—[FEN](https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation) and [PGN](https://en.wikipedia.org/wiki/Portable_Game_Notation)—into figurines, diagrams, puzzles, studies, and fully playable, interactive content directly in the browser.
 
 <puzzle>
 [Event "Study by Richard Réti, Münchner Neueste Nachrichten, 1928"]
