@@ -4,7 +4,7 @@ title: Complete Reference
 permalink: /reference.html
 ---
 
-## ChessPublica Complete Element Reference
+## Complete Element Reference
 
 This document demonstrates **every custom HTML element** provided by **ChessPublica**, along with all supported usage patterns.
 
@@ -207,7 +207,7 @@ Renders a video-style chess game player with play/pause controls, an eval bar, c
 
 ## 5. Setup & Dependencies
 
-### ChessPublica Setup
+### Setup
 
 Setup requires only two lines of code:
 
@@ -220,7 +220,7 @@ Setup requires only two lines of code:
 ```
 ### Required External Libraries
 
-All required external libraries [jQuery](https://jquery.com/), [Chess.js](https://github.com/jhlywa/chess.js/), [Chessboard.js](https://chessboardjs.com/), and [Google Material Icons](https://fonts.google.com/icons) are automatically loaded.
+All required external libraries [Chess.js](https://github.com/jhlywa/chess.js/), [Chessboard.js](https://chessboardjs.com/), [jQuery](https://jquery.com/), and [Google Material Icons](https://fonts.google.com/icons) are automatically loaded.
 
 ---
 
