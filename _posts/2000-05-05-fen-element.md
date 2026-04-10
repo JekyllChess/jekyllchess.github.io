@@ -41,6 +41,16 @@ Static chess diagrams are handled by the `<fen>` element.
 [Orientation "Black"]
 </fen>
 
+---
+
+[{{ site.title }}]({{ site.url }})
+
+## 🧰 Elements
+
+{% for post in site.posts %}
+📌 [{{ post.title }}]({{ post.url }})
+{% endfor %}
+
 <style>
 h1 a {color:black;text-decoration:none;}
 h1 a:active {color:black;text-decoration:none;cursor:pointer;}

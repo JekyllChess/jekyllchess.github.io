@@ -32,6 +32,16 @@ Chess puzzles are handled by the `<puzzle>` element.
 
 <puzzle src="/assets/pgn/sample-puzzle-pack.pgn"></puzzle>
 
+---
+
+[{{ site.title }}]({{ site.url }})
+
+## 🧰 Elements
+
+{% for post in site.posts %}
+📌 [{{ post.title }}]({{ post.url }})
+{% endfor %}
+
 <style>
 h1 a {color:black;text-decoration:none;}
 h1 a:active {color:black;text-decoration:none;cursor:pointer;}

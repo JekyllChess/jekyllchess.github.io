@@ -46,6 +46,16 @@ ChessPublica's `<pgn-player>` element displays a game in a basic player.
 
 <pgn-player src="https://lichess.org/api/study/97di6JjX/Jzyakrf4.pgn"></pgn-player>
 
+---
+
+[{{ site.title }}]({{ site.url }})
+
+## 🧰 Elements
+
+{% for post in site.posts %}
+📌 [{{ post.title }}]({{ post.url }})
+{% endfor %}
+
 <style>
 h1 a {color:black;text-decoration:none;}
 h1 a:active {color:black;text-decoration:none;cursor:pointer;}

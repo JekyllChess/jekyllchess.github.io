@@ -38,6 +38,16 @@ ChessPublica `<pgn>` element displays the game with comments, variations, annota
 
 <pgn src="/assets/pgn/sample-game.pgn"></pgn>
 
+---
+
+[{{ site.title }}]({{ site.url }})
+
+## 🧰 Elements
+
+{% for post in site.posts %}
+📌 [{{ post.title }}]({{ post.url }})
+{% endfor %}
+
 <style>
 h1 a {color:black;text-decoration:none;}
 h1 a:active {color:black;text-decoration:none;cursor:pointer;}
