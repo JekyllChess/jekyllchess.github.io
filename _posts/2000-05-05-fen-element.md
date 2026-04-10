@@ -41,8 +41,6 @@ Static chess diagrams are handled by the `<fen>` element.
 [Orientation "Black"]
 </fen>
 
----
-
 ## 🧰 Elements
 
 {% for post in site.posts %}

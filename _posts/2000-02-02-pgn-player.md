@@ -46,8 +46,6 @@ ChessPublica's `<pgn-player>` element displays a game in a basic player.
 
 <pgn-player src="https://lichess.org/api/study/97di6JjX/Jzyakrf4.pgn"></pgn-player>
 
----
-
 ## 🧰 Elements
 
 {% for post in site.posts %}

@@ -38,8 +38,6 @@ ChessPublica `<pgn>` element displays the game with comments, variations, annota
 
 <pgn src="/assets/pgn/sample-game.pgn"></pgn>
 
----
-
 ## 🧰 Elements
 
 {% for post in site.posts %}

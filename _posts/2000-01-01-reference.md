@@ -233,8 +233,6 @@ All required external libraries [Chess.js](https://github.com/jhlywa/chess.js/),
 | `<pgn>` | Annotated game with diagrams | ❌ | Inline or `src` |
 | `<pgn-player>` | Video-style PGN player | ✅ | Inline or `src` |
 
----
-
 ## 🧰 Elements
 
 {% for post in site.posts %}

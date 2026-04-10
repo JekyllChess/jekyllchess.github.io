@@ -32,8 +32,6 @@ Chess puzzles are handled by the `<puzzle>` element.
 
 <puzzle src="/assets/pgn/sample-puzzle-pack.pgn"></puzzle>
 
----
-
 ## 🧰 Elements
 
 {% for post in site.posts %}
