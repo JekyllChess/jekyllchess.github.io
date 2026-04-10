@@ -125,7 +125,6 @@ export function renderLocalPuzzle(
       solverSide: game.turn(),
       locked: false,
       solved: false,
-      savedForVariation: null,
     };
 
     resetCaption();
@@ -148,30 +147,10 @@ export function renderLocalPuzzle(
       );
     }
 
-    /* Refresh behavior depends on current state:
-       — solved: full puzzle reset
-       — inside a variation: undo the variation move, restore the
-         main-line FEN/index/caption, and continue solving
-       — otherwise: no-op (button is hidden) */
+    /* Replay the puzzle from scratch (shown only once solved). */
     function handleRefresh() {
-      if (state.solved) {
-        if (container.reset) container.reset();
-        return;
-      }
-      if (state.savedForVariation) {
-        var saved = state.savedForVariation;
-        state.game.load(saved.fen);
-        state.index = saved.index;
-        state.savedForVariation = null;
-        state.locked = false;
-        clearMoveQualityBadge(boardDiv);
-        board.position(state.game.fen(), true);
-        if (state.index > 0) {
-          setCaptionForMoveIndex(state.index - 1);
-        } else {
-          resetCaption();
-        }
-        hideRefreshButton();
+      if (state.solved && container.reset) {
+        container.reset();
       }
     }
 
@@ -217,18 +196,24 @@ export function renderLocalPuzzle(
       }, ANIM_MS);
     }
 
-    /* If the move the user just played (already applied to state.game)
-       matches the first move of any variation attached to the current
-       main-line index, return that variation object. Otherwise null. */
+    /* If the move the user just played matches the first move of any
+       variation near the current position, return that variation.
+       We check both state.index and state.index + 1 because PGN
+       authors commonly place the variation after the opponent's reply
+       (e.g.  1. Re2! e4 (1. Re1? …)  — the variation is syntactically
+       after e4 but semantically an alternative to Re2). */
     function matchVariationFirstMove(userSan) {
-      var vars = variations[state.index];
-      if (!vars || !vars.length) return null;
       var norm = normalizeSAN(userSan);
-      for (var vi = 0; vi < vars.length; vi++) {
-        var v = vars[vi];
-        if (v && v.moves && v.moves.length &&
-            normalizeSAN(v.moves[0]) === norm) {
-          return v;
+      var indicesToCheck = [state.index, state.index + 1];
+      for (var ci = 0; ci < indicesToCheck.length; ci++) {
+        var vars = variations[indicesToCheck[ci]];
+        if (!vars || !vars.length) continue;
+        for (var vi = 0; vi < vars.length; vi++) {
+          var v = vars[vi];
+          if (v && v.moves && v.moves.length &&
+              normalizeSAN(v.moves[0]) === norm) {
+            return v;
+          }
         }
       }
       return null;
@@ -247,24 +232,6 @@ export function renderLocalPuzzle(
         /* Not the main-line move — check whether it matches the first
            move of a variation attached to the current index. */
         var matchedVar = matchVariationFirstMove(move.san);
-        if (matchedVar) {
-          /* Accept the variation move. Remember the pre-move state so
-             the refresh button can bring the solver back to the main
-             line, lock further input, and show the variation's
-             first-move comment if any. */
-          state.savedForVariation = {
-            fen: previousFen,
-            index: state.index,
-          };
-          state.locked = true;
-          board.position(state.game.fen(), false);
-          var varComment = matchedVar.comments && matchedVar.comments[0];
-          if (captionEl) {
-            captionEl.innerHTML = varComment ? formatComment(varComment) : "";
-          }
-          showRefreshButton();
-          return true;
-        }
 
         /* Wrong move — undo and shake. */
         state.game.undo();
@@ -272,6 +239,17 @@ export function renderLocalPuzzle(
         boardDiv.classList.remove("jc-shake");
         void boardDiv.offsetWidth;
         boardDiv.classList.add("jc-shake");
+
+        /* If a variation matched, collect all its comments and display
+           them in the caption so the solver sees the instructive line
+           even though the move is rejected. */
+        if (matchedVar && captionEl) {
+          var allComments = (matchedVar.comments || []).filter(Boolean);
+          if (allComments.length) {
+            captionEl.innerHTML = formatComment(allComments.join(" "));
+          }
+        }
+
         return "snapback";
       }
 
