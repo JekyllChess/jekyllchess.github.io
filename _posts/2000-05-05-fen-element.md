@@ -41,18 +41,13 @@ Static chess diagrams are handled by the `<fen>` element.
 [Orientation "Black"]
 </fen>
 
-<div class="post-nav">
-  <div>
-    {% if page.previous.url %}
-    <a href="{{page.previous.url}}">&laquo;&nbsp;{{page.previous.title}}</a>
-    {% endif %}
-  </div>
-  <div class="post-nav-next">
-    {% if page.next.url %}
-    <a href="{{page.next.url}}">{{page.next.title}}&nbsp;&raquo;</a>
-    {% endif %}
-  </div>
-</div>
+{% if page.next.url %}
+[{{page.next.title}}&laquo;&nbsp;]({{page.next.url}})
+{% endif %}
+[{{page.next.title}}&laquo;&nbsp;]({{page.next.url}})
+{% if page.previous.url %}
+[{{page.previous.title}}&laquo;&nbsp;]({{page.previous.url}})
+{% endif %}
 
 <style>
 h1 a {color:black;text-decoration:none;}
