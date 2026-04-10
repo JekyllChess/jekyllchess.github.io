@@ -42,10 +42,10 @@ Static chess diagrams are handled by the `<fen>` element.
 </fen>
 
 {% if page.previous.url %}
-[{{page.previous.title}}]({{page.previous.url}})
+[{{page.previous.title}}&nbsp;&laquo;]({{page.previous.url}})
 {% endif %}
 {% if page.next.url %}
-[{{page.next.title}}]({{page.next.url}})
+[&raquo;&nbsp;{{page.next.title}}]({{page.next.url}})
 {% endif %}
 
 <style>

@@ -47,10 +47,10 @@ ChessPublica's `<pgn-player>` element displays a game in a basic player.
 <pgn-player src="https://lichess.org/api/study/97di6JjX/Jzyakrf4.pgn"></pgn-player>
 
 {% if page.previous.url %}
-[{{page.previous.title}}]({{page.previous.url}})
+[{{page.previous.title}}&nbsp;&laquo;]({{page.previous.url}})
 {% endif %}
 {% if page.next.url %}
-[{{page.next.title}}]({{page.next.url}})
+[&raquo;&nbsp;{{page.next.title}}]({{page.next.url}})
 {% endif %}
 
 <style>
