@@ -39,10 +39,10 @@ ChessPublica `<pgn>` element displays the game with comments, variations, annota
 <pgn src="/assets/pgn/sample-game.pgn"></pgn>
 
 {% if page.previous.url %}
-[{{page.previous.title}}&nbsp;&laquo;]({{page.previous.url}})
+[{{page.previous.title}}&nbsp;&raquo;]({{page.previous.url}})
 {% endif %}
 {% if page.next.url %}
-[&raquo;&nbsp;{{page.next.title}}]({{page.next.url}})
+[&laquo;&nbsp;{{page.next.title}}]({{page.next.url}})
 {% endif %}
 
 <style>
