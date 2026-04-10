@@ -5,7 +5,7 @@
  *   1. Puzzle Engine     — renderLocalPuzzle() (interactive drag-and-drop)
  */
 
-import { PIECE_THEME, normalizeSAN, parseGame, formatComment } from "./helpers.js";
+import { PIECE_THEME, normalizeSAN, parseGame, formatComment, getDestinationSquare, renderMoveQualityBadge, clearMoveQualityBadge } from "./helpers.js";
 
 /* ================================================================
    1. PUZZLE ENGINE
@@ -28,6 +28,7 @@ export function renderLocalPuzzle(
   opts = opts || {};
   var comments = opts.comments || [];
   var variations = opts.variations || [];
+  var pgnGlyphs = opts.glyphs || [];
   var captionEl = opts.captionEl || null;
   var initialCaption = opts.initialCaption || "";
 
@@ -50,6 +51,26 @@ export function renderLocalPuzzle(
     captionEl.innerHTML = initialCaption ? formatComment(initialCaption) : "";
   }
 
+  /* Show a move-quality badge on the destination square of the move
+     at the given index.  The boardDiv reference is captured from the
+     closure inside createPuzzleBoard. */
+  var _boardDivRef = null;
+
+  function showBadgeForMove(moveIndex) {
+    if (!_boardDivRef) return;
+    clearMoveQualityBadge(_boardDivRef);
+    var glyph = pgnGlyphs[moveIndex];
+    if (!glyph) return;
+    var san = moves[moveIndex];
+    /* The color that played this move: after the move, the turn flips,
+       so the mover is the opposite of the current turn. But we can
+       also derive it from the move index and the starting side. */
+    var startTurn = fen.split(" ")[1] || "w";
+    var color = (moveIndex % 2 === 0) ? startTurn : (startTurn === "w" ? "b" : "w");
+    var square = getDestinationSquare(san, color);
+    if (square) renderMoveQualityBadge(_boardDivRef, square, glyph);
+  }
+
   function createPuzzleBoard() {
     container.innerHTML = "";
 
@@ -63,6 +84,8 @@ export function renderLocalPuzzle(
 
     var boardDiv = document.createElement("div");
     boardDiv.className = "jc-board";
+    boardDiv.style.position = "relative";
+    _boardDivRef = boardDiv;
     /* The wrapper already supplies the 1rem auto margin .jc-board uses
        on its own, so zero it here to avoid doubling the vertical gap. */
     boardDiv.style.margin = "0";
@@ -102,7 +125,6 @@ export function renderLocalPuzzle(
       solverSide: game.turn(),
       locked: false,
       solved: false,
-      savedForVariation: null,
     };
 
     resetCaption();
@@ -125,29 +147,10 @@ export function renderLocalPuzzle(
       );
     }
 
-    /* Refresh behavior depends on current state:
-       — solved: full puzzle reset
-       — inside a variation: undo the variation move, restore the
-         main-line FEN/index/caption, and continue solving
-       — otherwise: no-op (button is hidden) */
+    /* Replay the puzzle from scratch (shown only once solved). */
     function handleRefresh() {
-      if (state.solved) {
-        if (container.reset) container.reset();
-        return;
-      }
-      if (state.savedForVariation) {
-        var saved = state.savedForVariation;
-        state.game.load(saved.fen);
-        state.index = saved.index;
-        state.savedForVariation = null;
-        state.locked = false;
-        board.position(state.game.fen(), true);
-        if (state.index > 0) {
-          setCaptionForMoveIndex(state.index - 1);
-        } else {
-          resetCaption();
-        }
-        hideRefreshButton();
+      if (state.solved && container.reset) {
+        container.reset();
       }
     }
 
@@ -160,7 +163,9 @@ export function renderLocalPuzzle(
 
       boardDiv.addEventListener(
         "mousedown",
-        function () {
+        function (e) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
           if (container.reset) container.reset();
         },
         { once: true, capture: true },
@@ -182,6 +187,8 @@ export function renderLocalPuzzle(
       state.index++;
       board.position(state.game.fen(), true);
       setCaptionForMoveIndex(state.index - 1);
+      /* Badge after the animation completes (position is animated). */
+      setTimeout(function () { showBadgeForMove(state.index - 1); }, ANIM_MS);
       dispatchMoveEvent(state.index);
 
       setTimeout(function () {
@@ -189,18 +196,24 @@ export function renderLocalPuzzle(
       }, ANIM_MS);
     }
 
-    /* If the move the user just played (already applied to state.game)
-       matches the first move of any variation attached to the current
-       main-line index, return that variation object. Otherwise null. */
+    /* If the move the user just played matches the first move of any
+       variation near the current position, return that variation.
+       We check both state.index and state.index + 1 because PGN
+       authors commonly place the variation after the opponent's reply
+       (e.g.  1. Re2! e4 (1. Re1? …)  — the variation is syntactically
+       after e4 but semantically an alternative to Re2). */
     function matchVariationFirstMove(userSan) {
-      var vars = variations[state.index];
-      if (!vars || !vars.length) return null;
       var norm = normalizeSAN(userSan);
-      for (var vi = 0; vi < vars.length; vi++) {
-        var v = vars[vi];
-        if (v && v.moves && v.moves.length &&
-            normalizeSAN(v.moves[0]) === norm) {
-          return v;
+      var indicesToCheck = [state.index, state.index + 1];
+      for (var ci = 0; ci < indicesToCheck.length; ci++) {
+        var vars = variations[indicesToCheck[ci]];
+        if (!vars || !vars.length) continue;
+        for (var vi = 0; vi < vars.length; vi++) {
+          var v = vars[vi];
+          if (v && v.moves && v.moves.length &&
+              normalizeSAN(v.moves[0]) === norm) {
+            return v;
+          }
         }
       }
       return null;
@@ -219,24 +232,6 @@ export function renderLocalPuzzle(
         /* Not the main-line move — check whether it matches the first
            move of a variation attached to the current index. */
         var matchedVar = matchVariationFirstMove(move.san);
-        if (matchedVar) {
-          /* Accept the variation move. Remember the pre-move state so
-             the refresh button can bring the solver back to the main
-             line, lock further input, and show the variation's
-             first-move comment if any. */
-          state.savedForVariation = {
-            fen: previousFen,
-            index: state.index,
-          };
-          state.locked = true;
-          board.position(state.game.fen(), false);
-          var varComment = matchedVar.comments && matchedVar.comments[0];
-          if (captionEl) {
-            captionEl.innerHTML = varComment ? formatComment(varComment) : "";
-          }
-          showRefreshButton();
-          return true;
-        }
 
         /* Wrong move — undo and shake. */
         state.game.undo();
@@ -244,12 +239,24 @@ export function renderLocalPuzzle(
         boardDiv.classList.remove("jc-shake");
         void boardDiv.offsetWidth;
         boardDiv.classList.add("jc-shake");
+
+        /* If a variation matched, collect all its comments and display
+           them in the caption so the solver sees the instructive line
+           even though the move is rejected. */
+        if (matchedVar && captionEl) {
+          var allComments = (matchedVar.comments || []).filter(Boolean);
+          if (allComments.length) {
+            captionEl.innerHTML = formatComment(allComments.join(" "));
+          }
+        }
+
         return "snapback";
       }
 
       state.index++;
       board.position(state.game.fen(), false);
       setCaptionForMoveIndex(state.index - 1);
+      requestAnimationFrame(function () { showBadgeForMove(state.index - 1); });
       dispatchMoveEvent(state.index);
 
       boardDiv.classList.remove("jc-fire-once");
@@ -288,6 +295,7 @@ export function renderLocalPuzzle(
         state.index = 1;
         state.solverSide = state.game.turn();
         setCaptionForMoveIndex(0);
+        setTimeout(function () { showBadgeForMove(0); }, ANIM_MS);
       }
     }
   }
@@ -319,6 +327,7 @@ export function jcPuzzleCreate(el, cfg) {
     {
       comments: parsed.comments || [],
       variations: parsed.variations || [],
+      glyphs: parsed.glyphs || [],
       captionEl: cfg.captionEl || null,
       initialCaption: cfg.initialCaption || "",
     },
