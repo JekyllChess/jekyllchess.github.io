@@ -32,13 +32,18 @@ Chess puzzles are handled by the `<puzzle>` element.
 
 <puzzle src="/assets/pgn/sample-puzzle-pack.pgn"></puzzle>
 
-## 🧰 Elements
-
-{% for post in site.posts %}
-📌 [{{ post.title }}]({{ post.url }})
-{% endfor %}
-
-# [{{ site.title }}]({{ site.url }})
+<div class="post-nav">
+  <div>
+    {% if page.previous.url %}
+    <a href="{{page.previous.url}}">&laquo;&nbsp;{{page.previous.title}}</a>
+    {% endif %}
+  </div>
+  <div class="post-nav-next">
+    {% if page.next.url %}
+    <a href="{{page.next.url}}">{{page.next.title}}&nbsp;&raquo;</a>
+    {% endif %}
+  </div>
+</div>
 
 <style>
 h1 a {color:black;text-decoration:none;}
