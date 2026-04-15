@@ -34,7 +34,7 @@ Chess puzzles are handled by the `<puzzle>` element.
 
 ## Other Elements
 
-{% if page.previous.url %}[{{page.previous.title}}&nbsp;&raquo;]({{page.previous.url}}){% endif %}{% if page.next.url %}[&laquo;&nbsp;{{page.next.title}}]({{page.next.url}}){% endif %}
+{% if page.next.url %}[&laquo;&nbsp;{{page.next.title}}]({{page.next.url}}){% endif %} | {% if page.previous.url %}[{{page.previous.title}}&nbsp;&raquo;]({{page.previous.url}}){% endif %} 
 
 <style>
 h1 a {color:black;text-decoration:none;}
