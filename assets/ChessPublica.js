@@ -16,7 +16,7 @@ import { toFigurine, parseGame } from "./helpers.js";
 import { createBoard } from "./board.js";
 import { buildMoveTree, parseHeaders, renderFullPGN } from "./pgn.js";
 import { renderLocalPuzzle } from "./puzzle.js";
-import { initAll } from "./init.js";
+import { initAll, initFigurineProse } from "./init.js";
 
 /* ================================================================
    AUTO-INIT ON DOM READY
@@ -59,4 +59,5 @@ window.JekyllChess = {
   parseGame: parseGame,
   renderLocalPuzzle: renderLocalPuzzle,
   initAll: initAll,
+  initFigurineProse: initFigurineProse,
 };
