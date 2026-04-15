@@ -1,6 +1,6 @@
 /* ChessPublica — Element Initializers */
 
-import { PIECE_THEME, fetchText, splitIntoPgnGames } from "./helpers.js";
+import { PIECE_THEME, fetchText, splitIntoPgnGames, toFigurine } from "./helpers.js";
 import { renderFullPGN } from "./pgn.js";
 import { jcPuzzleCreate } from "./puzzle.js";
 
@@ -309,8 +309,45 @@ export function initPuzzleElements() {
   });
 }
 
+/* ── Figurine notation in prose ───────────────────────────────────────── */
+
+/* Matches SAN move tokens that contain a piece letter and therefore benefit
+   from figurine conversion.  Pawn moves (e4, exd5 …) are left untouched.
+   The trailing \b intentionally excludes "+" and "#" from the match so that
+   the suffix stays in place while only the piece letter is converted. */
+var _RE_PROSE_SAN = /\b(O-O-O|O-O|[KQRBN][a-h]?[1-8]?x?[a-h][1-8](?:=[KQRBN])?)\b/g;
+
+function _figurinifyNode(node) {
+  if (node.nodeType === 3 /* TEXT_NODE */) {
+    var orig = node.textContent;
+    _RE_PROSE_SAN.lastIndex = 0;
+    var updated = orig.replace(_RE_PROSE_SAN, toFigurine);
+    if (updated !== orig) node.textContent = updated;
+  } else if (node.nodeType === 1 /* ELEMENT_NODE */) {
+    var tag = node.tagName;
+    /* Leave code blocks and other non-prose elements verbatim. */
+    if (tag === "CODE" || tag === "PRE" || tag === "SCRIPT" || tag === "STYLE") return;
+    for (var i = 0; i < node.childNodes.length; i++) {
+      _figurinifyNode(node.childNodes[i]);
+    }
+  }
+}
+
+/**
+ * Convert SAN piece letters to Unicode figurines in every <p> and heading
+ * on the page, skipping elements that live inside chess element containers
+ * (those are already handled by the chess engine).
+ */
+export function initFigurineProse() {
+  document.querySelectorAll("p, h1, h2, h3, h4, h5, h6").forEach(function (el) {
+    if (el.closest("pgn, puzzle, pgn-player, fen, .pgn-container, .jc-puzzle, .jc-board-wrapper")) return;
+    _figurinifyNode(el);
+  });
+}
+
 export function initAll() {
   initPgnElements();
   initFenElements();
   initPuzzleElements();
+  initFigurineProse();
 }
