@@ -5,7 +5,7 @@
  *   1. Puzzle Engine     — renderLocalPuzzle() (interactive drag-and-drop)
  */
 
-import { PIECE_THEME, normalizeSAN, parseGame, formatComment, getDestinationSquare, renderMoveQualityBadge, clearMoveQualityBadge } from "./helpers.js";
+import { PIECE_THEME, normalizeSAN, parseGame, formatComment, formatCommentClickable, getDestinationSquare, renderMoveQualityBadge, clearMoveQualityBadge } from "./helpers.js";
 import { renderAnnotations, clearAnnotations } from "./board.js";
 
 /* ================================================================
@@ -169,6 +169,12 @@ export function renderLocalPuzzle(
       solverSide: game.turn(),
       locked: false,
       solved: false,
+      /* When a side-line variation is triggered, the engine switches
+         into free-play mode: drag-and-drop accepts any legal move for
+         either side, and inline SAN tokens in the comment become
+         clickable to replay the instructive line. */
+      freePlay: false,
+      variationStartFen: null,
     };
 
     resetCaption();
@@ -189,6 +195,48 @@ export function renderLocalPuzzle(
           bubbles: true,
         }),
       );
+    }
+
+    /* Attach click handlers to every .jc-inline-move span in the
+       caption.  Clicking a span replays the variation from its start
+       position up to and including that move, so the reader can walk
+       through the instructive line one move at a time without having
+       to drag pieces.  The active span is marked with .active for
+       visual feedback. */
+    function wireInlineMoveClicks() {
+      if (!captionTextEl) return;
+      var spans = captionTextEl.querySelectorAll(".jc-inline-move[data-san]");
+      if (!spans.length) return;
+
+      var sequence = [];
+      for (var s = 0; s < spans.length; s++) sequence.push(spans[s].dataset.san);
+
+      spans.forEach(function (span, idx) {
+        span.addEventListener("click", function () {
+          if (!state.variationStartFen) return;
+          state.game.load(state.variationStartFen);
+          for (var j = 0; j <= idx; j++) {
+            var mv = state.game.move(sequence[j], { sloppy: true });
+            if (!mv) {
+              console.error("Illegal inline variation move:", sequence[j]);
+              state.game.load(state.variationStartFen);
+              board.position(state.game.fen(), true);
+              return;
+            }
+          }
+          board.position(state.game.fen(), true);
+          clearAnnotations(_boardDivRef, _boardWrapRef);
+          clearMoveQualityBadge(_boardDivRef);
+          clearActiveInlineMove();
+          span.classList.add("active");
+        });
+      });
+    }
+
+    function clearActiveInlineMove() {
+      if (!captionTextEl) return;
+      var active = captionTextEl.querySelectorAll(".jc-inline-move.active");
+      for (var a = 0; a < active.length; a++) active[a].classList.remove("active");
     }
 
     /* Replay the puzzle from scratch. Called when the user clicks
@@ -277,6 +325,19 @@ export function renderLocalPuzzle(
     }
 
     function onDrop(from, to) {
+      /* In free-play mode (entered after a side-line variation is
+         triggered) accept any legal move for either side. The board
+         becomes an exploration sandbox until the user hits replay. */
+      if (state.freePlay && !state.solved) {
+        var fpMove = state.game.move({ from: from, to: to, promotion: "q" });
+        if (!fpMove) return "snapback";
+        board.position(state.game.fen(), false);
+        clearAnnotations(_boardDivRef, _boardWrapRef);
+        clearMoveQualityBadge(_boardDivRef);
+        clearActiveInlineMove();
+        return true;
+      }
+
       if (state.locked || state.solved || state.game.turn() !== state.solverSide)
         return "snapback";
 
@@ -291,25 +352,44 @@ export function renderLocalPuzzle(
         var matchedVar = matchVariationFirstMove(move.san);
 
         if (matchedVar) {
-          /* Accept the variation move: leave it on the board, lock
-             further input, display the variation's comments under the
-             board, and show the replay button (the variation is a
-             dead end — the user must reset to continue). */
+          /* Accept the variation move and enter free-play mode: leave
+             the move on the board, shake to signal "wrong solution",
+             render the variation's quality badge (e.g. the "?" on
+             Re1?), show the comment with clickable SAN tokens, and
+             reveal the replay button. */
           board.position(state.game.fen(), false);
-          state.locked = true;
+
+          /* Shake — the user didn't play the puzzle's solution. */
+          boardDiv.classList.remove("jc-shake");
+          void boardDiv.offsetWidth;
+          boardDiv.classList.add("jc-shake");
+
+          state.freePlay = true;
+          state.locked = false;
+          state.variationStartFen = state.game.fen();
 
           var allComments = (matchedVar.comments || []).filter(Boolean);
-          if (allComments.length) {
-            setCaptionHTML(formatComment(allComments.join(" ")));
-          } else {
-            setCaptionHTML("");
+          if (captionTextEl) {
+            captionTextEl.innerHTML = allComments.length
+              ? formatCommentClickable(allComments.join(" "))
+              : "";
+            wireInlineMoveClicks();
           }
 
-          /* Render any [%csl …] / [%cal …] annotations attached to the
-             variation's first move, or clear stale arrows otherwise. */
-          var varArrows = (matchedVar.arrows && matchedVar.arrows[0]) || null;
-          var varMarks = (matchedVar.squareMarks && matchedVar.squareMarks[0]) || null;
+          /* Render the variation first-move quality glyph ("?", "??",
+             "!?", etc.) on its destination square. */
           requestAnimationFrame(function () {
+            var varGlyph = (matchedVar.glyphs && matchedVar.glyphs[0]) || null;
+            if (varGlyph) {
+              renderMoveQualityBadge(_boardDivRef, move.to, varGlyph);
+            } else {
+              clearMoveQualityBadge(_boardDivRef);
+            }
+
+            /* Render any [%csl …] / [%cal …] annotations attached to
+               the variation's first move, or clear stale arrows. */
+            var varArrows = (matchedVar.arrows && matchedVar.arrows[0]) || null;
+            var varMarks = (matchedVar.squareMarks && matchedVar.squareMarks[0]) || null;
             if ((varArrows && varArrows.length) || (varMarks && varMarks.length)) {
               renderAnnotations(
                 _boardDivRef,

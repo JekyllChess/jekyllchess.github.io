@@ -133,9 +133,16 @@ export function stripFigurines(s) {
    are stripped. */
 var ALLOWED_COMMENT_TAGS = {
   br: [], b: [], strong: [], i: [], em: [], u: [], s: [], del: [], ins: [],
-  code: [], kbd: [], mark: [], small: [], sub: [], sup: [], span: [],
+  code: [], kbd: [], mark: [], small: [], sub: [], sup: [],
+  span: ["class", "data-san"],
   a: ["href", "title"]
 };
+
+/* Classes that may appear on <span> in sanitized comments.  Arbitrary
+   class names are stripped to prevent style/layout injection via the
+   sanitizer, but our own inline-move spans need to keep their class
+   so the puzzle engine can style/target them. */
+var ALLOWED_SPAN_CLASSES = /^jc-inline-move$/;
 
 /* Only http(s), mailto, fragment and same-origin paths are allowed as
    link hrefs — blocks javascript: and data: URLs. */
@@ -240,6 +247,11 @@ function _sanitizeCommentDOM(root) {
             child.removeAttribute("href");
           }
         }
+        if (name === "class" && tag === "span") {
+          if (!ALLOWED_SPAN_CLASSES.test(attrs[a].value)) {
+            child.removeAttribute("class");
+          }
+        }
       }
       _sanitizeCommentDOM(child);
     } else {
@@ -266,6 +278,67 @@ export function formatComment(rawText) {
   var html = _applyInlineMarkdown(String(rawText));
   var tpl = document.createElement("template");
   tpl.innerHTML = html;
+  _sanitizeCommentDOM(tpl.content);
+  return tpl.innerHTML;
+}
+
+/* Wrap SAN tokens ("Re1", "e4", "Bxe5+", "O-O") in prose text with a
+   clickable <span class="jc-inline-move" data-san="…">…</span>.  The
+   first alternative (<[^>]*>) consumes HTML tags and attribute values
+   so SAN-shaped substrings inside those are not touched, mirroring
+   the tag-aware technique used by _applyFigurineNotation.  Must run
+   BEFORE figurine conversion so the data-san attribute keeps the
+   letter-based SAN that chess.js understands. */
+function _wrapInlineSanMoves(text) {
+  return text.replace(
+    /<[^>]*>|(\b(?:O-O-O|O-O|[KQRBN][a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?|[a-h](?:x[a-h])?[1-8](?:=[QRBN])?[+#]?)\b)/g,
+    function (m, san, offset, str) {
+      if (!san) return m;
+      if (offset > 0 && /[a-zA-Z0-9]/.test(str[offset - 1])) return m;
+      return '<span class="jc-inline-move" data-san="' + san + '">' + san + '</span>';
+    },
+  );
+}
+
+/**
+ * Like formatComment() but additionally wraps SAN move tokens inside
+ * the comment text in clickable spans so the caller can attach click
+ * handlers.  Used by the puzzle engine when a side-line variation is
+ * triggered — the variation's instructive move list is rendered as
+ * individually clickable spans that replay the line on the board.
+ */
+export function formatCommentClickable(rawText) {
+  if (rawText == null) return "";
+
+  /* Re-implement the _applyInlineMarkdown pipeline so the SAN wrap
+     step can slot in between the markdown transforms and the figurine
+     conversion.  Keeping formatComment() untouched avoids introducing
+     clickable spans into places that don't want them. */
+  var codes = [];
+  var text = String(rawText);
+
+  text = text.replace(/`([^`\n]+)`/g, function (_m, code) {
+    var idx = codes.push("<code>" + code + "</code>") - 1;
+    return "\u0000CODE" + idx + "\u0000";
+  });
+
+  text = text.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/__([^_\n]+)__/g, "<strong>$1</strong>");
+  text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  text = text.replace(/(^|[^_\w])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>");
+  text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (_m, label, url) {
+    return '<a href="' + url + '">' + label + "</a>";
+  });
+
+  text = _wrapInlineSanMoves(text);
+  text = _applyFigurineNotation(text);
+
+  text = text.replace(/\u0000CODE(\d+)\u0000/g, function (_m, i) {
+    return codes[+i];
+  });
+
+  var tpl = document.createElement("template");
+  tpl.innerHTML = text;
   _sanitizeCommentDOM(tpl.content);
   return tpl.innerHTML;
 }
