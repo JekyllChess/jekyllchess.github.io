@@ -243,11 +243,7 @@ All required external libraries [Chess.js](https://github.com/jhlywa/chess.js/),
 
 ---
 
-<style>
-h1 a {color:black;text-decoration:none;}
-h1 a:active {color:black;text-decoration:none;cursor:pointer;}
-h1 a:hover {color:black;text-decoration:none;cursor:pointer;}
-</style>
+<style>h1 a, h1 a:active, h1 a:hover {color:black;text-decoration:none;cursor:pointer;}</style>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
