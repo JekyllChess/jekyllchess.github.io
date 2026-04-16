@@ -8,7 +8,7 @@
  *   4. Static Renderer   — renderFullPGN(), renderHeaders(), renderMoveTree()
  */
 
-import { NBSP, toFigurine, formatComment } from "./helpers.js";
+import { NBSP, toFigurine, formatComment, NAG_TO_GLYPH } from "./helpers.js";
 import { createBoard } from "./board.js";
 
 /* ================================================================
@@ -395,12 +395,13 @@ export function renderMoveTree(rootNode, container, headers) {
   container.appendChild(movesDiv);
 }
 
-var NAG_MAP = {
-  $1: "!", $2: "?", $3: "!!", $4: "??", $5: "!?", $6: "?!",
+/* Extend the shared NAG table with the richer codes only the static
+   move-list renderer uses ($7 "forced", $10 "equal", $13-$19 evaluation
+   symbols). */
+var NAG_MAP = Object.assign({}, NAG_TO_GLYPH, {
   $7: "□", $10: "=", $13: "∞",
   $14: "⩲", $15: "⩱", $16: "±", $17: "∓", $18: "+−", $19: "−+",
-  "!!": "!!", "??": "??", "!?": "!?", "?!": "?!", "!": "!", "?": "?",
-};
+});
 
 function renderNAG(nags) {
   if (!nags || !nags.length) return "";

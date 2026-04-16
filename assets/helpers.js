@@ -26,9 +26,28 @@ var GLYPH_META = {
   "??": { label: "??", color: "#9c0202" },
 };
 
-var NAG_TO_GLYPH = {
-  "$1": "!", "$2": "?", "$3": "!!", "$4": "??", "$5": "!?", "$6": "?!",
+/* Standard move-quality NAGs.  Covers the six inline suffixes ("!", "??",
+   etc. as identity mappings so callers can look them up directly) plus the
+   matching $1-$6 NAG codes.  Extended NAGs ($7, $10, $13-$19) live in
+   pgn.js where they're only used for static move-list rendering. */
+export var NAG_TO_GLYPH = {
+  "!!": "!!", "??": "??", "!?": "!?", "?!": "?!", "!": "!", "?": "?",
+  "$1": "!",  "$2": "?",  "$3": "!!", "$4": "??", "$5": "!?", "$6": "?!",
 };
+
+/**
+ * Scan a list of NAG tokens and return the first one that maps to a
+ * move-quality glyph. Used to pick a badge when a move carries several
+ * NAGs. Returns null when no known glyph is present.
+ */
+export function nagsToGlyph(nags) {
+  if (!nags) return null;
+  for (var i = 0; i < nags.length; i++) {
+    var g = NAG_TO_GLYPH[nags[i]];
+    if (g) return g;
+  }
+  return null;
+}
 
 /**
  * Derive the destination square from a SAN string.
