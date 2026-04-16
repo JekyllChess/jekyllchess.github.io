@@ -1,6 +1,6 @@
 /* ChessPublica <pgn-player> element */
 
-import { parseCAL, parseCSL, NAG_TO_GLYPH } from "./helpers.js";
+import { parseCAL, parseCSL, NAG_TO_GLYPH, stripCommentAnnotations } from "./helpers.js";
 import {
   renderAnnotations as applyBoardAnnotations,
   clearAnnotations,
@@ -187,11 +187,7 @@ function loadPGN(pgn) {
       const cal = calMatches.map(m => m[1]);
       const csl = cslMatches.map(m => m[1]);
 
-      const cleaned = t.value
-        .replace(/\[%cal\s+[^\]]+\]/g, "")
-        .replace(/\[%csl\s+[^\]]+\]/g, "")
-        .replace(/\[%[^\]]+\]/g, "")
-        .trim();
+      const cleaned = stripCommentAnnotations(t.value);
 
       if (variationDepth > 0 && varStack.length > 0) {
         const currentVar = varStack[varStack.length - 1].varObj;
