@@ -512,10 +512,11 @@ class VideoMoveList {
   }
 
   /**
-   * @param {string[]} moves  – SAN move array
-   * @param {string[]} glyphs – parallel glyph array from pgn-parser
+   * @param {string[]} moves   – SAN move array
+   * @param {string[]} glyphs  – parallel glyph array from pgn-parser
+   * @param {Object}   headers – PGN headers (for appending the Result)
    */
-  build(moves, glyphs = []) {
+  build(moves, glyphs = [], headers = {}) {
 
     if (!this.el) return;
 
@@ -550,6 +551,17 @@ class VideoMoveList {
       }
 
       this.el.appendChild(pairSpan);
+    }
+
+    /* Append the game result inline at the end of the move list, matching
+       the <pgn> renderer. Skip "*" (ongoing) and missing values. */
+    const rawResult = headers && headers.Result;
+    if (rawResult && rawResult !== "*") {
+      const label = rawResult === "1/2-1/2" ? "½-½" : rawResult;
+      const resultSpan = document.createElement("span");
+      resultSpan.className   = "move pgn-result";
+      resultSpan.textContent = label;
+      this.el.appendChild(resultSpan);
     }
 
   }
@@ -1019,7 +1031,7 @@ class VideoEngine {
     this.showPlayBtn();
 
     if (this.title)    this.title.build(this.state.headers);
-    if (this.moveList) this.moveList.build(this.state.moves, this.state.glyphs);
+    if (this.moveList) this.moveList.build(this.state.moves, this.state.glyphs, this.state.headers);
   }
 
 

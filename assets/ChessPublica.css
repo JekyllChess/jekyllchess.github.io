@@ -190,6 +190,11 @@
   user-select: none;
 }
 
+.move.pgn-result {
+  margin-left: 0.4em;
+  font-weight: bold;
+}
+
 .move .white-half {
   border-radius: 2px;
   margin-right: 0.3em;
