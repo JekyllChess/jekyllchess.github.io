@@ -8,7 +8,13 @@
  *   4. Static Renderer   — renderFullPGN(), renderHeaders(), renderMoveTree()
  */
 
-import { NBSP, toFigurine, formatComment, NAG_TO_GLYPH } from "./helpers.js";
+import {
+  NBSP,
+  toFigurine,
+  formatComment,
+  NAG_TO_GLYPH,
+  stripCommentAnnotations,
+} from "./helpers.js";
 import { createBoard } from "./board.js";
 
 /* ================================================================
@@ -209,35 +215,31 @@ function parseSequence(tokens, chess, parentNode, originalPgn) {
 
 var RE_CSL = /\[%csl\s+([^\]]+)\]/g;
 var RE_CAL = /\[%cal\s+([^\]]+)\]/g;
-var RE_ANNOTATIONS = /\[%(?:eval|clk|emt|depth)\s+[^\]]+\]/g;
-var RE_GENERIC_BRACKET = /\[%.*?\]/g;
+
+/* Inline PGN variations embedded inside a brace comment, identified by
+   starting with a move number: "(1. Re1? e4 2. Ke7)".
+   Plain-prose parentheticals like "(Grob's Attack)" do NOT start with
+   digits and are left untouched. */
+var RE_INLINE_PGN_VAR = /\(\s*\d+\.+[^()]*\)/g;
 
 function processComment(commentText, lastMoveNode, current, parentNode, chess, originalPgn) {
-  var inlineMoveText = "";
 
-  var variationMatch = commentText.match(/\(([^()]+)\)/);
-  if (variationMatch) {
-    var variationText = variationMatch[1].trim();
-    var hasDiagram = variationText.includes("[D]");
-
-    inlineMoveText = variationText
-      .replace(/\{[^}]*\}/g, "")
-      .replace(RE_GENERIC_BRACKET, "")
-      .replace(/\[D\]/g, "")
-      .trim();
+  /* ── Parse any inline PGN variations found in the comment ── */
+  RE_INLINE_PGN_VAR.lastIndex = 0;
+  var varMatch;
+  while ((varMatch = RE_INLINE_PGN_VAR.exec(commentText))) {
+    /* Strip the surrounding parens to get the bare move text. */
+    var inner = varMatch[0].slice(1, -1).trim();
+    var hasDiagram = inner.includes("[D]");
 
     try {
-      var fakePGN = '[Event "?"]\n\n1. ' + variationText.replace(/\[D\]/g, "");
+      var fakePGN = '[Event "?"]\n\n' + inner.replace(/\[D\]/g, "");
       var variationTokens = parsePGN(fakePGN);
-
-      if (hasDiagram) {
-        variationTokens.push({ type: "comment", value: "[D]" });
-      }
+      if (hasDiagram) variationTokens.push({ type: "comment", value: "[D]" });
 
       var branchFen = determineBranchFen(variationTokens, current, parentNode);
       var snapshot = new Chess(branchFen);
       var variationRoot = { next: null, fen: branchFen };
-
       parseSequence(variationTokens, snapshot, variationRoot, originalPgn);
 
       if (current && variationRoot.next) {
@@ -248,7 +250,7 @@ function processComment(commentText, lastMoveNode, current, parentNode, chess, o
     }
   }
 
-  /* Square marks */
+  /* ── Extract square marks and arrows ── */
   var cslM;
   var hadSquareMarks = false;
   RE_CSL.lastIndex = 0;
@@ -257,7 +259,6 @@ function processComment(commentText, lastMoveNode, current, parentNode, chess, o
     hadSquareMarks = true;
   }
 
-  /* Arrows */
   var calM;
   var hadArrows = false;
   RE_CAL.lastIndex = 0;
@@ -268,26 +269,18 @@ function processComment(commentText, lastMoveNode, current, parentNode, chess, o
 
   var hasDiagramMarker = /\[D\]/.test(commentText);
 
-  /* Clean comment text */
-  var cleaned = commentText
-    .replace(/\([^)]*\)/g, "")
-    .replace(RE_CSL, "")
-    .replace(RE_CAL, "")
-    .replace(RE_ANNOTATIONS, "")
-    .replace(RE_GENERIC_BRACKET, "")
-    .replace(/\[D\]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  /* ── Clean comment text (shared with pgn-player.js) ──
+     stripCommentAnnotations() removes [%…] tags, [D] markers, and
+     move-number-led parentheticals.  Plain prose parentheticals like
+     "(Grob's Attack)" are preserved. */
+  var cleaned = stripCommentAnnotations(commentText);
 
-  var finalComment = (cleaned + " " + inlineMoveText).trim();
-
-  /* Push parts in PGN order: diagram first (if this comment had one),
-     then the textual comment. */
+  /* Push parts in PGN order: diagram first, then text. */
   if (hasDiagramMarker || hadArrows || hadSquareMarks) {
     lastMoveNode.parts.push({ type: "diagram" });
   }
-  if (finalComment.length) {
-    lastMoveNode.parts.push({ type: "text", value: finalComment });
+  if (cleaned.length) {
+    lastMoveNode.parts.push({ type: "text", value: cleaned });
   }
 }
 

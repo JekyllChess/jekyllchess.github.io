@@ -429,6 +429,26 @@ var _RE_CSL = /\[%csl\s+([^\]]+)\]/g;
 var _RE_CAL = /\[%cal\s+([^\]]+)\]/g;
 var _RE_BRACKET_ANNOT = /\[%[^\]]*\]/g;
 
+/* Parentheticals that start with a move number are inline PGN variations.
+   Plain prose like "(Grob's Attack)" does NOT start with digits+dots. */
+var _RE_PGN_PAREN = /\(\s*\d+\.+[^()]*\)/g;
+
+/**
+ * Strip [%…] annotation tags, [D] diagram markers, and move-number-led
+ * parentheticals (inline PGN variations) from a raw comment string.
+ * Plain-text parentheticals like "(Grob's Attack)" are preserved.
+ * Shared by pgn.js and pgn-player.js so both renderers produce identical
+ * comment text before passing it to formatComment().
+ */
+export function stripCommentAnnotations(raw) {
+  return String(raw || "")
+    .replace(_RE_PGN_PAREN, "")
+    .replace(_RE_BRACKET_ANNOT, "")
+    .replace(/\[D\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function parseCSL(data) {
   return String(data || "").split(",").map(function (entry) {
     entry = entry.trim();
