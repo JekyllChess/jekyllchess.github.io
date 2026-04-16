@@ -1530,6 +1530,11 @@ class PgnPlayerElement extends HTMLElement {
 
     /* ── Initialise engine ── */
 
+    /* Defer so CSS is computed before chessboard.js reads offsetWidth.
+       Without this, synchronous (IIFE) bundles initialise the board
+       before styles are applied, causing incorrect board sizing. */
+    requestAnimationFrame(() => {
+
     const container = wrapper.querySelector(".player-container");
     const engine    = new VideoEngine(container);
 
@@ -1576,6 +1581,8 @@ class PgnPlayerElement extends HTMLElement {
     } else {
       showError("<pgn-player> is empty (no inline content and no src attribute).");
     }
+
+    }); // end requestAnimationFrame
   }
 }
 
