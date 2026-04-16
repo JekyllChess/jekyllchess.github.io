@@ -1,6 +1,6 @@
 /* ChessPublica <pgn-player> element */
 
-import { parseCAL, parseCSL } from "./helpers.js";
+import { parseCAL, parseCSL, NAG_TO_GLYPH } from "./helpers.js";
 import {
   renderAnnotations as applyBoardAnnotations,
   clearAnnotations,
@@ -32,29 +32,6 @@ function loadPGN(pgn) {
 
   const headerBodySplit = pgn.indexOf("\n\n");
   const moveText = headerBodySplit !== -1 ? pgn.slice(headerBodySplit) : pgn;
-
-  /* ---------------------------
-     NAG → GLYPH MAP
-     Numeric Annotation Glyphs ($N) and inline suffixes (!?? etc.)
-     both map to the same six symbols.
-  --------------------------- */
-
-  const NAG_MAP = {
-    // Inline suffixes
-    "!!"  : "!!",
-    "??"  : "??",
-    "!?"  : "!?",
-    "?!"  : "?!",
-    "!"   : "!",
-    "?"   : "?",
-    // Standard NAG codes
-    "$1"  : "!",
-    "$2"  : "?",
-    "$3"  : "!!",
-    "$4"  : "??",
-    "$5"  : "!?",
-    "$6"  : "?!"
-  };
 
   /* ---------------------------
      TOKENIZER
@@ -134,7 +111,7 @@ function loadPGN(pgn) {
 
     for (const s of suffixes) {
       if (token.endsWith(s)) {
-        return { san: token.slice(0, -s.length), glyph: NAG_MAP[s] };
+        return { san: token.slice(0, -s.length), glyph: NAG_TO_GLYPH[s] };
       }
     }
 
@@ -243,10 +220,10 @@ function loadPGN(pgn) {
 
       // $N NAG — applies to the most recent main-line move
       if (isNAG(val)) {
-        if (variationDepth === 0 && moveIndex >= 0 && NAG_MAP[val]) {
+        if (variationDepth === 0 && moveIndex >= 0 && NAG_TO_GLYPH[val]) {
           // Only store if we don't already have a suffix glyph
           if (!glyphs[moveIndex]) {
-            glyphs[moveIndex] = NAG_MAP[val];
+            glyphs[moveIndex] = NAG_TO_GLYPH[val];
           }
         }
         continue;
