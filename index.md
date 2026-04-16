@@ -242,10 +242,7 @@ Required external libraries [jQuery](https://jquery.com/), [Chess.js](https://gi
 Setup requires only two lines of code:
 
 ```html
-<!-- ChessPublica JS (all-in-one JavaScript code, includes <fen>, <puzzle>, <pgn>, and <pgn-player> elements.) -->
 <script src="ChessPublica.js"></script>
-
-<!-- ChessPublica CSS (required) -->
 <link rel="stylesheet" href="ChessPublica.css" />
 ```
 
