@@ -395,19 +395,11 @@ export function renderMoveTree(rootNode, container, headers) {
   container.appendChild(movesDiv);
 }
 
-/* Extend the shared NAG table with the richer codes only the static
-   move-list renderer uses ($7 "forced", $10 "equal", $13-$19 evaluation
-   symbols). */
-var NAG_MAP = Object.assign({}, NAG_TO_GLYPH, {
-  $7: "□", $10: "=", $13: "∞",
-  $14: "⩲", $15: "⩱", $16: "±", $17: "∓", $18: "+−", $19: "−+",
-});
-
 function renderNAG(nags) {
   if (!nags || !nags.length) return "";
   var out = "";
   for (var i = 0; i < nags.length; i++) {
-    out += NAG_MAP[nags[i]] || nags[i];
+    out += NAG_TO_GLYPH[nags[i]] || nags[i];
   }
   return out;
 }

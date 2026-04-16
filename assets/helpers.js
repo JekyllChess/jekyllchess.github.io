@@ -26,13 +26,14 @@ var GLYPH_META = {
   "??": { label: "??", color: "#9c0202" },
 };
 
-/* Standard move-quality NAGs.  Covers the six inline suffixes ("!", "??",
-   etc. as identity mappings so callers can look them up directly) plus the
-   matching $1-$6 NAG codes.  Extended NAGs ($7, $10, $13-$19) live in
-   pgn.js where they're only used for static move-list rendering. */
+/* Move-quality NAGs: six inline suffixes (identity mappings) plus the
+   matching $1-$6 codes and the extended evaluation/positional NAG codes
+   used by static move-list renderers. */
 export var NAG_TO_GLYPH = {
   "!!": "!!", "??": "??", "!?": "!?", "?!": "?!", "!": "!", "?": "?",
   "$1": "!",  "$2": "?",  "$3": "!!", "$4": "??", "$5": "!?", "$6": "?!",
+  "$7": "□",  "$10": "=", "$13": "∞",
+  "$14": "⩲", "$15": "⩱", "$16": "±", "$17": "∓", "$18": "+−", "$19": "−+",
 };
 
 /**
