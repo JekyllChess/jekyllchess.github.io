@@ -226,6 +226,17 @@ Renders a video-style chess game player with play/pause controls, an eval bar, c
 
 ## 5. Setup & Dependencies
 
+### Required External Libraries
+
+Required external libraries [Chess.js](https://github.com/jhlywa/chess.js/), [Chessboard.js](https://chessboardjs.com/), [jQuery](https://jquery.com/), must be loaded first.
+
+```html
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+```
+
 ### Setup
 
 Setup requires only two lines of code:
@@ -237,9 +248,6 @@ Setup requires only two lines of code:
 <!-- ChessPublica CSS (required) -->
 <link rel="stylesheet" href="ChessPublica.css" />
 ```
-### Required External Libraries
-
-All required external libraries [Chess.js](https://github.com/jhlywa/chess.js/), [Chessboard.js](https://chessboardjs.com/), [jQuery](https://jquery.com/), and [Google Material Icons](https://fonts.google.com/icons) are automatically loaded.
 
 ---
 
