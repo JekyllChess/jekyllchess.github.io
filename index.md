@@ -226,25 +226,18 @@ Renders a video-style chess game player with play/pause controls, an eval bar, c
 
 ## 5. Setup & Dependencies
 
-### Required External Libraries
-
-Required external libraries [jQuery](https://jquery.com/), [Chess.js](https://github.com/jhlywa/chess.js/), and [Chessboard.js](https://chessboardjs.com/) must be loaded first.
-
-```html
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
-```
-
 ### Setup
 
 Setup requires only two lines of code:
 
 ```html
-<script src="ChessPublica.js"></script>
-<link rel="stylesheet" href="ChessPublica.css" />
+<script src="https://cdn.jsdelivr.net/gh/ChessPublica/ChessPublica.github.io@v1.0.0/dist/ChessPublica.all.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ChessPublica/ChessPublica.github.io@v1.0.0/dist/ChessPublica.all.min.css">
 ```
+
+### Required External Libraries
+
+Required external libraries [jQuery](https://jquery.com/), [Chess.js](https://github.com/jhlywa/chess.js/), and [Chessboard.js](https://chessboardjs.com/) are automatically loaded.
 
 ---
 
