@@ -329,10 +329,13 @@ function loadPGN(pgn) {
     // Build DOM
     this.titleEl.innerHTML = "";
 
-    // Emoji — sized via CSS to be ~2 lines tall
+    // Lucide "swords" icon — sized via CSS to be ~2 lines tall
     const emojiSpan = document.createElement("span");
-    emojiSpan.className   = "video-title-emoji";
-    emojiSpan.textContent = "⚔️";
+    emojiSpan.className = "video-title-emoji lucide-icon";
+    emojiSpan.style.setProperty(
+      "--icon",
+      "url(https://unpkg.com/lucide-static@latest/icons/swords.svg)",
+    );
     this.titleEl.appendChild(emojiSpan);
 
     // Text block (two lines)
@@ -727,8 +730,11 @@ class VideoComment {
       div.className = "comment-line";
 
       const icon = document.createElement("span");
-      icon.className   = "comment-icon";
-      icon.textContent = "💬";
+      icon.className = "comment-icon lucide-icon";
+      icon.style.setProperty(
+        "--icon",
+        "url(https://unpkg.com/lucide-static@latest/icons/message-square.svg)",
+      );
 
       /* Wrap body in a column div */
       const textBlock = document.createElement("div");
@@ -757,8 +763,11 @@ class VideoComment {
         block.className = "variation-block";
 
         const icon = document.createElement("span");
-        icon.className   = "variation-icon";
-        icon.textContent = "🔎";
+        icon.className = "variation-icon lucide-icon";
+        icon.style.setProperty(
+          "--icon",
+          "url(https://unpkg.com/lucide-static@latest/icons/search.svg)",
+        );
 
         const content = document.createElement("div");
         content.className = "variation-content";
@@ -834,14 +843,14 @@ class VideoComment {
       const btn = document.createElement("button");
       btn.className = "comment-play-btn";
       if (isGameOver) {
-        btn.innerHTML = '<img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/rotate-ccw.svg" alt="Replay">';
+        btn.innerHTML = '<span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/rotate-ccw.svg)" aria-label="Replay"></span>';
         btn.onclick   = () => {
           this.el.querySelectorAll(".var-move").forEach(s => s.classList.remove("active"));
           this.engine.goTo(0);
           this.engine.showPlayBtn();
         };
       } else {
-        btn.innerHTML = '<img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/play.svg" alt="Play">';
+        btn.innerHTML = '<span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/play.svg)" aria-label="Play"></span>';
         btn.onclick   = () => {
           this.el.querySelectorAll(".var-move").forEach(s => s.classList.remove("active"));
           this.engine.play();
@@ -1484,18 +1493,18 @@ class PgnPlayerElement extends HTMLElement {
 
       <div class="player-container">
         <div class="board-toolbar">
-          <button class="settings-toggle">
-            <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/settings.svg" alt="Settings">
+          <button class="settings-toggle" aria-label="Settings">
+            <span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/settings.svg)"></span>
           </button>
           <div class="settings-panel hidden">
-            <button class="settings-btn" data-action="download" title="Download PGN">
-              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/download.svg" alt="Download">
+            <button class="settings-btn" data-action="download" title="Download PGN" aria-label="Download PGN">
+              <span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/download.svg)"></span>
             </button>
-            <button class="settings-btn" data-action="flip" title="Flip board">
-              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/arrow-up-down.svg" alt="Flip">
+            <button class="settings-btn" data-action="flip" title="Flip board" aria-label="Flip board">
+              <span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/arrow-up-down.svg)"></span>
             </button>
-            <button class="settings-btn" data-action="speed" title="Playback speed">
-              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/gauge.svg" alt="Speed">
+            <button class="settings-btn" data-action="speed" title="Playback speed" aria-label="Playback speed">
+              <span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/gauge.svg)"></span>
               <span class="speed-label">1x</span>
             </button>
           </div>
@@ -1503,8 +1512,8 @@ class PgnPlayerElement extends HTMLElement {
 
         <div class="board-wrap">
           <div class="board"></div>
-          <div class="play">
-            <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/play.svg" alt="Play">
+          <div class="play" aria-label="Play">
+            <span class="lucide-icon" style="--icon:url(https://unpkg.com/lucide-static@latest/icons/play.svg)"></span>
           </div>
         </div>
 

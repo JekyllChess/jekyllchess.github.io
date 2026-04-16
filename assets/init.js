@@ -233,8 +233,11 @@ function renderPuzzleHeader(wrapper, raw, packInfo) {
     title.className = "video-title jc-puzzle-title";
 
     var emojiSpan = document.createElement("span");
-    emojiSpan.className = "video-title-emoji";
-    emojiSpan.textContent = "🧩";
+    emojiSpan.className = "video-title-emoji lucide-icon";
+    emojiSpan.style.setProperty(
+      "--icon",
+      "url(https://unpkg.com/lucide-static@latest/icons/puzzle.svg)",
+    );
     title.appendChild(emojiSpan);
 
     var textDiv = document.createElement("div");

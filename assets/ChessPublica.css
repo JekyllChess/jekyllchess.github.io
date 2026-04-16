@@ -87,8 +87,8 @@
 }
 
 .video-title-emoji {
-  font-size: 2rem;
-  line-height: 1;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
 }
 
@@ -192,7 +192,6 @@
 
 .move.pgn-result {
   margin-left: 0.4em;
-  font-weight: bold;
 }
 
 .move .white-half {
@@ -240,8 +239,8 @@
 
 .comment-icon,
 .variation-icon {
-  font-size: 2rem;
-  line-height: 1.5;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
 }
 
@@ -276,19 +275,20 @@
 
 .comment-play-btn:hover {background: rgba(0,0,0,0.45);}
 
-.comment-play-btn .lucide-icon {
-  width: 1.5rem;
-  height: 1.5rem;
+/* Lucide icons are rendered as CSS masks so the SVG silhouette is
+   painted in the element's currentColor. This avoids the filter:invert
+   hack and works against any background. Each caller sets the SVG URL
+   via the --icon custom property. */
+.lucide-icon {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) no-repeat center / contain;
+          mask: var(--icon) no-repeat center / contain;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
-/* Lucide SVGs ship as black strokes. Flip them to white wherever they
-   sit on a dark button background. */
-.comment-play-btn .lucide-icon,
-.play .lucide-icon,
-.settings-toggle .lucide-icon,
-.settings-btn .lucide-icon {
-  filter: brightness(0) invert(1);
-}
+.comment-play-btn .lucide-icon { width: 1.5rem; height: 1.5rem; }
 
 /* VARIATION BLOCK */
 
