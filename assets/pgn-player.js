@@ -834,14 +834,14 @@ class VideoComment {
       const btn = document.createElement("button");
       btn.className = "comment-play-btn";
       if (isGameOver) {
-        btn.innerHTML = '<span class="material-icons">replay</span>';
+        btn.innerHTML = '<img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/rotate-ccw.svg" alt="Replay">';
         btn.onclick   = () => {
           this.el.querySelectorAll(".var-move").forEach(s => s.classList.remove("active"));
           this.engine.goTo(0);
           this.engine.showPlayBtn();
         };
       } else {
-        btn.innerHTML = '<span class="material-icons">play_arrow</span>';
+        btn.innerHTML = '<img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/play.svg" alt="Play">';
         btn.onclick   = () => {
           this.el.querySelectorAll(".var-move").forEach(s => s.classList.remove("active"));
           this.engine.play();
@@ -1485,17 +1485,17 @@ class PgnPlayerElement extends HTMLElement {
       <div class="player-container">
         <div class="board-toolbar">
           <button class="settings-toggle">
-            <span class="material-icons">settings</span>
+            <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/settings.svg" alt="Settings">
           </button>
           <div class="settings-panel hidden">
             <button class="settings-btn" data-action="download" title="Download PGN">
-              <span class="material-icons">download</span>
+              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/download.svg" alt="Download">
             </button>
             <button class="settings-btn" data-action="flip" title="Flip board">
-              <span class="material-icons">swap_vert</span>
+              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/arrow-up-down.svg" alt="Flip">
             </button>
             <button class="settings-btn" data-action="speed" title="Playback speed">
-              <span class="material-icons">speed</span>
+              <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/gauge.svg" alt="Speed">
               <span class="speed-label">1x</span>
             </button>
           </div>
@@ -1504,7 +1504,7 @@ class PgnPlayerElement extends HTMLElement {
         <div class="board-wrap">
           <div class="board"></div>
           <div class="play">
-            <span class="material-icons">play_arrow</span>
+            <img class="lucide-icon" src="https://unpkg.com/lucide-static@latest/icons/play.svg" alt="Play">
           </div>
         </div>
 
