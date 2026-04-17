@@ -496,6 +496,12 @@ body {
     gap: 0.5rem;
 }
 
+.preview-container > .pgn-container {
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
 .board-wrapper {
     width: 100%;
     max-width: 400px;
