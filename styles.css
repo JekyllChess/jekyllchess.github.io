@@ -701,28 +701,22 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
 }
 
 .sandbox-host > .pgn-container,
 .sandbox-host > .jc-puzzle,
-.sandbox-host > .fen-container {
-    width: 100%;
-    max-width: 420px;
-    box-sizing: border-box;
-}
-
+.sandbox-host > .fen-container,
 .sandbox-host > pgn-player {
     width: 100%;
     max-width: 420px;
-    display: block;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.sandbox-empty {
-    color: var(--zinc-400);
-    font-style: italic;
-    font-size: 0.875rem;
-    padding: 2rem 0;
-    text-align: center;
+.sandbox-host > pgn-player {
+    display: block;
 }
 
 /* Footer */

@@ -272,17 +272,17 @@
                                 <h3>FEN Input</h3>
                                 <p>Enter a Forsyth-Edwards Notation string.</p>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body space-y-4">
                                 <textarea id="sandbox-fen-input" class="textarea" rows="5" placeholder='<fen>
 [FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 [Orientation "Black"]
 [Caption "Starting position"]
 </fen>'></textarea>
+                                <button id="update-fen-btn" class="button-full">Update Preview</button>
                             </div>
                         </div>
                         <div class="preview-panel">
                             <div id="sandbox-fen-board" class="sandbox-host"></div>
-                            <p id="sandbox-fen-label" class="preview-label">Live Preview</p>
                         </div>
                     </div>
                 </div>
@@ -303,12 +303,11 @@
                                     <label class="label">Solution Moves (space separated)</label>
                                     <input id="sandbox-puzzle-solution" type="text" class="input" value="a6">
                                 </div>
-                                <button id="update-puzzle-btn" class="button-full">Update Puzzle</button>
+                                <button id="update-puzzle-btn" class="button-full">Update Preview</button>
                             </div>
                         </div>
                         <div class="preview-panel">
                             <div id="sandbox-puzzle-container" class="sandbox-host"></div>
-                            <p class="preview-label">Live Preview</p>
                         </div>
                     </div>
                 </div>
@@ -320,13 +319,13 @@
                                 <h3>PGN Input</h3>
                                 <p>Enter Portable Game Notation.</p>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body space-y-4">
                                 <textarea id="sandbox-pgn-input" class="textarea" rows="8" placeholder="1. e4 e5..."></textarea>
+                                <button id="update-pgn-btn" class="button-full">Update Preview</button>
                             </div>
                         </div>
                         <div class="preview-panel">
                             <div id="sandbox-pgn-container" class="sandbox-host"></div>
-                            <p class="preview-label">Live Preview</p>
                         </div>
                     </div>
                 </div>
@@ -338,13 +337,13 @@
                                 <h3>PGN Input</h3>
                                 <p>Enter Portable Game Notation for the player.</p>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body space-y-4">
                                 <textarea id="sandbox-player-input" class="textarea" rows="8" placeholder="1. e4 e5..."></textarea>
+                                <button id="update-player-btn" class="button-full">Update Preview</button>
                             </div>
                         </div>
                         <div class="preview-panel">
                             <div id="sandbox-player-container" class="sandbox-host"></div>
-                            <p class="preview-label">Live Preview</p>
                         </div>
                     </div>
                 </div>

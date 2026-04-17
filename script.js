@@ -1,14 +1,6 @@
-/* ChessPublica landing page — tab navigation + live sandbox renderers. */
+/* ChessPublica landing page — tab navigation + sandbox renderers. */
 
 const $ = (id) => document.getElementById(id);
-
-function debounce(fn, ms) {
-    let timer;
-    return function (...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), ms);
-    };
-}
 
 /* ── Tab switching ────────────────────────────────────────── */
 
@@ -32,19 +24,24 @@ document.addEventListener('click', (e) => {
 
 /* ── Sandbox renderers ────────────────────────────────────── */
 
-function showEmpty(host, message) {
+const BLANK_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+function renderBlankBoard(host) {
+    if (!host) return;
     host.innerHTML = '';
-    const empty = document.createElement('div');
-    empty.className = 'sandbox-empty';
-    empty.textContent = message;
-    host.appendChild(empty);
+    const el = document.createElement('fen');
+    el.textContent = BLANK_FEN;
+    host.appendChild(el);
+    if (window.JekyllChess && typeof window.JekyllChess.initAll === 'function') {
+        window.JekyllChess.initAll();
+    }
 }
 
-function renderInline(host, tagName, content, emptyMsg) {
+function renderInline(host, tagName, content) {
     if (!host) return;
     const trimmed = (content || '').trim();
     if (!trimmed) {
-        showEmpty(host, emptyMsg);
+        renderBlankBoard(host);
         return;
     }
     host.innerHTML = '';
@@ -56,11 +53,11 @@ function renderInline(host, tagName, content, emptyMsg) {
     }
 }
 
-function renderPlayer(host, content, emptyMsg) {
+function renderPlayer(host, content) {
     if (!host) return;
     const trimmed = (content || '').trim();
     if (!trimmed) {
-        showEmpty(host, emptyMsg);
+        renderBlankBoard(host);
         return;
     }
     host.innerHTML = '';
@@ -73,11 +70,11 @@ function renderPuzzle(host, fen, moves) {
     const cleanFen = (fen || '').trim();
     const cleanMoves = (moves || '').trim();
     if (!cleanFen || !cleanMoves) {
-        showEmpty(host, 'Enter a FEN and at least one solution move.');
+        renderBlankBoard(host);
         return;
     }
     const text = `[FEN "${cleanFen}"]\n\n${cleanMoves}`;
-    renderInline(host, 'puzzle', text, 'Enter puzzle data above to see a preview.');
+    renderInline(host, 'puzzle', text);
 }
 
 /* ── Defaults ─────────────────────────────────────────────── */
@@ -117,11 +114,11 @@ const DEFAULT_PLAYER = `[White "Carlsen, Magnus"]
 function initSandbox() {
     const fenInput = $('sandbox-fen-input');
     const fenHost = $('sandbox-fen-board');
-    if (fenInput && fenHost) {
+    const fenBtn = $('update-fen-btn');
+    if (fenInput && fenHost && fenBtn) {
         fenInput.value = DEFAULT_FEN;
-        const renderFen = () => renderInline(fenHost, 'fen', fenInput.value, 'Enter a FEN above to see a preview.');
-        fenInput.addEventListener('input', debounce(renderFen, 350));
-        renderFen();
+        fenBtn.addEventListener('click', () => renderInline(fenHost, 'fen', fenInput.value));
+        renderBlankBoard(fenHost);
     }
 
     const puzzleFen = $('sandbox-puzzle-fen');
@@ -129,27 +126,26 @@ function initSandbox() {
     const puzzleBtn = $('update-puzzle-btn');
     const puzzleHost = $('sandbox-puzzle-container');
     if (puzzleFen && puzzleSolution && puzzleBtn && puzzleHost) {
-        const renderPuzzleNow = () => renderPuzzle(puzzleHost, puzzleFen.value, puzzleSolution.value);
-        puzzleBtn.addEventListener('click', renderPuzzleNow);
-        renderPuzzleNow();
+        puzzleBtn.addEventListener('click', () => renderPuzzle(puzzleHost, puzzleFen.value, puzzleSolution.value));
+        renderBlankBoard(puzzleHost);
     }
 
     const pgnInput = $('sandbox-pgn-input');
     const pgnHost = $('sandbox-pgn-container');
-    if (pgnInput && pgnHost) {
+    const pgnBtn = $('update-pgn-btn');
+    if (pgnInput && pgnHost && pgnBtn) {
         pgnInput.value = DEFAULT_PGN;
-        const renderPgn = () => renderInline(pgnHost, 'pgn', pgnInput.value, 'Enter PGN above to see a preview.');
-        pgnInput.addEventListener('input', debounce(renderPgn, 400));
-        renderPgn();
+        pgnBtn.addEventListener('click', () => renderInline(pgnHost, 'pgn', pgnInput.value));
+        renderBlankBoard(pgnHost);
     }
 
     const playerInput = $('sandbox-player-input');
     const playerHost = $('sandbox-player-container');
-    if (playerInput && playerHost) {
+    const playerBtn = $('update-player-btn');
+    if (playerInput && playerHost && playerBtn) {
         playerInput.value = DEFAULT_PLAYER;
-        const renderPgnPlayer = () => renderPlayer(playerHost, playerInput.value, 'Enter PGN above to see a preview.');
-        playerInput.addEventListener('input', debounce(renderPgnPlayer, 500));
-        renderPgnPlayer();
+        playerBtn.addEventListener('click', () => renderPlayer(playerHost, playerInput.value));
+        renderBlankBoard(playerHost);
     }
 }
 
