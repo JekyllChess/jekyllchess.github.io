@@ -754,7 +754,11 @@ body {
 
 .sandbox-code-wrap {
     position: relative;
+    width: 100%;
     margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .sandbox-code {
