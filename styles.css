@@ -688,10 +688,41 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.75rem;
     padding: 2rem;
     background-color: var(--zinc-50);
     border-radius: 0.75rem;
     border: 1px solid var(--zinc-100);
+}
+
+.sandbox-host {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sandbox-host > .pgn-container,
+.sandbox-host > .jc-puzzle,
+.sandbox-host > .fen-container {
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+}
+
+.sandbox-host > pgn-player {
+    width: 100%;
+    max-width: 420px;
+    display: block;
+}
+
+.sandbox-empty {
+    color: var(--zinc-400);
+    font-style: italic;
+    font-size: 0.875rem;
+    padding: 2rem 0;
+    text-align: center;
 }
 
 /* Footer */

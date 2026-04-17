@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChessPublica - Minimal Chess Publishing Engine</title>
+    <link rel="stylesheet" href="/dist/ChessPublica.all.min.css">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -283,7 +284,7 @@
                             </div>
                         </div>
                         <div class="preview-panel">
-                            <div id="sandbox-fen-board" class="board-wrapper"></div>
+                            <div id="sandbox-fen-board" class="sandbox-host"></div>
                             <p id="sandbox-fen-label" class="preview-label">Live Preview</p>
                         </div>
                     </div>
@@ -308,7 +309,10 @@
                                 <button id="update-puzzle-btn" class="button-full">Update Puzzle</button>
                             </div>
                         </div>
-                        <div id="sandbox-puzzle-container"></div>
+                        <div class="preview-panel">
+                            <div id="sandbox-puzzle-container" class="sandbox-host"></div>
+                            <p class="preview-label">Live Preview</p>
+                        </div>
                     </div>
                 </div>
 
@@ -323,7 +327,10 @@
                                 <textarea id="sandbox-pgn-input" class="textarea" rows="8" placeholder="1. e4 e5..."></textarea>
                             </div>
                         </div>
-                        <div id="sandbox-pgn-container"></div>
+                        <div class="preview-panel">
+                            <div id="sandbox-pgn-container" class="sandbox-host"></div>
+                            <p class="preview-label">Live Preview</p>
+                        </div>
                     </div>
                 </div>
 
@@ -338,7 +345,10 @@
                                 <textarea id="sandbox-player-input" class="textarea" rows="8" placeholder="1. e4 e5..."></textarea>
                             </div>
                         </div>
-                        <div id="sandbox-player-container"></div>
+                        <div class="preview-panel">
+                            <div id="sandbox-player-container" class="sandbox-host"></div>
+                            <p class="preview-label">Live Preview</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -371,6 +381,7 @@
         </div>
     </footer>
 
+    <script src="/dist/ChessPublica.all.min.js"></script>
     <script type="module" src="/script.js"></script>
 </body>
 </html>
