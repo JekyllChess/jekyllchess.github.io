@@ -1,3 +1,2 @@
-/* ChessPublica bundle entry-point (used by build.js, not the site).
-   ChessPublica.js imports pgn-player.js internally. */
+/* ChessPublica bundle entry-point (used by build.js.) */
 import "./ChessPublica.js";
