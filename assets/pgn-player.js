@@ -8,6 +8,17 @@ import {
   getSquareCenter,
 } from "./board.js";
 
+/* Skip global keyboard shortcuts while the user is editing a form field,
+   otherwise Space / arrow keys would be swallowed instead of typed. */
+function isTypingTarget(target) {
+  const el = target || document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
 function loadPGN(pgn) {
 
   const chess = new Chess();
@@ -392,6 +403,9 @@ function loadPGN(pgn) {
 
     // Only handle keys for the active player
     if (VideoEngine.activeEngine !== engine) return;
+
+    // Don't hijack keys while the user is typing in a form control
+    if (isTypingTarget(e.target)) return;
 
     if (e.code === "ArrowRight") {
       e.preventDefault();
@@ -945,6 +959,7 @@ class VideoEngine {
     /* ---- Space bar (only for active player) ---- */
     document.addEventListener("keydown", (e) => {
       if (VideoEngine.activeEngine !== this) return;
+      if (isTypingTarget(e.target)) return;
       if (e.code === "Space") {
         e.preventDefault();
         this.togglePlay(true);

@@ -657,6 +657,31 @@ body {
     font-weight: 500;
 }
 
+.label .required {
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 0.125rem;
+}
+
+.label .optional {
+    color: var(--zinc-400);
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.field-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .field-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
 .input {
     width: 100%;
     font-family: var(--font-mono);
