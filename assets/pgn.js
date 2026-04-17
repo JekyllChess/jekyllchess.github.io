@@ -359,6 +359,7 @@ export function renderHeaders(headers, container) {
   var wTitle = headers.WhiteTitle || "";
   var bTitle = headers.BlackTitle || "";
 
+  var hasPlayers = !!(headers.White || headers.Black);
   var white = headers.White || "White";
   var black = headers.Black || "Black";
 
@@ -391,16 +392,23 @@ export function renderHeaders(headers, container) {
   var textDiv = document.createElement("div");
   textDiv.className = "video-title-text";
 
-  var playersDiv = document.createElement("div");
-  playersDiv.className = "video-title-players";
-  playersDiv.textContent = players;
-  textDiv.appendChild(playersDiv);
+  if (hasPlayers) {
+    var playersDiv = document.createElement("div");
+    playersDiv.className = "video-title-players";
+    playersDiv.textContent = players;
+    textDiv.appendChild(playersDiv);
 
-  if (eventLine) {
-    var eventDiv = document.createElement("div");
-    eventDiv.className = "video-title-event";
-    eventDiv.textContent = eventLine;
-    textDiv.appendChild(eventDiv);
+    if (eventLine) {
+      var eventDiv = document.createElement("div");
+      eventDiv.className = "video-title-event";
+      eventDiv.textContent = eventLine;
+      textDiv.appendChild(eventDiv);
+    }
+  } else if (eventLine) {
+    var eventOnly = document.createElement("div");
+    eventOnly.className = "video-title-players";
+    eventOnly.textContent = eventLine;
+    textDiv.appendChild(eventOnly);
   }
 
   title.appendChild(textDiv);
