@@ -7,6 +7,7 @@ import {
   toFigurine,
   parseCAL,
   parseCSL,
+  formatComment,
 } from "./helpers.js";
 import { renderFullPGN } from "./pgn.js";
 import { renderAnnotations } from "./board.js";
@@ -174,7 +175,7 @@ export function initFenElements() {
     if (caption) {
       var cap = document.createElement("div");
       cap.className = "fen-caption";
-      cap.textContent = caption;
+      cap.innerHTML = formatComment(caption);
       wrapper.appendChild(cap);
     }
 
