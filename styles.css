@@ -839,6 +839,130 @@ body {
     cursor: pointer;
 }
 
+/* Setup Section */
+.setup-section {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    border-top: 1px solid var(--zinc-100);
+}
+
+.setup-container {
+    width: 100%;
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.setup-card {
+    background-color: var(--white);
+    border: 1px solid var(--zinc-200);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.setup-card-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.setup-card-description {
+    color: var(--zinc-600);
+    font-size: 0.9375rem;
+    margin: 0 0 1rem 0;
+}
+
+.setup-card-description:last-child {
+    margin-bottom: 0;
+}
+
+.setup-subsection {
+    margin-top: 1.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--zinc-100);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.subsection-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+}
+
+.setup-steps {
+    counter-reset: setup-step;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.setup-steps > li {
+    counter-increment: setup-step;
+    position: relative;
+    padding-left: 2.5rem;
+    color: var(--zinc-700);
+    line-height: 1.6;
+}
+
+.setup-steps > li::before {
+    content: counter(setup-step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    background-color: var(--zinc-900);
+    color: var(--white);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.setup-steps strong {
+    color: var(--zinc-900);
+    font-weight: 600;
+}
+
+.setup-steps .code-block {
+    margin-top: 0.75rem;
+}
+
+.setup-footnote {
+    color: var(--zinc-600);
+    font-size: 0.9375rem;
+    margin: 0;
+    padding: 1rem 1.25rem;
+    background-color: var(--zinc-50);
+    border-left: 3px solid var(--zinc-300);
+    border-radius: 0.375rem;
+}
+
+.setup-link {
+    color: var(--zinc-900);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.setup-link:hover {
+    color: var(--zinc-600);
+}
+
 /* Footer */
 .footer {
     padding-top: 3rem;

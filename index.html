@@ -20,6 +20,7 @@
             <div class="nav-links">
                 <a href="#page-reference" class="nav-link">Reference</a>
                 <a href="#page-sandbox" class="nav-link">Sandbox</a>
+                <a href="#page-setup" class="nav-link">Setup</a>
                 <a href="https://chesspublica.github.io" class="nav-link">Docs</a>
             </div>
             <div class="nav-actions">
@@ -500,6 +501,98 @@
                 </div>
             </div>
         </section>
+
+        <!-- Setup Page -->
+        <section id="page-setup" class="setup-section">
+            <div class="section-header">
+                <h2 class="section-title">Setup</h2>
+                <p class="section-description">
+                    Add ChessPublica to any HTML page with two lines. No build step, no bundler, no framework.
+                </p>
+            </div>
+
+            <div class="setup-container">
+                <div class="setup-card">
+                    <h3 class="setup-card-title">1. Drop-in (CDN)</h3>
+                    <p class="setup-card-description">
+                        Paste the following into your page's <code class="code-inline">&lt;head&gt;</code> (or before the closing <code class="code-inline">&lt;/body&gt;</code>). The all-in-one bundle includes jQuery, Chess.js, and Chessboard.js — no extra <code class="code-inline">&lt;script&gt;</code> tags needed.
+                    </p>
+                    <div class="code-block">&lt;script src="https://cdn.jsdelivr.net/gh/ChessPublica/ChessPublica.github.io@main/dist/ChessPublica.all.min.js"&gt;&lt;/script&gt;
+&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ChessPublica/ChessPublica.github.io@main/dist/ChessPublica.all.min.css"&gt;</div>
+                </div>
+
+                <div class="setup-card">
+                    <h3 class="setup-card-title">2. Write chess in your HTML</h3>
+                    <p class="setup-card-description">
+                        Use the custom elements anywhere in your page. Pass FEN or PGN inline, or point to a file with the <code class="code-inline">src</code> attribute. ChessPublica scans the DOM on load and renders every element automatically.
+                    </p>
+                    <div class="code-block">&lt;fen&gt;rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1&lt;/fen&gt;
+
+&lt;puzzle src="/puzzles/mate-in-one.pgn"&gt;&lt;/puzzle&gt;
+
+&lt;pgn-player src="https://lichess.org/api/study/97di6JjX/Jzyakrf4.pgn"&gt;&lt;/pgn-player&gt;</div>
+                </div>
+
+                <div class="setup-card">
+                    <h3 class="setup-card-title">3. Publish</h3>
+                    <p class="setup-card-description">
+                        Open the file in your browser — or host it anywhere static files work (GitHub Pages, Netlify, Cloudflare Pages, your own server). No backend required.
+                    </p>
+                </div>
+
+                <!-- Recommended Method -->
+                <div class="setup-subsection">
+                    <div class="section-header">
+                        <h3 class="subsection-title">Recommended Method — GitHub Pages blog</h3>
+                        <p class="section-description">
+                            The fastest way to start a chess blog: a free GitHub Pages site powered by Jekyll. You write in Markdown, commit to <code class="code-inline">main</code>, and your posts go live in seconds.
+                        </p>
+                    </div>
+
+                    <ol class="setup-steps">
+                        <li>
+                            <strong>Create the repository.</strong> On GitHub, create a new public repo named <code class="code-inline">&lt;your-username&gt;.github.io</code>. That exact name turns it into a personal Pages site at <code class="code-inline">https://&lt;your-username&gt;.github.io</code>.
+                        </li>
+                        <li>
+                            <strong>Enable Pages &amp; Jekyll.</strong> Under <em>Settings → Pages</em>, set the source to <em>Deploy from a branch</em> and pick <code class="code-inline">main / (root)</code>. GitHub builds your Markdown with Jekyll on every push.
+                        </li>
+                        <li>
+                            <strong>Add a minimal config.</strong> Create <code class="code-inline">_config.yml</code> in the repo root with a theme, e.g.:
+                            <div class="code-block">title: My Chess Blog
+theme: minima
+markdown: kramdown</div>
+                        </li>
+                        <li>
+                            <strong>Wire in ChessPublica.</strong> Add the two drop-in lines from above to your layout (usually <code class="code-inline">_includes/head.html</code> or the <code class="code-inline">&lt;head&gt;</code> of your theme) so every post can use the elements.
+                        </li>
+                        <li>
+                            <strong>Write your first post.</strong> Create <code class="code-inline">_posts/2026-04-17-first-game.md</code>:
+                            <div class="code-block">---
+layout: post
+title: My First Annotated Game
+---
+
+A mate-in-one from my last blitz game:
+
+&lt;pgn&gt;
+[White "Me"]
+[Black "Opponent"]
+[Result "1-0"]
+
+1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6?? 4. Qxf7# { Scholar's Mate! }
+&lt;/pgn&gt;</div>
+                        </li>
+                        <li>
+                            <strong>Commit and push.</strong> GitHub Pages rebuilds automatically. Your post is live at <code class="code-inline">https://&lt;your-username&gt;.github.io/2026/04/17/first-game.html</code> — diagrams, puzzles, and interactive players included.
+                        </li>
+                    </ol>
+
+                    <p class="setup-footnote">
+                        Tip: you can use the <a href="#page-sandbox" class="setup-link">Sandbox</a> above to compose an element, click <strong>Copy Code</strong>, and paste the snippet straight into your post.
+                    </p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer class="footer">
@@ -515,6 +608,7 @@
                     <a href="/" class="footer-link">Home</a>
                     <a href="#page-reference" class="footer-link">Reference</a>
                     <a href="#page-sandbox" class="footer-link">Sandbox</a>
+                    <a href="#page-setup" class="footer-link">Setup</a>
                 </div>
                 <div class="footer-social">
                     <a href="https://github.com/ChessPublica/ChessPublica.github.io" class="icon-button">
