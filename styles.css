@@ -657,6 +657,31 @@ body {
     font-weight: 500;
 }
 
+.label .required {
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 0.125rem;
+}
+
+.label .optional {
+    color: var(--zinc-400);
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.field-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .field-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
 .input {
     width: 100%;
     font-family: var(--font-mono);
@@ -701,28 +726,22 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
 }
 
 .sandbox-host > .pgn-container,
 .sandbox-host > .jc-puzzle,
-.sandbox-host > .fen-container {
-    width: 100%;
-    max-width: 420px;
-    box-sizing: border-box;
-}
-
+.sandbox-host > .fen-container,
 .sandbox-host > pgn-player {
     width: 100%;
     max-width: 420px;
-    display: block;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.sandbox-empty {
-    color: var(--zinc-400);
-    font-style: italic;
-    font-size: 0.875rem;
-    padding: 2rem 0;
-    text-align: center;
+.sandbox-host > pgn-player {
+    display: block;
 }
 
 /* Footer */
