@@ -401,10 +401,72 @@ function initSandbox() {
     renderTabBoard('fen');
 }
 
+/* ── One-pager section highlighting ───────────────────────── */
+
+/* Watch top-level page sections and mark the nav link that points at
+   the currently-in-view section as .active. Uses IntersectionObserver
+   so scroll position updates are passive (no scroll listener). The
+   rootMargin biases the "active" band to the upper third of the
+   viewport so you don't toggle before a section is meaningfully
+   visible — and so very short sections still highlight when they
+   reach the top rather than when they fill the screen. */
+function initSectionHighlight() {
+    if (typeof IntersectionObserver !== 'function') return;
+
+    const links = Array.from(document.querySelectorAll('.nav-link[href^="#"]'));
+    if (!links.length) return;
+
+    const linkById = new Map();
+    const sections = [];
+    for (const link of links) {
+        const id = link.getAttribute('href').slice(1);
+        const section = document.getElementById(id);
+        if (!section) continue;
+        linkById.set(id, link);
+        sections.push(section);
+    }
+    if (!sections.length) return;
+
+    const visible = new Set();
+
+    const setActive = (id) => {
+        for (const link of linkById.values()) {
+            link.classList.toggle('active', link === linkById.get(id));
+        }
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) visible.add(entry.target.id);
+            else visible.delete(entry.target.id);
+        }
+        /* Pick the first section (document order) that is currently in
+           the active band. Falls back to the last section past the
+           viewport top when nothing intersects (e.g. a long section
+           that extends past both edges). */
+        let active = null;
+        for (const section of sections) {
+            if (visible.has(section.id)) { active = section.id; break; }
+        }
+        if (!active) {
+            for (const section of sections) {
+                if (section.getBoundingClientRect().top < 80) active = section.id;
+            }
+        }
+        if (active) setActive(active);
+    }, {
+        rootMargin: '-64px 0px -66% 0px',
+        threshold: 0,
+    });
+
+    for (const section of sections) observer.observe(section);
+}
+
 function init() {
     const yearEl = $('current-year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
     initSandbox();
+    initSectionHighlight();
 }
 
 if (document.readyState === 'loading') {
