@@ -343,7 +343,7 @@ function setDefaults() {
     const defaults = {
         'sandbox-fen-fen': '7k/1p1b1Qp1/1r6/p1r2pq1/1b1Np2p/4P3/K1BNR1PP/3R4 b - - 3 35',
         'sandbox-fen-orientation': 'black',
-        'sandbox-fen-caption': '**GM Praggnanandhaa R. - GM Sindarov, Javokhir**<br>FIDE Candidates Tournament, 2026.',
+        'sandbox-fen-caption': '**GM Praggnanandhaa R. - GM Sindarov, Javokhir**\nFIDE Candidates Tournament, 2026.',
         'sandbox-fen-csl': 'Ra2,Rf7',
         'sandbox-fen-cal': 'Gd7e6',
 
