@@ -185,16 +185,36 @@ export function initFenElements() {
 
     requestAnimationFrame(function () {
       try {
-        Chessboard(boardDiv, {
+        var widget = Chessboard(boardDiv, {
           position: fenStr,
           orientation: orientation || "white",
           pieceTheme: PIECE_THEME,
         });
-        if (squareMarks.length || arrows.length) {
-          renderAnnotations(boardDiv, {
-            squareMarks: squareMarks,
-            arrows: arrows,
+        var annotations = (squareMarks.length || arrows.length)
+          ? { squareMarks: squareMarks, arrows: arrows }
+          : null;
+        if (annotations) {
+          renderAnnotations(boardDiv, annotations);
+        }
+
+        /* Keep the board (and its annotation overlay) in sync with the
+           container width. chessboard.js sizes its inner .board-b72b1
+           in fixed pixels at init, so when the viewport resizes the
+           outer .jc-board scales via CSS max-width but the inner squares
+           stay put — leaving any circles/arrows misaligned. Observing
+           .jc-board lets us re-run widget.resize() and re-draw the
+           annotations on top of the freshly-laid-out squares. */
+        if (typeof ResizeObserver !== "undefined" && widget && typeof widget.resize === "function") {
+          var pendingFrame = null;
+          var ro = new ResizeObserver(function () {
+            if (pendingFrame) return;
+            pendingFrame = requestAnimationFrame(function () {
+              pendingFrame = null;
+              widget.resize();
+              if (annotations) renderAnnotations(boardDiv, annotations);
+            });
           });
+          ro.observe(boardDiv);
         }
       } catch (e) {
         showError(wrapper, "failed to render board: " + e.message);
